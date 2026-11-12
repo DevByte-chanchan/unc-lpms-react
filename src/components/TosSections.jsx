@@ -1,5 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, ChevronRight, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download, Clock, AlertTriangle, Send} from 'react-feather';
+import {ChevronLeft, ChevronRight, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download, Clock, AlertTriangle, Send, MessageSquare, Plus, Eye, X, Check} from 'react-feather';
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
@@ -799,6 +799,24 @@ const TosSections = ({role = 'instructor'}) => {
         setCommentBody('');
     };
 
+    const handleStartCommentFromPopup = (t) => {
+        if (!t || !confirmDiscard()) return;
+        setViewItemsTarget(null);
+        setShowComment(true);
+        setShowResolvedPH(false);
+        setAddingComment(true);
+        setActiveScope({
+            co: t.co || '\u2014',
+            ilo: t.ilo || '\u2014',
+            cognitiveLevel: t.cognitiveLevel || '\u2014',
+            itemNumber: undefined,
+            courseOutcomeId: t.courseOutcomeId || null,
+            assessmentItemId: null
+        });
+        setCommentType('');
+        setCommentBody('');
+    };
+
     const handleAssessmentFileClick = (att, co, ilo) => {
         if (!addingComment) return;
         setActiveScope({
@@ -1294,7 +1312,7 @@ const TosSections = ({role = 'instructor'}) => {
                             </button>
                         </div>
                         {isOverdue && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: 12, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 4, marginLeft: 8 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', fontSize: 12, fontWeight: 600, color: '#DC2626', background: 'transparent', border: '1px solid #DC2626', borderRadius: 9999, marginLeft: 8 }}>
                                 <AlertTriangle size={12} color="#DC2626" aria-hidden="true" />
                                 Overdue
                             </span>
@@ -1315,12 +1333,27 @@ const TosSections = ({role = 'instructor'}) => {
                             ) : effectiveStatus === 'pending' ? (
                                 <>
                                     <div ref={commentBtnRef} className={`${styles.draft} ${layout.commentBtn} ${showComment ? layout.commentBtnActive : ''}`} onClick={toggleCommentPanel}>
-                                        Add Comment
+                                        <MessageSquare size={15} />
+                                        <span>Comments</span>
+                                        {comments.filter(c => !c.resolved).length > 0 && (
+                                            <span className={layout.commentCountBadge}>{comments.filter(c => !c.resolved).length}</span>
+                                        )}
                                     </div>
-                                    <button className={styles.submit} onClick={handleStartApprove} disabled={approveLoading}>
-                                        {approveLoading ? <Loader size={16} className={layout.spinner} /> : <CheckCircle size={15} />}
-                                        {approveLoading ? 'Approving…' : 'Approve'}
-                                    </button>
+                                    {showComment ? (
+                                        <button
+                                            className={layout.headerReturnBtn}
+                                            disabled={!comments.some(c => (c.scope?.returnNumber || c.returnNumber) === returnCount + 1) || returnLoading}
+                                            onClick={handleStartReturn}
+                                        >
+                                            {returnLoading ? <Loader size={16} className={layout.spinner} /> : <RotateCcw size={15} />}
+                                            {returnLoading ? 'Returning…' : 'Return'}
+                                        </button>
+                                    ) : (
+                                        <button className={styles.submit} onClick={handleStartApprove} disabled={approveLoading}>
+                                            {approveLoading ? <Loader size={16} className={layout.spinner} /> : <CheckCircle size={15} />}
+                                            {approveLoading ? 'Approving…' : 'Approve'}
+                                        </button>
+                                    )}
                                 </>
                             ) : (
                                 <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>Draft (Not Submitted)</span>
@@ -1479,7 +1512,7 @@ const TosSections = ({role = 'instructor'}) => {
                                                                  <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}<InfoBadge text={co.description} /></div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
-                                                                  <td className={`${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width, isEmpty: !(co.totalPoints || 0) }); }}><div className={previewLayout.cellBox}>{co.totalPoints || 0}</div></td>
+                                                                  <td className={`${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Points', courseOutcomeId: co.dbId, top: r.bottom, left: r.left, width: r.width, isEmpty: !(co.totalPoints || 0) }); }}><div className={previewLayout.cellBox}>{co.totalPoints || 0}</div></td>
                                                                   {cognitiveLevels.map(level => (
                                                                      <td key={level} style={{ background: 'white' }}></td>
                                                                  ))}
@@ -1489,11 +1522,11 @@ const TosSections = ({role = 'instructor'}) => {
                                                                       <td><div className={previewLayout.cellBox}>{ilo.id}<InfoBadge text={ilo.description} /></div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.hours || 0}</div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.percentage || 0}</div></td>
-                                                                        <td className={`${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width, isEmpty: !(ilo.items || 0) }); }}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
+                                                                        <td className={`${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Points', courseOutcomeId: co.dbId, top: r.bottom, left: r.left, width: r.width, isEmpty: !(ilo.items || 0) }); }}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
                                                                      {cognitiveLevels.map(level => {
 const items = aggregatedData[co.co][ilo.id][level];
                                                                           return (
-                                                                                 <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
+                                                                                 <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, courseOutcomeId: co.dbId, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
                                                                                       {(() => { const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0); return pts > 0 ? <span className={previewLayout.pointValue}>{pts}</span> : <span className={previewLayout.emptyDash}>{'\u2014'}</span>; })()}
 
 
@@ -1543,18 +1576,28 @@ const items = aggregatedData[co.co][ilo.id][level];
                             )}
                             {displayTarget && (
                                 <div className={`${layout.viewItemsPopup}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} style={{ top: displayTarget.top + 4, left: displayTarget.left + displayTarget.width / 2 }}>
-                                        <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => handleViewAssessmentsJump(viewItemsTarget)}>View assessments</button>
+                                    <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => handleViewAssessmentsJump(viewItemsTarget)}>
+                                        <Eye size={14} /> View assessments
+                                    </button>
+                                    {effectiveStatus === 'pending' && displayTarget.cognitiveLevel !== 'Points' && (
+                                        <button className={layout.addCommentPopupBtn} onClick={() => handleStartCommentFromPopup(viewItemsTarget || displayTarget)}>
+                                            <MessageSquare size={14} /> Add comment
+                                        </button>
+                                    )}
                                 </div>
                             )}
                             {(showComment || isReturnedView) && effectiveStatus !== 'approved' && <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past returns' : 'Comments'}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past Returns' : 'Comments'}</span>
+                                        {!showResolvedPH && comments.filter(c => !c.resolved).length > 0 && (
+                                            <span className={layout.commentPanelCount}>{comments.filter(c => !c.resolved).length}</span>
+                                        )}
                                         {returnCount >= 2 && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
                                             {showResolvedPH ? 'See active comments' : 'See past returns'}
                                         </button>}
                                     </div>
-                                    {!isReturnedView && <span style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1, color: '#888', userSelect: 'none' }} onClick={closeCommentPanel}>&times;</span>}
+                                    {!isReturnedView && <button className={layout.commentPanelClose} onClick={closeCommentPanel} title="Close comments">&times;</button>}
                                 </div>
                                 <div ref={commentBodyRef} className={layout.commentPanelBody}>
                                     {scrolledPastForm && (
@@ -1587,32 +1630,30 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         </div>
                                     ) : isReturnedView || showResolvedPH ? null : (
                                         <button className={layout.addCommentBtn} onClick={() => setAddingComment(true)}>
-                                            + New Comment
+                                            <Plus size={15} /> New Comment
                                         </button>
                                     )}
                                     {showResolvedPH ? (
                                         <>
                                             {returnCount > 0 && (
-                                                <div style={{ marginBottom: 4 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
-                                                        <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ flex: 1 }}>
-                                                            <option value="all">All returns</option>
-                                                            {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
-                                                                <option key={n} value={n}>Return {n}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ width: '100%' }}>
+                                                        <option value="all">All returns</option>
+                                                        {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
+                                                            <option key={n} value={n}>Return {n}</option>
+                                                        ))}
+                                                    </select>
                                                 </div>
                                             )}
-                                            <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 20 }} />
+                                            <div className={layout.commentRoundDivider} />
                                             {returnFilter !== 'all' && returnDates[Number(returnFilter) - 1] && (
-                                                <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 12 }}>
+                                                <div className={layout.commentRoundBadge}>
                                                     Returned {new Date(returnDates[Number(returnFilter) - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                                                 </div>
                                             )}
                                             {(() => {
                                                 const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
-                                                if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
+                                                if (filtered.length === 0) return <div className={layout.commentEmptyState}>No comments from past returns</div>;
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
@@ -1626,9 +1667,9 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 const groups = {};
                                                 filtered.forEach(c => { const r = c.scope.returnNumber || 0; if (!groups[r]) groups[r] = []; groups[r].push(c); });
                                                 return Object.keys(groups).sort((a, b) => a - b).map(r => (
-                                                    <div key={r}>
-                                                        <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
-                                                            Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                    <div key={r} className={layout.commentRoundGroup}>
+                                                        <div className={layout.commentRoundBadge}>
+                                                            Return {r}{returnDates[r - 1] ? ` · ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
@@ -1650,13 +1691,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         <div className={layout.commentSectionLabel}>Other open comments ({comments.filter(c => !c.resolved).length})</div>
                                     )}
                                     {comments.filter(c => !c.resolved).length === 0 && !addingComment && (
-                                        <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
+                                        <div className={layout.commentEmptyState}>No comments yet</div>
                                     )}
                                     {comments.filter(c => !c.resolved).map(c => (
                                         <div key={c.id} className={`${layout.commentCard}${addingComment ? ` ${layout.commentCardDimmed}` : ''}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                             <div className={layout.commentCardHeader}>
                                                 <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
-                                                {!isReturnedView && <span className={layout.commentDeleteBtnWrap} title="Delete comment" onClick={e => { e.stopPropagation(); handleDeleteComment(c.id); }}><Trash2 size={16} /></span>}
+                                                {!isReturnedView && <span className={layout.commentDeleteBtnWrap} title="Delete comment" onClick={e => { e.stopPropagation(); handleDeleteComment(c.id); }}><Trash2 size={15} /></span>}
                                             </div>
                                             {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                             <div className={layout.commentCardBody}>{c.body}</div>
@@ -1666,12 +1707,6 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         </>
                                     )}
                                 </div>
-                                {!isReturnedView && !showResolvedPH && <div className={layout.commentPanelFooter}>
-                                    <button className={layout.commentReturnBtn} disabled={!comments.some(c => (c.scope?.returnNumber || c.returnNumber) === returnCount + 1) || returnLoading} onClick={handleStartReturn}>
-                                        {returnLoading ? <Loader size={16} className={layout.spinner} /> : null}
-                                        {returnLoading ? 'Returning…' : 'Return'}
-                                    </button>
-                                </div>}
                             </div>}
                         </div>
                         )
@@ -1681,11 +1716,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                                 {selectedSection === 'Outcome Overview' &&
                                     <section>
                                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '16px 20px', border: '1px solid #DDDFDF', borderLeft: '4px solid #9CA3AF', borderRadius: 5, background: '#FFFFFF' }}>
-                                            <div style={{ minWidth: 0 }}>
-                                                <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
-                                                <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
-                                                {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                        <div className={layout.totalPointsCard}>
+                                            <div className={layout.totalPointsInfo}>
+                                                <h3 className={layout.totalPointsTitle}>TOS Total Points</h3>
+                                                <p className={layout.totalPointsSubtitle}>
+                                                    Enter the total points of the exam. Points per CO and ILO are calculated automatically.
+                                                </p>
+                                                {tosTotalError && <div className={layout.totalPointsError}>{tosTotalError}</div>}
                                                 {!allIlosComplete && (
                                                     <div className={layout.tosAllocationWarning}>
                                                         <AlertTriangle size={15} />
@@ -1693,15 +1730,19 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     </div>
                                                 )}
                                             </div>
-                                            <input
-                                                className={layout.input}
-                                                style={{ width: 100, height: 'auto', flexShrink: 0, padding: '8px 12px', fontSize: 16, fontWeight: 600, textAlign: 'center', border: '1px solid #C4C8CC', borderRadius: 5, background: '#FFFFFF' }}
-                                                type="text"
-                                                inputMode="numeric"
-                                                readOnly={readOnly}
-                                                value={tosTotalPoints}
-                                                onChange={(e) => handleTotalPointsChange(e.target.value)}
-                                            />
+                                            <div className={layout.totalPointsInputWrap}>
+                                                <input
+                                                    className={layout.totalPointsInput}
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    readOnly={readOnly}
+                                                    value={tosTotalPoints}
+                                                    onChange={(e) => handleTotalPointsChange(e.target.value)}
+                                                    placeholder="0"
+                                                    aria-label="TOS Total Points"
+                                                />
+                                                <span className={layout.totalPointsUnit}>pts</span>
+                                            </div>
                                         </div>
                                         <table className={`${layout.table} ${layout.TOSTable}`}>
                                             <thead>
@@ -1814,8 +1855,11 @@ const items = aggregatedData[co.co][ilo.id][level];
                             {selectedSection === 'Assessments' && (
                             <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past returns' : 'Comments'}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past Returns' : 'Comments'}</span>
+                                        {!showResolvedPH && comments.filter(c => !c.resolved).length > 0 && (
+                                            <span className={layout.commentPanelCount}>{comments.filter(c => !c.resolved).length}</span>
+                                        )}
                                         {returnCount >= 2 && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
                                             {showResolvedPH ? 'See active comments' : 'See past returns'}
                                         </button>}
@@ -1830,26 +1874,24 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     {showResolvedPH ? (
                                         <>
                                             {returnCount > 0 && (
-                                                <div style={{ marginBottom: 4 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
-                                                        <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ flex: 1 }}>
-                                                            <option value="all">All returns</option>
-                                                            {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
-                                                                <option key={n} value={n}>Return {n}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ width: '100%' }}>
+                                                        <option value="all">All returns</option>
+                                                        {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
+                                                            <option key={n} value={n}>Return {n}</option>
+                                                        ))}
+                                                    </select>
                                                 </div>
                                             )}
-                                            <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 20 }} />
+                                            <div className={layout.commentRoundDivider} />
                                             {returnFilter !== 'all' && returnDates[Number(returnFilter) - 1] && (
-                                                <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 12 }}>
+                                                <div className={layout.commentRoundBadge}>
                                                     Returned {new Date(returnDates[Number(returnFilter) - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                                                 </div>
                                             )}
                                             {(() => {
                                                 const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
-                                                if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
+                                                if (filtered.length === 0) return <div className={layout.commentEmptyState}>No comments from past returns</div>;
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
@@ -1863,9 +1905,9 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 const groups = {};
                                                 filtered.forEach(c => { const r = c.scope.returnNumber || 0; if (!groups[r]) groups[r] = []; groups[r].push(c); });
                                                 return Object.keys(groups).sort((a, b) => a - b).map(r => (
-                                                    <div key={r}>
-                                                        <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
-                                                            Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                    <div key={r} className={layout.commentRoundGroup}>
+                                                        <div className={layout.commentRoundBadge}>
+                                                            Return {r}{returnDates[r - 1] ? ` · ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
@@ -1888,7 +1930,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         return (
                                             <>
                                                 {unresolved.length === 0 && (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 16px' }}>
+                                                    <div className={layout.commentEmptyState}>
                                                         <CheckCircle size={28} color={resolvedCurrentReturn.length > 0 ? '#10B981' : '#9CA3AF'} strokeWidth={1.75} />
                                                         <span>{resolvedCurrentReturn.length > 0 ? 'All comments resolved' : 'No comments yet'}</span>
                                                     </div>
@@ -1897,7 +1939,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
                                                             <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
-                                                            <span className={layout.commentResolveBtnWrap} title="Mark as resolved" onClick={(e) => { e.stopPropagation(); handleResolveComment(c.id); }}><CheckCircle size={16} /></span>
+                                                            <span className={layout.commentResolveBtnWrap} title="Mark as resolved" onClick={(e) => { e.stopPropagation(); handleResolveComment(c.id); }}><CheckCircle size={15} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1918,7 +1960,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     <div key={c.id} className={`${layout.commentCard} ${layout.commentCardResolved}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
                                                             <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
-                                                            <span className={layout.commentUndoBtnWrap} title="Unresolve comment" onClick={(e) => { e.stopPropagation(); handleUnresolveComment(c.id); }}><RotateCcw size={16} /></span>
+                                                            <span className={layout.commentUndoBtnWrap} title="Unresolve comment" onClick={(e) => { e.stopPropagation(); handleUnresolveComment(c.id); }}><RotateCcw size={15} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -2058,15 +2100,20 @@ const items = aggregatedData[co.co][ilo.id][level];
                                 )}
                                 {displayTarget && (
                                     <div className={`${layout.viewItemsPopup}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} style={{ top: displayTarget.top + 4, left: displayTarget.left + displayTarget.width / 2 }}>
-                                            <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => handleViewAssessmentsJump(viewItemsTarget)}>View assessments</button>
+                                        <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => handleViewAssessmentsJump(viewItemsTarget)}>
+                                            <Eye size={14} /> View assessments
+                                        </button>
                                     </div>
                                 )}
                             </div>
                             {isInstructorPendingWithComments && (
                             <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past returns' : 'Comments'}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past Returns' : 'Comments'}</span>
+                                        {!showResolvedPH && comments.filter(c => !c.resolved).length > 0 && (
+                                            <span className={layout.commentPanelCount}>{comments.filter(c => !c.resolved).length}</span>
+                                        )}
                                         {returnCount >= 2 && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
                                             {showResolvedPH ? 'See active comments' : 'See past returns'}
                                         </button>}
@@ -2081,26 +2128,24 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     {showResolvedPH ? (
                                         <>
                                             {returnCount > 0 && (
-                                                <div style={{ marginBottom: 4 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
-                                                        <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ flex: 1 }}>
-                                                            <option value="all">All returns</option>
-                                                            {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
-                                                                <option key={n} value={n}>Return {n}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ width: '100%' }}>
+                                                        <option value="all">All returns</option>
+                                                        {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
+                                                            <option key={n} value={n}>Return {n}</option>
+                                                        ))}
+                                                    </select>
                                                 </div>
                                             )}
-                                            <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 20 }} />
+                                            <div className={layout.commentRoundDivider} />
                                             {returnFilter !== 'all' && returnDates[Number(returnFilter) - 1] && (
-                                                <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 12 }}>
+                                                <div className={layout.commentRoundBadge}>
                                                     Returned {new Date(returnDates[Number(returnFilter) - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                                                 </div>
                                             )}
                                             {(() => {
                                                 const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
-                                                if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
+                                                if (filtered.length === 0) return <div className={layout.commentEmptyState}>No comments from past returns</div>;
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
@@ -2114,9 +2159,9 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 const groups = {};
                                                 filtered.forEach(c => { const r = c.scope.returnNumber || 0; if (!groups[r]) groups[r] = []; groups[r].push(c); });
                                                 return Object.keys(groups).sort((a, b) => a - b).map(r => (
-                                                    <div key={r}>
-                                                        <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
-                                                            Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                    <div key={r} className={layout.commentRoundGroup}>
+                                                        <div className={layout.commentRoundBadge}>
+                                                            Return {r}{returnDates[r - 1] ? ` · ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
@@ -2135,7 +2180,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     ) : (
                                         <>
                                         {comments.filter(c => !c.resolved).length === 0 ? (
-                                            <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments</div>
+                                            <div className={layout.commentEmptyState}>No comments</div>
                                         ) : (
                                             comments.filter(c => !c.resolved).map(c => (
                                                 <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
@@ -2160,11 +2205,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                             {selectedSection === 'Outcome Overview' &&
                                 <section>
                                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '16px 20px', border: '1px solid #DDDFDF', borderLeft: '4px solid #9CA3AF', borderRadius: 5, background: '#FFFFFF' }}>
-                                            <div style={{ minWidth: 0 }}>
-                                                <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
-                                                <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
-                                                {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                        <div className={layout.totalPointsCard}>
+                                            <div className={layout.totalPointsInfo}>
+                                                <h3 className={layout.totalPointsTitle}>TOS Total Points</h3>
+                                                <p className={layout.totalPointsSubtitle}>
+                                                    Enter the total points of the exam. Points per CO and ILO are calculated automatically.
+                                                </p>
+                                                {tosTotalError && <div className={layout.totalPointsError}>{tosTotalError}</div>}
                                                 {!allIlosComplete && (
                                                     <div className={layout.tosAllocationWarning}>
                                                         <AlertTriangle size={15} />
@@ -2172,15 +2219,19 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     </div>
                                                 )}
                                             </div>
-                                            <input
-                                                className={layout.input}
-                                                style={{ width: 100, height: 'auto', flexShrink: 0, padding: '8px 12px', fontSize: 16, fontWeight: 600, textAlign: 'center', border: '1px solid #C4C8CC', borderRadius: 5, background: '#FFFFFF' }}
-                                                type="text"
-                                                inputMode="numeric"
-                                                readOnly={readOnly}
-                                                value={tosTotalPoints}
-                                                onChange={(e) => handleTotalPointsChange(e.target.value)}
-                                            />
+                                            <div className={layout.totalPointsInputWrap}>
+                                                <input
+                                                    className={layout.totalPointsInput}
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    readOnly={readOnly}
+                                                    value={tosTotalPoints}
+                                                    onChange={(e) => handleTotalPointsChange(e.target.value)}
+                                                    placeholder="0"
+                                                    aria-label="TOS Total Points"
+                                                />
+                                                <span className={layout.totalPointsUnit}>pts</span>
+                                            </div>
                                         </div>
                                         <table className={`${layout.table} ${layout.TOSTable}`}>
                                         <thead>
@@ -2307,30 +2358,32 @@ const items = aggregatedData[co.co][ilo.id][level];
             />
 
             {showExportErrorModal && (
-                <div className={layout.modalOverlay}>
-                    <div className={layout.modal}>
+                <div className={layout.modalOverlay} onClick={() => setShowExportErrorModal(false)}>
+                    <div className={layout.modal} onClick={e => e.stopPropagation()}>
                         <div className={layout.modalHeader}>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>Export Validation Errors</h3>
-                            <span style={{ cursor: "pointer", fontSize: "20px", color: '#999' }} onClick={() => setShowExportErrorModal(false)}>×</span>
+                            <h3>Export Validation Errors</h3>
+                            <button type="button" className={layout.closeIcon} onClick={() => setShowExportErrorModal(false)} aria-label="Close">
+                                <X size={18} />
+                            </button>
                         </div>
                         <div className={layout.modalBody} style={{ textAlign: 'left' }}>
-                            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '0.9rem' }}>Please fix the following before exporting:</p>
+                            <p style={{ margin: '0 0 14px 0', color: '#4B5563', fontSize: '14px' }}>Please address the following requirements before exporting:</p>
                             {exportErrors.outcomeOverview.length > 0 && (
                                 <div className={layout.errorBlock}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1A1A1A', marginBottom: 6 }}>Outcome Overview</div>
-                                    {exportErrors.outcomeOverview.map((e, i) => <div key={i} style={{ fontSize: '0.8rem', color: '#555', padding: '2px 0' }}>• {e}</div>)}
+                                    <div style={{ fontWeight: 600, fontSize: '13px', color: '#111827', marginBottom: 6 }}>Outcome Overview</div>
+                                    {exportErrors.outcomeOverview.map((e, i) => <div key={i} style={{ fontSize: '12.5px', color: '#4B5563', padding: '2px 0' }}>• {e}</div>)}
                                 </div>
                             )}
                             {exportErrors.assessmentMapping.length > 0 && (
                                 <div className={layout.errorBlock}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1A1A1A', marginBottom: 6 }}>Assessment Alignment</div>
-                                    {exportErrors.assessmentMapping.map((e, i) => <div key={i} style={{ fontSize: '0.8rem', color: '#555', padding: '2px 0' }}>• {e}</div>)}
+                                    <div style={{ fontWeight: 600, fontSize: '13px', color: '#111827', marginBottom: 6 }}>Assessment Alignment</div>
+                                    {exportErrors.assessmentMapping.map((e, i) => <div key={i} style={{ fontSize: '12.5px', color: '#4B5563', padding: '2px 0' }}>• {e}</div>)}
                                 </div>
                             )}
                             {exportErrors.tosSummary.length > 0 && (
                                 <div className={layout.errorBlock}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1A1A1A', marginBottom: 6 }}>TOS Summary</div>
-                                    {exportErrors.tosSummary.map((e, i) => <div key={i} style={{ fontSize: '0.8rem', color: '#555', padding: '2px 0' }}>• {e}</div>)}
+                                    <div style={{ fontWeight: 600, fontSize: '13px', color: '#111827', marginBottom: 6 }}>TOS Summary</div>
+                                    {exportErrors.tosSummary.map((e, i) => <div key={i} style={{ fontSize: '12.5px', color: '#4B5563', padding: '2px 0' }}>• {e}</div>)}
                                 </div>
                             )}
                         </div>
@@ -2339,7 +2392,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                 className={layout.fixBtn}
                                 onClick={() => setShowExportErrorModal(false)}
                             >
-                                Okay, I'll fix it
+                                <Check size={15} /> Okay, I'll Fix It
                             </button>
                         </div>
                     </div>
@@ -2350,19 +2403,21 @@ const items = aggregatedData[co.co][ilo.id][level];
                 <div className={layout.modalOverlay} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>
                     <div className={layout.modal} onClick={e => e.stopPropagation()}>
                         <div className={layout.modalHeader}>
-                            <h3 style={{ color: "#1A1A1A" }}>Approve TOS</h3>
-                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>×</span>
+                            <h3>Approve Table of Specifications</h3>
+                            <button type="button" className={layout.closeIcon} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }} aria-label="Close">
+                                <X size={18} />
+                            </button>
                         </div>
                         <div className={layout.modalBody}>
                             {openComments.length > 0 ? (
                                 <div style={{ textAlign: 'left' }}>
-                                    <p style={{ color: "#555", margin: '0 0 16px 0', textAlign: 'left' }}>
-                                        The following {openComments.length === 1 ? 'comment' : `${openComments.length} comments`} will be discarded. Proceed to approval?
+                                    <p style={{ color: "#4B5563", margin: '0 0 14px 0', fontSize: '14px' }}>
+                                        The following {openComments.length === 1 ? 'open comment' : `${openComments.length} open comments`} will be discarded upon approval. Proceed?
                                     </p>
-                                    <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
+                                    <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
                                         {openComments.map(c => (
-                                            <div key={c.id} style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB', textAlign: 'left' }}>
-                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#1F2937', marginBottom: 4, wordBreak: 'break-word' }}>
+                                            <div key={c.id} style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB', textAlign: 'left' }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#111827', marginBottom: 3, wordBreak: 'break-word' }}>
                                                     {formatScopeText(c.scope)}
                                                 </div>
                                                 <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.4, wordBreak: 'break-word' }}>
@@ -2373,13 +2428,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     </div>
                                 </div>
                             ) : (
-                                <p style={{ color: "#555" }}>Approve this TOS?</p>
+                                <p style={{ color: "#4B5563", fontSize: '14px', margin: 0 }}>Are you sure you want to approve this Table of Specifications?</p>
                             )}
                         </div>
                         <div className={layout.modalActions}>
                             <button className={layout.cancelBtn} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>Cancel</button>
                             <button className={layout.confirmBtn} onClick={handleConfirmApprove}>
-                                {openComments.length > 0 ? 'Proceed to approval' : 'Confirm'}
+                                <CheckCircle size={15} /> {openComments.length > 0 ? 'Proceed to Approval' : 'Approve TOS'}
                             </button>
                         </div>
                     </div>
@@ -2390,12 +2445,14 @@ const items = aggregatedData[co.co][ilo.id][level];
                 <div className={layout.modalOverlay} onClick={() => { if (approveTimerRef.current) clearTimeout(approveTimerRef.current); setShowApproveCountdown(false); setApproveLoading(false); }}>
                     <div className={previewLayout.confirmPopup} onClick={e => e.stopPropagation()}>
                         <div className={previewLayout.confirmTextRow}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#19282C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            <p className={previewLayout.confirmText}>{openComments.length > 0 ? 'Approving TOS (comments will be discarded)' : 'Approving TOS'}</p>
+                            <CheckCircle size={20} color="#059669" />
+                            <p className={previewLayout.confirmText}>{openComments.length > 0 ? 'Approving TOS (Comments Discarded)' : 'Approving TOS'}</p>
                         </div>
                         <div className={previewLayout.spinner} />
                         <span className={previewLayout.countdown}>{approveCountdown}s</span>
-                        <button className={previewLayout.undoBtn} onClick={() => { if (approveTimerRef.current) clearTimeout(approveTimerRef.current); setShowApproveCountdown(false); setApproveLoading(false); }}>Undo</button>
+                        <button className={previewLayout.undoBtn} onClick={() => { if (approveTimerRef.current) clearTimeout(approveTimerRef.current); setShowApproveCountdown(false); setApproveLoading(false); }}>
+                            <RotateCcw size={14} /> Undo
+                        </button>
                     </div>
                 </div>
             )}
@@ -2404,16 +2461,18 @@ const items = aggregatedData[co.co][ilo.id][level];
                 <div className={layout.modalOverlay} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>
                     <div className={layout.modal} onClick={e => e.stopPropagation()}>
                         <div className={layout.modalHeader}>
-                            <h3 style={{ color: "#1A1A1A" }}>Return TOS</h3>
-                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>×</span>
+                            <h3>Return Table of Specifications</h3>
+                            <button type="button" className={layout.closeIcon} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }} aria-label="Close">
+                                <X size={18} />
+                            </button>
                         </div>
                         <div className={layout.modalBody}>
-                            <p style={{ color: "#555" }}>Return this TOS with comments?</p>
+                            <p style={{ color: "#4B5563", fontSize: '14px', margin: 0 }}>Are you sure you want to return this Table of Specifications with review comments?</p>
                         </div>
                         <div className={layout.modalActions}>
                             <button className={layout.cancelBtn} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>Cancel</button>
-                            <button className={layout.confirmBtn} onClick={handleConfirmReturn}>
-                                Confirm
+                            <button className={layout.returnConfirmBtn} onClick={handleConfirmReturn}>
+                                <RotateCcw size={15} /> Confirm Return
                             </button>
                         </div>
                     </div>
@@ -2424,12 +2483,14 @@ const items = aggregatedData[co.co][ilo.id][level];
                 <div className={layout.modalOverlay} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); setReturnLoading(false); }}>
                     <div className={previewLayout.confirmPopup} onClick={e => e.stopPropagation()}>
                         <div className={previewLayout.confirmTextRow}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#19282C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            <p className={previewLayout.confirmText}>Returning TOS with comments</p>
+                            <RotateCcw size={20} color="#DC2626" />
+                            <p className={previewLayout.confirmText}>Returning TOS with Comments</p>
                         </div>
                         <div className={previewLayout.spinner} />
                         <span className={previewLayout.countdown}>{returnCountdown}s</span>
-                        <button className={previewLayout.undoBtn} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); setReturnLoading(false); }}>Undo</button>
+                        <button className={previewLayout.undoBtn} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); setReturnLoading(false); }}>
+                            <RotateCcw size={14} /> Undo
+                        </button>
                     </div>
                 </div>
             )}
@@ -2658,10 +2719,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                             </div>
                             <div className={layout.hlBody}>
                                 <div className={layout.hlLeft}>
-                                    <select className={layout.historyPageSelect} value={historyPage} onChange={e => setHistoryPage(e.target.value)}>
-                                        <option value="tosReport">Table of Specifications Report</option>
-                                        <option value="assessmentItems">Assessments</option>
-                                    </select>
+                                    <div className={layout.hlLeftHeader}>
+                                        <select className={layout.historyPageSelect} value={historyPage} onChange={e => setHistoryPage(e.target.value)}>
+                                            <option value="tosReport">Table of Specifications Report</option>
+                                            <option value="assessmentItems">Assessments</option>
+                                        </select>
+                                    </div>
+                                    <div className={layout.hlLeftContent}>
                                     {historyPage === 'tosReport' ? (() => {
                                         const totalHours = rows.reduce((s, r) => s + (r.totalHours || 0), 0);
                                         const totalPercentage = Math.min(rows.reduce((s, r) => s + (r.totalPercentage || 0), 0), 100);
@@ -2779,6 +2843,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             period={fromExamType}
                                         />
                                     )}
+                                    </div>
                                 </div>
                                 <div className={layout.hlRight}>
                                     <div className={layout.hlVersionList}>
@@ -2824,21 +2889,14 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                                                 </div>
                                                                                 {a.comments && a.comments.length > 0 && (
                                                                                     <div className={layout.hlCommentsBranch}>
-                                                                                        {a.comments.map((c, ci) => {
-                                                                                            const cog = c.scope?.cognitiveLevel;
-                                                                                            const tagLabel = BLOOM_LEVELS.includes(cog)
-                                                                                                ? cog
-                                                                                                : (c.scope?.filename || (cog && cog.endsWith('.pdf')) ? 'FILE' : 'TOS');
-                                                                                            return (
-                                                                                                <div key={ci} className={layout.hlCommentCard}>
-                                                                                                    <div className={layout.hlCommentTop}>
-                                                                                                        <div className={layout.hlCommentScope}>{formatScopeText(c.scope)}</div>
-                                                                                                        <span className={layout.hlCommentTag}>{tagLabel}</span>
-                                                                                                    </div>
-                                                                                                    <blockquote className={layout.hlCommentQuote}>&ldquo;{c.body}&rdquo;</blockquote>
+                                                                                        {a.comments.map((c, ci) => (
+                                                                                            <div key={ci} className={layout.hlCommentCard}>
+                                                                                                <div className={layout.hlCommentTop}>
+                                                                                                    <div className={layout.hlCommentScope}>{formatScopeText(c.scope)}</div>
                                                                                                 </div>
-                                                                                            );
-                                                                                        })}
+                                                                                                <blockquote className={layout.hlCommentQuote}>&ldquo;{c.body}&rdquo;</blockquote>
+                                                                                            </div>
+                                                                                        ))}
                                                                                     </div>
                                                                                 )}
                                                                             </div>

@@ -51,7 +51,7 @@ const IloCard = ({ ilo, levelPoints, totalPoints, mismatch, diff }) => (
 
 const CoHeader = ({ co, totalPoints, iloSum, mismatch, diff }) => (
     <div className={styles.coHeader}>
-        <div>
+        <div className={styles.coInfo}>
             <h3 className={styles.coCode}>{co.co}</h3>
             <p className={styles.coDesc}>{co.description}</p>
         </div>

@@ -5,6 +5,7 @@
   height: 100%
   display: flex
   flex-direction: row
+  align-items: center
   padding: 10px 30px 10px 10px
 
 .department
@@ -12,21 +13,290 @@
   height: 100%
   display: flex
 
+.rightSection
+  display: flex
+  align-items: center
+  gap: 16px
+
 .info
   height: 100%
   width: max-content
   display: flex
   flex-direction: column
-  align-items: end
+  align-items: flex-end
   justify-content: center
   gap: 0
 
 .name
   font-weight: 500
   font-size: 16px
+  color: #111827
 
 .role
   font-weight: 400
-  font-size: 16px
+  font-size: 14px
   color: #DC2626
 
+// Notification Bell & Popover
+.notifContainer
+  position: relative
+  display: flex
+  align-items: center
+
+.bellBtn
+  position: relative
+  width: 40px !important
+  height: 40px !important
+  min-width: 40px !important
+  min-height: 40px !important
+  padding: 0 !important
+  border-radius: 50% !important
+  background: #EFF6FF !important
+  border: 1px solid #BFDBFE !important
+  display: flex !important
+  align-items: center !important
+  justify-content: center !important
+  cursor: pointer
+  outline: none
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05)
+  transition: all 0.2s ease
+
+  &:hover
+    background: #DBEAFE !important
+    border-color: #93C5FD !important
+
+  &:active
+    transform: scale(0.96)
+
+  svg
+    display: block !important
+    width: 20px !important
+    height: 20px !important
+    color: #2563EB !important
+    stroke: #2563EB !important
+    flex-shrink: 0
+
+.bellBadge
+  position: absolute
+  top: -4px
+  right: -4px
+  min-width: 18px
+  height: 18px
+  padding: 0 4px
+  border-radius: 9999px
+  background: #DC2626 !important
+  color: #FFFFFF !important
+  font-size: 11px
+  font-weight: 700
+  display: flex
+  align-items: center
+  justify-content: center
+  border: 2px solid #FFFFFF
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1)
+  pointer-events: none
+
+.notifPopover
+  position: absolute
+  top: calc(100% + 12px)
+  right: 0
+  width: 390px
+  background: #FFFFFF
+  border-radius: 14px
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)
+  border: 1px solid #E2E8F0
+  z-index: 1000
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  padding-bottom: 14px
+  animation: fadeInDown 0.15s ease-out
+
+@keyframes fadeInDown
+  from
+    opacity: 0
+    transform: translateY(-8px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+.popoverHeader
+  padding: 16px 16px 10px 16px
+  display: flex
+  align-items: center
+  justify-content: space-between
+
+.popoverTitleRow
+  display: flex
+  align-items: center
+  gap: 8px
+
+.popoverTitle
+  font-size: 16px
+  font-weight: 700
+  color: #0F172A
+
+.newBadge
+  background: #FEE2E2
+  color: #DC2626
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 8px
+  border-radius: 9999px
+
+.markAllBtn
+  background: none !important
+  border: none !important
+  font-size: 12px !important
+  font-weight: 500 !important
+  color: #2563EB !important
+  cursor: pointer
+  padding: 0 !important
+  transition: opacity 0.2s
+
+  &:hover
+    text-decoration: underline
+
+.tabRow
+  display: flex
+  gap: 6px
+  padding: 0 16px 12px 16px
+  border-bottom: 1px solid #F1F5F9
+
+.tabBtn
+  border: none !important
+  background: transparent !important
+  padding: 4px 12px !important
+  font-size: 12px !important
+  font-weight: 500 !important
+  color: #64748B !important
+  border-radius: 9999px !important
+  cursor: pointer
+  transition: all 0.15s ease
+
+  &:hover
+    background: #F1F5F9 !important
+    color: #1E293B !important
+
+  &.activeTab
+    background: #0F172A !important
+    color: #FFFFFF !important
+
+.notifList
+  max-height: 480px
+  overflow-y: auto
+  display: flex
+  flex-direction: column
+  padding-bottom: 10px
+
+.notifItem
+  padding: 12px 16px
+  border-bottom: 1px solid #F1F5F9
+  display: flex
+  flex-direction: column
+  gap: 3px
+  background: #FFFFFF
+  transition: background 0.15s ease
+
+  &:hover
+    background: #F8FAFC
+
+  &:last-child
+    border-bottom: none
+
+.itemMeta
+  display: flex
+  align-items: center
+  justify-content: space-between
+  width: 100%
+
+.badgeGroup
+  display: flex
+  align-items: center
+  gap: 6px
+
+.unreadDot
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  background: #10B981
+  flex-shrink: 0
+
+.tagAssigned
+  background: #EEF2FF
+  color: #4F46E5
+  font-size: 10px
+  font-weight: 700
+  padding: 2px 6px
+  border-radius: 4px
+  letter-spacing: 0.5px
+  text-transform: uppercase
+
+.tagApproved
+  background: #ECFDF5
+  color: #059669
+  font-size: 10px
+  font-weight: 700
+  padding: 2px 6px
+  border-radius: 4px
+  letter-spacing: 0.5px
+  text-transform: uppercase
+
+.tagEndorsed
+  background: #F0FDFA
+  color: #0D9488
+  font-size: 10px
+  font-weight: 700
+  padding: 2px 6px
+  border-radius: 4px
+  letter-spacing: 0.5px
+  text-transform: uppercase
+
+.tagReturned
+  background: #FEF2F2
+  color: #DC2626
+  font-size: 10px
+  font-weight: 700
+  padding: 2px 6px
+  border-radius: 4px
+  letter-spacing: 0.5px
+  text-transform: uppercase
+
+.itemTime
+  font-size: 11px
+  color: #9CA3AF
+
+.itemTitle
+  font-size: 13px
+  font-weight: 700
+  color: #1E293B
+  margin: 2px 0 0 0
+
+.itemBody
+  font-size: 12px
+  color: #4B5563
+  line-height: 1.45
+  margin: 0
+
+.itemAction
+  font-size: 12px
+  color: #2563EB
+  font-weight: 500
+  align-self: flex-end
+  margin-top: 4px
+  text-decoration: none
+  cursor: pointer
+  display: inline-flex
+  align-items: center
+  gap: 2px
+  background: none !important
+  border: none !important
+  padding: 0 !important
+
+  &:hover
+    text-decoration: underline
+
+.emptyNotifs
+  padding: 32px 16px
+  text-align: center
+  color: #9CA3AF
+  font-size: 13px

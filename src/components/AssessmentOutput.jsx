@@ -3,7 +3,7 @@ import { Eye, Download, ChevronDown, ChevronRight } from "react-feather";
 import layout from "../styles/TosPreview.module.sass";
 import { fetchAttachments, ACTIVE_PERIOD } from "../services/api.js";
 
-const getCognitiveLevelsForIlo = (iloId) => {
+const _getCognitiveLevelsForIlo = (iloId) => {
     if (iloId === 'ILO1') return ['Remembering', 'Understanding'];
     if (iloId === 'ILO2') return ['Applying', 'Analyzing'];
     if (iloId === 'ILO3') return ['Evaluating', 'Creating'];
@@ -145,11 +145,6 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                         {isIloExpanded(co.co, ilo.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                                     </button>
                                                     <span className={layout.iloTitle}>{ilo.id}{ilo.description ? ` · ${ilo.description}` : ''}</span>
-                                                </div>
-                                                <div className={layout.bloomChips}>
-                                                    {getCognitiveLevelsForIlo(ilo.id).map(lvl => (
-                                                        <span key={lvl} className={layout.bloomChip}>{lvl}</span>
-                                                    ))}
                                                 </div>
                                             </div>
 

@@ -37,56 +37,70 @@ const normalizeTopics = (topics) => {
         .filter(t => t && t.title);
 };
 
-const TopicsPanel = ({ co, topics }) => {
-    const list = normalizeTopics(topics);
+const OutcomeDropdown = ({ activeCoData, activeIloData, topicsList }) => {
     const [open, setOpen] = useState(false);
-    const [expanded, setExpanded] = useState({});
+    const [expandedTopics, setExpandedTopics] = useState({});
+    if (!activeCoData || !activeIloData) return null;
+
+    const coDesc = activeCoData.description || 'No Course Outcome description provided';
+    const iloDesc = activeIloData.description || 'No Intended Learning Outcome description provided';
+    const count = (topicsList || []).length;
+
     return (
-        <div style={{ borderTop: '1px solid #E5E7EB', background: '#fff' }}>
+        <div className={layout.outcomeDropdownWrap}>
             <button
                 type="button"
                 onClick={() => setOpen(o => !o)}
-                className={layout.topicsToggleBtn}
+                className={layout.outcomeDropdownToggle}
+                aria-expanded={open}
             >
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#6B7280' }}>
-                    Topics <span style={{ marginLeft: 6, padding: '1px 8px', borderRadius: 10, background: '#F1F3F5', color: '#4B5563', letterSpacing: 0 }}>{list.length}</span>
+                <span className={layout.outcomeTagCo}>CO</span>
+                <span className={layout.outcomeTextCo}>{coDesc}</span>
+                <span className={layout.outcomeChevron} style={{ transform: open ? 'rotate(180deg)' : 'none' }}>
+                    <ChevronDown size={16} />
                 </span>
-                {open ? <ChevronUp size={16} color="#6B7280" /> : <ChevronDown size={16} color="#6B7280" />}
             </button>
+
             {open && (
-                <div style={{ padding: '0 0 8px 0' }}>
-                    {list.length === 0 ? (
-                        <div style={{ fontSize: 14, color: '#9CA3AF' }}>No topics defined for {co}.</div>
-                    ) : (
-                        <>
-                            <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                {list.map((t, i) => {
+                <div className={layout.outcomeExpandedPanel}>
+                    <div className={layout.outcomeIloRow}>
+                        <span className={layout.outcomeTagIlo}>ILO</span>
+                        <span className={layout.outcomeTextIlo}>{iloDesc}</span>
+                    </div>
+
+                    <div>
+                        <div className={layout.outcomeSectionLabel}>
+                            Topics <span className={layout.outcomeCount}>{count}</span>
+                        </div>
+                        {count === 0 ? (
+                            <div style={{ fontSize: 13, color: '#9CA3AF' }}>No topics defined for {activeCoData.co}.</div>
+                        ) : (
+                            <ol className={layout.topicsScroll}>
+                                {topicsList.map((t, i) => {
                                     const hasSubs = t.subtopics.length > 0;
-                                    const isOpen = !!expanded[i];
+                                    const isOpen = !!expandedTopics[i];
                                     return (
                                         <li key={i}>
                                             <div
-                                                onClick={() => hasSubs && setExpanded(prev => ({ ...prev, [i]: !prev[i] }))}
-                                                className={layout.topicItemRow}
+                                                className={layout.topicCardItemRow}
                                                 style={{ cursor: hasSubs ? 'pointer' : 'default' }}
+                                                onClick={() => hasSubs && setExpandedTopics(p => ({ ...p, [i]: !p[i] }))}
                                             >
-                                                <span style={{ width: 22, color: '#9CA3AF', fontSize: 13, textAlign: 'right', flexShrink: 0 }}>{i + 1}.</span>
-                                                <span style={{ flex: 1 }}>{t.title}</span>
+                                                <span className={layout.topicNum}>{i + 1}</span>
+                                                <span className={layout.topicTitleText}>{t.title}</span>
                                                 {hasSubs && (isOpen ? <ChevronUp size={14} color="#9CA3AF" /> : <ChevronDown size={14} color="#9CA3AF" />)}
                                             </div>
                                             {hasSubs && isOpen && (
-                                                <ul style={{ margin: '0 0 6px 36px', padding: '0 0 0 14px', borderLeft: '2px solid #E5E7EB', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                                    {t.subtopics.map((s, j) => (
-                                                        <li key={j} style={{ fontSize: 13, color: '#4B5563', padding: '2px 0' }}>{s}</li>
-                                                    ))}
+                                                <ul className={layout.subtopicsList}>
+                                                    {t.subtopics.map((s, j) => <li key={j} className={layout.subtopicItem}>{s}</li>)}
                                                 </ul>
                                             )}
                                         </li>
                                     );
                                 })}
                             </ol>
-                        </>
-                    )}
+                        )}
+                    </div>
                 </div>
             )}
         </div>
@@ -173,7 +187,6 @@ const AssessmentsStep = ({
     const [attsLoaded, setAttsLoaded] = useState(false);
     const [selectedIlo, setSelectedIlo] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [refOpen, setRefOpen] = useState(false);
     const itemRefs = useRef({});
 
     const flatIlos = useMemo(() => {
@@ -489,66 +502,19 @@ const AssessmentsStep = ({
 
                 {/* Right content area */}
                 <div className={layout.rightContent}>
-                    {/* 1. Title with Bloom's Chips */}
-                    <div data-ilo-header={`${activeCoData?.co}|${activeIloData?.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                    {/* 1. Title */}
+                    <div data-ilo-header={`${activeCoData?.co}|${activeIloData?.id}`} style={{ marginBottom: 16 }}>
                         <h3 style={{ fontSize: 20, fontWeight: 600, color: '#1A1A1A', margin: 0 }}>
                             {activeCoData?.co} · {activeIloData?.id}
                         </h3>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {getCognitiveLevelsForIlo(activeIloData?.id).map(lvl => (
-                                <span
-                                    key={lvl}
-                                    style={{
-                                        fontSize: 12,
-                                        fontWeight: 500,
-                                        padding: '3px 10px',
-                                        borderRadius: 12,
-                                        background: '#F1F3F5',
-                                        color: '#4B5563'
-                                    }}
-                                >
-                                    {lvl}
-                                </span>
-                            ))}
-                        </div>
                     </div>
 
-                    {/* 2. Collapsed Reference row */}
-                    {activeCoData && activeIloData && (
-                        <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#F9FAFB', marginBottom: 20, overflow: 'hidden' }}>
-                            <button
-                                type="button"
-                                onClick={() => setRefOpen(o => !o)}
-                                className={layout.refToggleBtn}
-                            >
-                                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#6B7280' }}>
-                                    {activeCoData.co} {activeIloData.id} <span style={{ marginLeft: 6, padding: '1px 8px', borderRadius: 10, background: '#F1F3F5', color: '#4B5563', fontWeight: 600, letterSpacing: 0 }}>{topicsList.length} topics</span>
-                                </span>
-                                {refOpen ? <ChevronUp size={16} color="#6B7280" /> : <ChevronDown size={16} color="#6B7280" />}
-                            </button>
-                            {refOpen && (
-                                <div style={{ padding: '14px 16px 16px', borderTop: '1px solid #E5E7EB', background: '#fff', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                    <div>
-                                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#6B7280', marginBottom: 4 }}>
-                                            Course Outcome · {activeCoData.co}
-                                        </div>
-                                        <div style={{ color: '#1F2937', fontSize: 14, lineHeight: 1.5 }}>
-                                            {activeCoData.description}
-                                        </div>
-                                    </div>
-                                    <div style={{ borderTop: '1px solid #F1F3F5', paddingTop: 12 }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#6B7280', marginBottom: 4 }}>
-                                            Intended Learning Outcome · {activeIloData.id}
-                                        </div>
-                                        <div style={{ color: '#1F2937', fontSize: 14, lineHeight: 1.5 }}>
-                                            {activeIloData.description}
-                                        </div>
-                                    </div>
-                                    <TopicsPanel co={activeCoData.co} topics={activeCoData.topics} />
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {/* 2. Outcome & Topics Dropdown */}
+                    <OutcomeDropdown
+                        activeCoData={activeCoData}
+                        activeIloData={activeIloData}
+                        topicsList={topicsList}
+                                    />
 
                     {/* 4. Files Heading */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

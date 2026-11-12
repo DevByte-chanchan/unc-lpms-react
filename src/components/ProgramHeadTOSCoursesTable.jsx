@@ -10,12 +10,13 @@ const OverdueBadge = () => (
             display: 'inline-flex',
             alignItems: 'center',
             gap: 4,
-            padding: '2px 6px',
+            padding: '2px 8px',
             fontSize: 11,
             fontWeight: 600,
             color: '#DC2626',
-            background: '#FEE2E2',
-            borderRadius: 4,
+            background: 'transparent',
+            border: '1px solid #DC2626',
+            borderRadius: 9999,
             whiteSpace: 'nowrap'
         }}
     >
@@ -64,7 +65,15 @@ const ProgramHeadTOSCoursesTable = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || 'pending');
+    const queryStatus = new URLSearchParams(location.search).get('status');
+    const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || queryStatus || 'pending');
+
+    useEffect(() => {
+        const nextStatus = location.state?.initialStatus || new URLSearchParams(location.search).get('status');
+        if (nextStatus) {
+            setSelectedStatus(nextStatus);
+        }
+    }, [location.state, location.search]);
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
     const [semester, setSemester] = useState('1st Semester');
@@ -247,7 +256,7 @@ const ProgramHeadTOSCoursesTable = () => {
                                         ) : (
                                             <span className={styles.ctActionPill}>
                                                 <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester, role: 'program-head' }}>
-                                                    View
+                                                    {row.status === 'returned' ? 'View Remarks' : 'View'}
                                                     <ChevronRight size={18} />
                                                 </Link>
                                             </span>
@@ -293,7 +302,7 @@ const ProgramHeadTOSCoursesTable = () => {
                                         </Link>
                                     ) : (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester, role: 'program-head' }}>
-                                            View
+                                            {row.status === 'returned' ? 'View Remarks' : 'View'}
                                             <ChevronRight size={18} />
                                         </Link>
                                     )}

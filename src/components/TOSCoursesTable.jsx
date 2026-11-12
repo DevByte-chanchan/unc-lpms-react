@@ -10,12 +10,13 @@ const OverdueBadge = () => (
             display: 'inline-flex',
             alignItems: 'center',
             gap: 4,
-            padding: '2px 6px',
+            padding: '2px 8px',
             fontSize: 11,
             fontWeight: 600,
             color: '#DC2626',
-            background: '#FEE2E2',
-            borderRadius: 4,
+            background: 'transparent',
+            border: '1px solid #DC2626',
+            borderRadius: 9999,
             whiteSpace: 'nowrap'
         }}
     >
@@ -74,7 +75,15 @@ const TOSCoursesTable = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || 'draft');
+    const queryStatus = new URLSearchParams(location.search).get('status');
+    const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || queryStatus || 'draft');
+
+    useEffect(() => {
+        const nextStatus = location.state?.initialStatus || new URLSearchParams(location.search).get('status');
+        if (nextStatus) {
+            setSelectedStatus(nextStatus);
+        }
+    }, [location.state, location.search]);
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
     const [semester, setSemester] = useState('1st Semester');

@@ -16,6 +16,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
     if (location.pathname === '/assignedtos' || location.pathname.startsWith('/tos/') || location.pathname === '/role/program-head/tos') {
         selected = 'TOS';
+    } else if (location.pathname === '/dashboard' || location.pathname === '/role/program-head/dashboard') {
+        selected = 'Dashboard';
     }
 
     const [showPopup, setShowPopup] = useState(false)
@@ -25,13 +27,24 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     const [pinned, setPinned] = useState(false)
 
     const handlePageChange = (page) => {
-        if (page === 'Syllabus') {
+        if (page === 'Dashboard') {
+            if (mode === 'program-head') {
+                navigate('/role/program-head/dashboard');
+            } else {
+                navigate('/dashboard');
+            }
+        }
+        else if (page === 'Syllabus') {
             if (mode === 'program-head') navigate('/role/program-head/approval-course-table?page=Syllabus');
             else if (mode === 'dean') navigate('/role/dean?page=Syllabus');
             else navigate('/');
         }
         else if (page === 'TOS') {
-            navigate('/assignedtos');
+            if (mode === 'program-head') {
+                navigate('/role/program-head/tos');
+            } else {
+                navigate('/assignedtos');
+            }
         }
         else {
             setSearchParams({ page });
@@ -128,6 +141,16 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
             <div className={styles['nav-list']}>
                 {mode !== 'hr-staff' && mode !== 'ovpaa' && (
+                    <div
+                        onClick={() => handlePageChange('Dashboard')}
+                        className={`${styles.list} ${selected === 'Dashboard' ? styles.selected : ''}`}
+                    >
+                        <Grid size={24} />
+                        <span className={styles.listText}>Dashboard</span>
+                    </div>
+                )}
+
+                {mode !== 'hr-staff' && mode !== 'ovpaa' && (
                     <div className={`${styles.list} ${styles.disabled} ${selected === 'Syllabus' ? styles.selected : ''}`}>
                         <FileText size={24} />
                         <span className={styles.listText}>Syllabus</span>
@@ -146,7 +169,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/tos') }} className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}>
+                        <div onClick={() => handlePageChange('TOS')} className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}>
                             <FileText size={24} /> <span className={styles.listText}>TOS</span>
                         </div>
 
@@ -204,8 +227,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     {showPopup && (
                         <div className={styles.rolePopup}>
                             <div className={styles.popupTitle}>Select role</div>
-                            <button className={styles.popupItem} onClick={() => { setShowPopup(false); navigate('/') }}>Instructor</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/tos')}>Program head</button>
+                            <button className={styles.popupItem} onClick={() => { setShowPopup(false); navigate('/dashboard') }}>Instructor</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/dashboard')}>Program head</button>
                             <button className={`${styles.popupItem} ${styles.disabled}`}>Director of Libraries</button>
                             <button className={`${styles.popupItem} ${styles.disabled}`}>Industry Consultant</button>
                             <button className={`${styles.popupItem} ${styles.disabled}`}>Dean</button>

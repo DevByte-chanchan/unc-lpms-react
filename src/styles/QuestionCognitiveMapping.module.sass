@@ -1703,28 +1703,34 @@
   gap: 24px
   align-items: flex-start
   width: 100%
+  min-height: calc(100vh - 180px)
 
 .leftSidebar
-  width: 176px
-  min-width: 176px
-  max-width: 176px
+  width: 180px
+  min-width: 180px
+  max-width: 180px
   background: white
   border: 1px solid #E5E7EB
   border-radius: 8px
-  padding: 16px 12px
+  padding: 16px 14px
   box-sizing: border-box
   flex-shrink: 0
   position: sticky
-  top: 16px
+  top: 10px
   align-self: flex-start
-  height: 480px
+  height: fit-content
+  max-height: calc(100vh - 80px)
   display: flex
   flex-direction: column
   overflow: hidden
+  z-index: 10
 
 .rightContent
   flex: 1
   min-width: 0
+  min-height: min-content
+  display: flex
+  flex-direction: column
 
 .mobileSelectWrap
   display: none
@@ -1739,65 +1745,162 @@
   .mobileSelectWrap
     display: block
 
-.topicsToggleBtn
-  width: 100%
-  display: flex
-  align-items: center
-  justify-content: space-between
-  padding: 8px 10px
-  background: transparent
-  border: none
-  border-radius: 6px
-  cursor: pointer
-  text-align: left
-  outline: none
-  transition: background 0.12s ease
-
-  &:hover
-    background: #F3F4F6
-
-  &:focus, &:focus-visible, &:active
-    outline: none
-    box-shadow: none
-
-.refToggleBtn
-  width: 100%
-  display: flex
-  align-items: center
-  justify-content: space-between
-  padding: 11px 16px
-  background: transparent
-  border: none
+// Outcome dropdown (CO description collapsed; ILO + topics when open)
+.outcomeDropdownWrap
+  border: 1px solid #E5E7EB
   border-radius: 8px
+  background: #FFFFFF
+  margin-bottom: 20px
+  flex-shrink: 0
+  overflow: hidden
+
+.outcomeDropdownToggle
+  width: 100%
+  display: flex
+  align-items: center
+  gap: 10px
+  padding: 11px 14px
+  background: #F9FAFB
+  border: none
+  border-radius: 0
   cursor: pointer
   text-align: left
-  outline: none
-  transition: background 0.12s ease
+  transition: background 0.15s ease
 
   &:hover
     background: #F3F4F6
 
-  &:focus, &:focus-visible, &:active
+  &:focus, &:focus-visible
     outline: none
     box-shadow: none
 
-.topicItemRow
+.outcomeTagCo, .outcomeTagIlo
+  font-size: 10px
+  font-weight: 700
+  letter-spacing: 0.05em
+  padding: 2px 6px
+  border-radius: 4px
+  flex-shrink: 0
+
+.outcomeTagCo
+  background: #E5E7EB
+  color: #4B5563
+
+.outcomeTagIlo
+  background: #19282C
+  color: #FFFFFF
+
+.outcomeTextCo
+  flex: 1
+  min-width: 0
+  font-size: 13.5px
+  font-weight: 500
+  color: #1F2937
+  line-height: 1.4
+
+.outcomeChevron
+  display: flex
+  flex-shrink: 0
+  color: #6B7280
+  transition: transform 0.2s ease
+
+.outcomeExpandedPanel
+  padding: 14px 16px 16px
+  border-top: 1px solid #E5E7EB
+  display: flex
+  flex-direction: column
+  gap: 16px
+
+.outcomeIloRow
+  display: flex
+  align-items: flex-start
+  gap: 10px
+
+.outcomeTextIlo
+  flex: 1
+  min-width: 0
+  font-size: 13.5px
+  font-weight: 500
+  color: #1F2937
+  line-height: 1.5
+
+.outcomeSectionLabel
+  display: flex
+  align-items: center
+  gap: 8px
+  font-size: 11px
+  font-weight: 700
+  letter-spacing: 0.05em
+  text-transform: uppercase
+  color: #6B7280
+  margin-bottom: 6px
+
+.outcomeCount
+  padding: 1px 8px
+  border-radius: 10px
+  background: #F1F3F5
+  color: #4B5563
+  letter-spacing: 0
+
+.outcomeCardBody
+  font-size: 13.5px
+  color: #1F2937
+  line-height: 1.55
+  margin: 0
+
+.topicsScroll
+  list-style: none
+  margin: 0
+  padding: 0
+  display: flex
+  flex-direction: column
+  gap: 2px
+  max-height: 320px
+  overflow-y: auto
+  overscroll-behavior: contain
+  padding-right: 4px
+
+.topicCardItemRow
   display: flex
   align-items: center
   gap: 10px
   padding: 6px 8px
-  border-radius: 4px
-  font-size: 14px
-  color: #1F2937
+  border-radius: 6px
   transition: background 0.12s ease
-  outline: none
 
   &:hover
     background: #F9FAFB
 
-  &:focus, &:focus-visible, &:active
-    outline: none
-    box-shadow: none
+.topicNum
+  width: 20px
+  height: 20px
+  min-width: 20px
+  border-radius: 50%
+  background: #F1F3F5
+  color: #6B7280
+  font-size: 11px
+  font-weight: 600
+  display: flex
+  align-items: center
+  justify-content: center
+
+.topicTitleText
+  flex: 1
+  font-size: 13.5px
+  color: #1F2937
+
+.subtopicsList
+  margin: 2px 0 8px 38px
+  padding: 0 0 0 12px
+  border-left: 2px solid #E5E7EB
+  list-style: none
+  display: flex
+  flex-direction: column
+  gap: 4px
+
+.subtopicItem
+  font-size: 13px
+  color: #4B5563
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NEW — Assessments step polish: status palette + file table

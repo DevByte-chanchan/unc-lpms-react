@@ -3,6 +3,7 @@ import layout from "../styles/TosPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 import { updateStatus, saveOutcomes, saveItems, updateCourse, ACTIVE_PERIOD } from '../services/api.js';
 import AssessmentOutput from "../components/AssessmentOutput.jsx";
+import { Send, RotateCcw, X } from 'react-feather';
 
 const TOSPreview = ({ isOpen, onClose, outcomeData = [], questions = [], courseName = "Human & Computer Interaction", semester = "1st Semester", schoolYear, courseCode, assessmentName, examType = ACTIVE_PERIOD }) => {
     
@@ -105,8 +106,11 @@ const TOSPreview = ({ isOpen, onClose, outcomeData = [], questions = [], courseN
     if (!isOpen) return null;
 
     return (
-        <div className={layout.modalOverlay}>
-            <div className={layout.modalContent}>
+        <div className={layout.modalOverlay} onClick={onClose}>
+            <div className={layout.modalContent} onClick={e => e.stopPropagation()}>
+                <button type="button" className={layout.closeButton} onClick={onClose} aria-label="Close Preview">
+                    <X size={18} />
+                </button>
 
                 <div className={layout.headerRow}>
                     <div>
@@ -271,11 +275,11 @@ const TOSPreview = ({ isOpen, onClose, outcomeData = [], questions = [], courseN
                     />
                 )}
                 <div className={`${layout.exportButtonContainer} ${activeTab === 'assessment' ? layout.noBorderTop : ''}`}>
-                    <button className={layout.export} onClick={handleSubmitApproval}>
-                        Submit for approval
-                    </button>
                     <button className={layout.cancelBtn} onClick={onClose}>
                         Cancel
+                    </button>
+                    <button className={layout.export} onClick={handleSubmitApproval}>
+                        <Send size={15} /> Submit for Approval
                     </button>
                 </div>
             </div>
@@ -284,12 +288,14 @@ const TOSPreview = ({ isOpen, onClose, outcomeData = [], questions = [], courseN
                 <div className={layout.modalOverlay} onClick={handleConfirm}>
                     <div className={layout.confirmPopup} onClick={e => e.stopPropagation()}>
                         <div className={layout.confirmTextRow}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#19282C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            <p className={layout.confirmText}>Submitting TOS for approval</p>
+                            <Send size={20} color="#1A1A1A" />
+                            <p className={layout.confirmText}>Submitting TOS for Approval</p>
                         </div>
                         <div className={layout.spinner} />
                         <span className={layout.countdown}>{countdown}s</span>
-                        <button className={layout.undoBtn} onClick={() => { if (countdownRef.current) clearTimeout(countdownRef.current); setShowConfirm(false); }}>Undo</button>
+                        <button className={layout.undoBtn} onClick={() => { if (countdownRef.current) clearTimeout(countdownRef.current); setShowConfirm(false); }}>
+                            <RotateCcw size={14} /> Undo
+                        </button>
                     </div>
                 </div>
             )}
