@@ -18,15 +18,15 @@
  */
 import { sequelize } from '../config/sequelize.js';
 
-// Tables this module owns. New tables can be added freely.
-const TABLES = [
-  'academic_periods',
-  'departments',
-  'programs',
-  'faculty',
-  'courses',
-  'industry_consultants',
-];
+// Every table in the database: any model with a `unique: true` column gets a
+// fresh copy of its index on each boot (user_accounts.email reached 64 on
+// 2026-11-12, after a day of nodemon restarts, and the API stopped booting).
+const SKIP_TABLES = new Set(['SequelizeMeta']);
+
+async function allTables(qi) {
+  const tables = await qi.showAllTables();
+  return tables.map((t) => (typeof t === 'object' ? t.tableName : t)).filter((t) => t && !SKIP_TABLES.has(t));
+}
 
 function fieldName(f) {
   if (f == null) return '';
@@ -34,14 +34,17 @@ function fieldName(f) {
   return String(f.attribute || f.column || f.columnName || f.name || '');
 }
 
-// Build a stable column-set key for grouping (e.g. "code|period_id").
+// Build a stable column-set key for grouping (e.g. "U:code|period_id"). A
+// unique and a plain index on the same columns are NOT duplicates.
 function signature(idx) {
   const fields = Array.isArray(idx.fields) ? idx.fields : [];
-  return fields
+  const cols = fields
     .map((f) => fieldName(f).toLowerCase())
     .filter(Boolean)
     .sort()
     .join('|');
+  if (!cols) return '';
+  return (idx.unique || idx.primary || idx.name === 'PRIMARY' ? 'U:' : 'I:') + cols;
 }
 
 // Lower score = preferred-to-keep.
@@ -96,7 +99,7 @@ async function pruneTable(qi, tableName) {
 
 export async function pruneDuplicateIndexes() {
   const qi = sequelize.getQueryInterface();
-  for (const t of TABLES) {
+  for (const t of await allTables(qi)) {
     await pruneTable(qi, t);
   }
 }
