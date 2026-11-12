@@ -44,7 +44,7 @@ router.use('/auth', auth);
 
 router.use(requireAuth);
 
-router.use('/user-accounts',       requireRole('VPAA'), userAccounts);
+router.use('/user-accounts',       userAccounts);   // per-route roles (Dean page, VPAA admin)
 router.use('/academic-periods',    academicPeriods);
 router.use('/departments',         departments);
 router.use('/faculty',             faculty);

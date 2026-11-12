@@ -1,5 +1,10 @@
 /**
- * Account management — VPAA only (routes/index.js).
+ * Account management (routes/userAccounts.js).
+ *
+ * The User Accounts page is the Dean's: list, held invitations, send
+ * invitation and send password reset cover only the faculty the Dean brought
+ * in (services/deanAccountScope.js). Create / edit / reset-password /
+ * from-faculty stay VPAA-only (no page; scripts and tests).
  *
  *   GET   /api/user-accounts
  *   POST  /api/user-accounts                     { email, display_name, roles }
@@ -23,6 +28,7 @@ import {
 import { sendPasswordReset } from '../services/passwordResets.js';
 import { markDirty } from '../services/notices.js';
 import { OWN_PROGRAM_HEAD_MESSAGE } from '../services/programHeadAccess.js';
+import { accountScopeFor, inScope } from '../services/deanAccountScope.js';
 import {
   ROLES, validRoles, sortRoles, isAllowedEmail, normalizeEmail, domainMessage,
 } from '../utils/roles.js';
@@ -51,9 +57,14 @@ export function rolesForFacultyRole(facultyRole) {
 const cleanName = (s) => String(s || '').trim().replace(/\s+/g, ' ');
 
 /** Every account, each with `invitation`: its latest invitation's status, or null (never invited). */
-export async function listAccounts(_req, res, next) {
+export async function listAccounts(req, res, next) {
   try {
-    const rows = await UserAccount.findAll({ order: [['display_name', 'ASC']] });
+    const scope = await accountScopeFor(req.user);
+    if (!scope.all && !scope.accountIds.size) return res.json([]);
+    const rows = await UserAccount.findAll({
+      where: scope.all ? {} : { id: [...scope.accountIds] },
+      order: [['display_name', 'ASC']],
+    });
     const invitations = await invitationSummaries(rows.map((r) => r.id));
     return res.json(rows.map((r) => ({ ...r.toJSON(), invitation: invitations[r.id] || null })));
   } catch (err) {
@@ -61,9 +72,15 @@ export async function listAccounts(_req, res, next) {
   }
 }
 
-export async function listHeldInvitations(_req, res, next) {
+export async function listHeldInvitations(req, res, next) {
   try {
-    return res.json(await heldWithoutAccount());
+    const scope = await accountScopeFor(req.user);
+    const held = await heldWithoutAccount();
+    if (scope.all) return res.json(held);
+    const batches = new Set(scope.batchIds);
+    return res.json(held.filter((h) => h.source_entity === 'faculty' && (
+      batches.has(h.import_batch_id) || h.sent_by_account_id === scope.userId
+      || scope.emails.has(normalizeEmail(h.email)))));
   } catch (err) {
     return next(err);
   }
@@ -81,10 +98,13 @@ const mailOutcome = (result) => {
  * links stop working. Refused once the person has set their own password
  * from an invitation — that's what "Send password reset" is for.
  */
+const NOT_YOURS = { message: "This account isn't one of your faculty." };
+
 export async function sendInvitationNow(req, res, next) {
   try {
     const account = await UserAccount.findByPk(req.params.id);
     if (!account) return res.status(404).json({ message: 'That account no longer exists.' });
+    if (!inScope(await accountScopeFor(req.user), account.id)) return res.status(403).json(NOT_YOURS);
     if (account.status !== 'Active') return res.status(400).json({ message: 'This account is disabled. Enable it before inviting.' });
 
     const accepted = await AccountInvitation.count({ where: { user_account_id: account.id, status: 'accepted' } });
@@ -111,6 +131,7 @@ export async function sendPasswordResetNow(req, res, next) {
   try {
     const account = await UserAccount.findByPk(req.params.id);
     if (!account) return res.status(404).json({ message: 'That account no longer exists.' });
+    if (!inScope(await accountScopeFor(req.user), account.id)) return res.status(403).json(NOT_YOURS);
     if (account.status !== 'Active') return res.status(400).json({ message: 'This account is disabled. Enable it first.' });
 
     const result = await sendPasswordReset(account, { ip: req.ip });

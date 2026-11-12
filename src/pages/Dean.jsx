@@ -6,6 +6,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import DeanFaculty from "./DeanFaculty.jsx";
 import DeanPrograms from "./DeanPrograms.jsx";
 import DeanDepartmentStatements from "./DeanDepartmentStatements.jsx";
+import UserAccounts from "./UserAccounts.jsx";
 import { useCurrentUser } from "../services/currentUser.jsx";
 
 // TODO(auth): the department the signed-in dean is assigned to. The account
@@ -25,6 +26,8 @@ const Dean = () => {
     switch (page) {
       case 'Programs':
         return <DeanPrograms key="programs" />;
+      case 'User Accounts':
+        return <UserAccounts key="user-accounts" />;
       case 'Vision & Mission':
         return <DeanDepartmentStatements key="department-vm" userName={name} departmentCode={DEAN_DEPARTMENT_CODE} />;
       case 'Faculty':

@@ -178,6 +178,10 @@ const SideNavigation = ({ mode: requestedMode = 'instructor' }) => {
                         <div onClick={() => { navigate('/role/dean?page=Vision%20%26%20Mission') }} className={`${styles.list} ${selected === 'Vision & Mission' ? styles.selected : ''}`}>
                             <Award size={24} /> <span className={styles.listText}>Vision &amp; Mission</span>
                         </div>
+
+                        <div onClick={() => { navigate('/role/dean?page=User%20Accounts') }} className={`${styles.list} ${selected === 'User Accounts' ? styles.selected : ''}`}>
+                            <Key size={24} /> <span className={styles.listText}>User Accounts</span>
+                        </div>
                     </>
                 )}
 
@@ -204,12 +208,6 @@ const SideNavigation = ({ mode: requestedMode = 'instructor' }) => {
                 {mode === 'ovpaa' && (
                     <div onClick={() => { navigate('/role/ovpaa?page=University%20VMGO') }} className={`${styles.list} ${selected === 'University VMGO' ? styles.selected : ''}`}>
                         <Award size={24} /> <span className={styles.listText}>University VMGO</span>
-                    </div>
-                )}
-
-                {mode === 'ovpaa' && (
-                    <div onClick={() => { navigate('/role/ovpaa?page=User%20Accounts') }} className={`${styles.list} ${selected === 'User Accounts' ? styles.selected : ''}`}>
-                        <Key size={24} /> <span className={styles.listText}>User Accounts</span>
                     </div>
                 )}
 

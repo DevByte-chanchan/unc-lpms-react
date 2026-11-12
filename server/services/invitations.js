@@ -748,7 +748,7 @@ export async function heldWithoutAccount() {
   return AccountInvitation.findAll({
     where: { status: 'held', user_account_id: null },
     order: [['id', 'DESC']],
-    attributes: ['id', 'email', 'display_name', 'hold_reason', 'source_entity', 'createdAt'],
+    attributes: ['id', 'email', 'display_name', 'hold_reason', 'source_entity', 'import_batch_id', 'sent_by_account_id', 'createdAt'],
     limit: 100,
   });
 }

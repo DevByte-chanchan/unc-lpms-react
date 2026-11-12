@@ -1,14 +1,18 @@
 /**
- * User Accounts — VPAA (/role/ovpaa?page=User%20Accounts).
+ * User Accounts — Dean (/role/dean?page=User%20Accounts).
  *
- * Every LPMS account with its invitation status, and two row actions:
+ * The accounts of the faculty this Dean brought in (their Faculty uploads,
+ * or their department's faculty — the server decides), with each one's
+ * invitation status, and two row actions:
  *   - Send invitation / Resend — emails a set-password link now, signed by
  *     you; any earlier link for that account stops working.
  *   - Send password reset — emails a 1-hour reset link.
  * Below the table: invitations held because no account could be made (an
  * email that isn't UNC's, or one already used by someone else).
  *
- * Accounts are created by the faculty / department / consultant uploads.
+ * Accounts are created by the Faculty upload. Someone with several roles
+ * (Program Head + Instructor) shows one chip per role and switches between
+ * them from the account menu at the top right.
  */
 import React from 'react';
 import { Search, RefreshCw } from 'react-feather';
@@ -47,6 +51,38 @@ const TONES = {
 
 const canResend = (inv) => !!inv && ['waiting', 'sent', 'expired', 'scheduled', 'sending', 'failed'].includes(inv.status);
 
+// Highest role first; each role its own colour so a mixed set reads at a glance.
+const ROLE_ORDER = ['VPAA', 'Dean', 'Program Head', 'Instructor', 'Industry Consultant'];
+const ROLE_CHIP = {
+  VPAA:                  { bg: '#FCE7F3', fg: '#9D174D', border: '#FBCFE8' },
+  Dean:                  { bg: '#EDE9FE', fg: '#5B21B6', border: '#DDD6FE' },
+  'Program Head':        { bg: '#DBEAFE', fg: '#1E40AF', border: '#BFDBFE' },
+  Instructor:            { bg: '#F1F5F9', fg: '#334155', border: '#E2E8F0' },
+  'Industry Consultant': { bg: '#FEF3C7', fg: '#92400E', border: '#FDE68A' },
+};
+const sortedRoles = (roles) => [...(roles || [])].sort((a, b) => {
+  const ia = ROLE_ORDER.indexOf(a); const ib = ROLE_ORDER.indexOf(b);
+  return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+});
+
+const RoleChips = ({ roles }) => {
+  const list = sortedRoles(roles);
+  if (!list.length) return <span style={{ color: '#9CA3AF' }}>—</span>;
+  return (
+    <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}
+      title={list.length > 1 ? 'Has ' + list.length + ' roles — they pick which one to use from the account menu (top right).' : undefined}>
+      {list.map((r) => {
+        const c = ROLE_CHIP[r] || ROLE_CHIP.Instructor;
+        return (
+          <span key={r} style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 9999, fontSize: 12, fontWeight: 600, lineHeight: '18px', whiteSpace: 'nowrap', background: c.bg, color: c.fg, border: '1px solid ' + c.border }}>
+            {r}
+          </span>
+        );
+      })}
+    </span>
+  );
+};
+
 const linkBtn = {
   background: 'transparent', border: 'none', padding: '4px 6px', fontFamily: 'inherit',
   fontSize: 13, fontWeight: 500, color: '#18191A', cursor: 'pointer', textDecoration: 'underline',
@@ -58,6 +94,7 @@ const UserAccounts = () => {
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState(null);
   const [query, setQuery] = React.useState('');
+  const [roleFilter, setRoleFilter] = React.useState('all');
   const [confirm, setConfirm] = React.useState(null); // { kind: 'invite'|'reset', account }
   const [busy, setBusy] = React.useState(false);
   const [banner, setBanner] = React.useState(null);   // { tone: 'ok'|'bad', text }
@@ -77,12 +114,24 @@ const UserAccounts = () => {
 
   React.useEffect(() => { refresh(); }, [refresh]);
 
+  // Role filter: each role present, plus "Several roles".
+  const roleCounts = React.useMemo(() => {
+    const counts = {};
+    accounts.forEach((a) => (a.roles || []).forEach((r) => { counts[r] = (counts[r] || 0) + 1; }));
+    return counts;
+  }, [accounts]);
+  const multiCount = accounts.filter((a) => (a.roles || []).length > 1).length;
+
   const visible = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return accounts;
-    return accounts.filter((a) => [a.display_name, a.email, (a.roles || []).join(' '), invitationLabel(a.invitation).text]
-      .some((v) => String(v || '').toLowerCase().includes(q)));
-  }, [accounts, query]);
+    return accounts.filter((a) => {
+      const roles = a.roles || [];
+      if (roleFilter === 'multi' ? roles.length < 2 : (roleFilter !== 'all' && !roles.includes(roleFilter))) return false;
+      if (!q) return true;
+      return [a.display_name, a.email, roles.join(' '), invitationLabel(a.invitation).text]
+        .some((v) => String(v || '').toLowerCase().includes(q));
+    });
+  }, [accounts, query, roleFilter]);
 
   const run = async () => {
     if (!confirm) return;
@@ -117,7 +166,12 @@ const UserAccounts = () => {
   return (
     <div style={{ padding: 20, background: '#FFFFFF', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>User Accounts</h2>
+        <div>
+          <h2 style={{ margin: 0 }}>User Accounts</h2>
+          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+            Accounts of the faculty you uploaded. Send an invitation or a password reset from here.
+          </div>
+        </div>
         <button type="button" onClick={() => { setLoading(true); refresh(); }}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 20, color: '#374151', fontFamily: 'inherit', fontSize: 14, cursor: 'pointer' }}>
           <RefreshCw size={16} /> Refresh
@@ -139,6 +193,20 @@ const UserAccounts = () => {
           <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, email, role or invitation" style={{ border: 0, outline: 'none', background: 'transparent', width: '100%', fontSize: 14 }} />
         </div>
+        {accounts.length > 0 && (
+          <div role="group" aria-label="Filter by role" style={{ display: 'inline-flex', gap: 2, padding: 3, background: '#F3F4F6', borderRadius: 9999, flexWrap: 'wrap' }}>
+            {[['all', 'All', accounts.length],
+              ...sortedRoles(Object.keys(roleCounts)).map((r) => [r, r, roleCounts[r]]),
+              ...(multiCount ? [['multi', 'Several roles', multiCount]] : [])].map(([key, text, n]) => (
+              <button key={key} type="button" onClick={() => setRoleFilter(key)} aria-pressed={roleFilter === key}
+                style={{ height: 32, padding: '0 12px', borderRadius: 9999, border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: roleFilter === key ? 600 : 500, cursor: 'pointer',
+                  background: roleFilter === key ? '#FFFFFF' : 'transparent', color: roleFilter === key ? '#111827' : '#6B7280',
+                  boxShadow: roleFilter === key ? '0 1px 2px rgba(0,0,0,0.08)' : 'none' }}>
+                {text} <span style={{ color: '#9CA3AF', fontWeight: 500 }}>{n}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {loadError && <div style={{ color: '#B91C1C', fontSize: 14, marginBottom: 12 }}>{loadError}</div>}
@@ -152,7 +220,7 @@ const UserAccounts = () => {
               <tr>
                 <th width={220}>NAME</th>
                 <th width={260}>EMAIL</th>
-                <th width={200}>ROLES</th>
+                <th width={230}>ROLES</th>
                 <th width={100}>STATUS</th>
                 <th width={300}>INVITATION</th>
                 <th className={tableStyles.fill}></th>
@@ -167,7 +235,7 @@ const UserAccounts = () => {
                   <tr key={a.id}>
                     <td width={220}>{a.display_name}</td>
                     <td width={260} style={{ wordBreak: 'break-all' }}>{a.email}</td>
-                    <td width={200}>{(a.roles || []).join(', ')}</td>
+                    <td width={230}><RoleChips roles={a.roles} /></td>
                     <td width={100}>{a.status}</td>
                     <td width={300} style={{ fontSize: 13, ...TONES[label.tone] }} title={label.text}>{label.text}</td>
                     <td className={tableStyles.fill} style={{ paddingRight: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -186,7 +254,7 @@ const UserAccounts = () => {
                 );
               })}
               {visible.length === 0 && (
-                <tr><td colSpan={6} style={{ color: '#6B7280', padding: 16 }}>{query ? 'No accounts match.' : 'No accounts yet.'}</td></tr>
+                <tr><td colSpan={6} style={{ color: '#6B7280', padding: 16 }}>{query || roleFilter !== 'all' ? 'No accounts match.' : 'No accounts yet. They\'re made when you upload the Faculty list.'}</td></tr>
               )}
             </tbody>
           </table>
@@ -195,7 +263,7 @@ const UserAccounts = () => {
             <div style={{ marginTop: 20 }}>
               <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Held — no account yet</h3>
               <p style={{ margin: '0 0 8px', color: '#6B7280', fontSize: 13 }}>
-                These people were in an upload, but no account could be made. Fix the email in the file and upload it again.
+                These people were in your Faculty upload, but no account could be made. Fix the email in the Faculty file and upload it again.
               </p>
               <table>
                 <tbody>
