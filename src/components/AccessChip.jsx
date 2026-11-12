@@ -42,11 +42,11 @@ const AccessChip = ({ access }) => {
   if (!access) return <span style={{ color: '#9CA3AF', fontSize: 12, fontStyle: 'italic' }}>—</span>;
   const tone = TONE[access.status] || TONE.none;
   const label = SHORT_LABEL[access.status] || access.label || access.status;
-  const title = access.status === 'held' ? access.label
+  const title = access.status === 'held' ? (access.reason || access.label)
     : access.status === 'sent' && access.sent_at ? 'Invited ' + new Date(access.sent_at).toLocaleString()
     : access.reason || access.label;
   return (
-    <span title={title} style={{ ...tone, padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', display: 'inline-block' }}>
+    <span title={title} style={{ ...tone, padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', display: 'inline-block', cursor: title && title !== label ? 'help' : 'default' }}>
       {label}
     </span>
   );
