@@ -8,7 +8,7 @@ import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
 import {
-  scheduleUploadInvitations, rolesForFacultyRow, accessSummaries, inviteNow, tooManyInvites,
+  scheduleUploadInvitations, rolesForFacultyRow, accessSummaries, inviteNow, tooManyInvites, inviteReply,
 } from '../services/invitations.js';
 import { facultyLeft, LEFT_STATUSES, accountForPerson } from '../services/notices.js';
 
@@ -218,14 +218,6 @@ export async function deleteFaculty(req, res, next) {
 }
 
 // --- Invite now / Resend ------------------------------------------------------
-
-const inviteReply = (res, r, account) => {
-  if (r.status === 'active') return res.status(409).json({ message: r.reason, hint: 'Use Forgot password.', access: r.invitation });
-  if (r.status === 'disabled') return res.status(400).json({ message: r.reason });
-  if (r.status === 'sent') return res.json({ message: 'Invitation sent to ' + account.email + '.', access: r.invitation });
-  if (r.status === 'skipped') return res.json({ message: 'Not sent: ' + (r.reason || 'skipped by the mailer'), access: r.invitation, skipped: true });
-  return res.status(502).json({ message: 'The email could not be sent: ' + (r.reason || 'unknown error'), access: r.invitation });
-};
 
 async function accountForFacultyRow(row) {
   const accounts = await UserAccount.findAll({ attributes: ['id', 'email', 'display_name', 'status', 'roles', 'must_change_password'] });

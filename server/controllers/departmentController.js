@@ -11,9 +11,24 @@ import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
-import { scheduleUploadInvitations } from '../services/invitations.js';
+import {
+  scheduleUploadInvitations, accessSummaries, inviteNow, tooManyInvites, inviteReply,
+} from '../services/invitations.js';
+import { accountForPerson } from '../services/notices.js';
+import { isAllowedEmailForRoles, normalizeEmail } from '../utils/roles.js';
 
-const { Department } = db;
+const { Department, UserAccount } = db;
+
+const NO_ACCESS = { account_id: null, status: 'none', label: 'No account' };
+
+/** Each row with its Dean's `access` cell (invitation status) — see accessSummaries. */
+async function withDeanAccess(rows) {
+  const withDean = rows.filter((r) => r.dean);
+  const access = await accessSummaries(withDean.map((r) => ({ key: r.id, name: r.dean, email: r.dean_email })));
+  return rows.map((r) => ({ ...r.toJSON(), access: r.dean ? (access[r.id] || NO_ACCESS) : null }));
+}
+
+const cleanEmail = (v) => (v == null || String(v).trim() === '' ? null : normalizeEmail(v));
 
 export async function listDepartments(req, res, next) {
   try {
@@ -27,9 +42,9 @@ export async function listDepartments(req, res, next) {
       // one (the user can flip it back to Active via the row Edit
       // modal).
       const cloned = await cloneFromPriorPeriod(Department, period_id, {
-        attributes: ['name', 'code', 'dean', 'status'],
-        transform: (r) => ({ name: r.name, code: r.code, dean: r.dean, status: r.status || 'Active' }),
-        updateKeys: ['name', 'dean', 'status'],
+        attributes: ['name', 'code', 'dean', 'dean_email', 'status'],
+        transform: (r) => ({ name: r.name, code: r.code, dean: r.dean, dean_email: r.dean_email || null, status: r.status || 'Active' }),
+        updateKeys: ['name', 'dean', 'dean_email', 'status'],
       });
       if (cloned) {
         // eslint-disable-next-line no-console
@@ -38,7 +53,7 @@ export async function listDepartments(req, res, next) {
       }
     }
 
-    res.json(rows);
+    res.json(await withDeanAccess(rows));
   } catch (err) { next(err); }
 }
 
@@ -53,12 +68,13 @@ export async function getDepartment(req, res, next) {
 export async function createDepartment(req, res) {
   try {
     const { name, code, dean, status } = req.body;
+    const dean_email = cleanEmail(req.body.dean_email);
     const period_id = getPeriodId(req);
     if (!name || !code) return res.status(400).json({ message: 'name and code are required' });
     if (!period_id)     return res.status(400).json({ message: 'period_id is required' });
     if (!(await enforceLatestPeriod(res, period_id))) return;
     const safe = await filterOneToExistingColumns(Department, {
-      name, code, dean, status: status || 'Active', period_id,
+      name, code, dean, dean_email, status: status || 'Active', period_id,
     });
     // Snapshot first, so a row added by hand is undoable the same way an
     // uploaded one is.
@@ -83,6 +99,7 @@ export async function updateDepartment(req, res) {
     for (const k of ['name', 'code', 'dean', 'status']) {
       if (req.body[k] !== undefined) patch[k] = req.body[k];
     }
+    if (req.body.dean_email !== undefined) patch.dean_email = cleanEmail(req.body.dean_email);
     const safe = await filterOneToExistingColumns(Department, patch);
     await row.update(safe);
     res.json(row);
@@ -170,6 +187,7 @@ export async function uploadDepartments(req, res) {
         name: String(name).trim(),
         code: String(code).trim(),
         dean: dean ? String(dean).trim() : null,
+        dean_email: dean && deanEmail ? cleanEmail(deanEmail) : null,
         status: 'Active',
         period_id,
       });
@@ -199,7 +217,7 @@ export async function uploadDepartments(req, res) {
     // this is what the Undo button restores.
     const batch = await beginImportBatch('departments', period_id, req.file.originalname, req.user);
 
-    const created = await bulkUpsert(Department, records, ['name', 'dean', 'status']);
+    const created = await bulkUpsert(Department, records, ['name', 'dean', 'dean_email', 'status']);
     // Only reconcile departments that are actually IN THE TABLE. Already-archived
     // rows (Unlisted / Archived) aren't shown there, so flagging them again on
     // every upload was inaccurate. Match by code (the identity), not name.
@@ -223,5 +241,55 @@ export async function uploadDepartments(req, res) {
     res.status(400).json({ message: describeSequelizeError(err) });
   } finally {
     safeUnlink(req.file && req.file.path);
+  }
+}
+
+// --- Invite now / Resend for the Dean -----------------------------------------
+
+/**
+ * POST /api/departments/:id/invite-dean — an invitation for this department's
+ * Dean right now, signed by the VPAA who clicked. Same rules as the Dean's
+ * Invite now on the Faculty list: current term only, 5 an hour per person, and
+ * a Dean needs a UNC address (a non-UNC Dean Email is held, not sent).
+ */
+export async function inviteDean(req, res, next) {
+  try {
+    const row = await Department.findByPk(req.params.id);
+    if (!row) return res.status(404).json({ message: 'Department not found' });
+    if (!(await enforceLatestPeriod(res, row.period_id))) return undefined;
+    const name = String(row.dean || '').trim();
+    if (!name) return res.status(400).json({ message: 'This department has no Dean. Add one in Edit first.' });
+    const given = cleanEmail(row.dean_email);
+    if (given && !isAllowedEmailForRoles(given, ['Dean'])) {
+      return res.status(400).json({ message: 'Held: the Dean Email "' + row.dean_email + '" is not a UNC address. Give ' + name + ' a UNC email in Edit, then send.' });
+    }
+    const person = { name, email: given };
+    const findAccount = async () => accountForPerson(
+      await UserAccount.findAll({ attributes: ['id', 'email', 'display_name', 'status', 'roles', 'must_change_password'] }),
+      person,
+    );
+    let account = await findAccount();
+    if (account && !(account.roles || []).includes('Dean')) account = null; // let the upload path grant the role
+    // The Dean Email was fixed in Edit after an upload invented (and held) a
+    // firstname.surname address: move the not-yet-used account to the new one.
+    if (account && given && account.email !== given && account.must_change_password
+      && !(await UserAccount.count({ where: { email: given } }))) {
+      await account.update({ email: given });
+    }
+    if (!account) {
+      const s = await scheduleUploadInvitations({
+        entity: 'departments', people: [{ name, email: given || '', roles: ['Dean'] }],
+        periodId: row.period_id, senderId: req.user.id, defer: true,
+      });
+      account = await findAccount();
+      if (!account) {
+        return res.status(400).json({ message: s.held ? 'Held: could not work out a UNC email for ' + name + '. Add the Dean Email in Edit first.' : 'No account could be made for ' + name + '.' });
+      }
+    }
+    if (await tooManyInvites(account.id)) return res.status(429).json({ message: 'At most 5 invitations an hour for one person. Try again later.' });
+    const r = await inviteNow(account, { senderId: req.user.id, source: 'departments', periodId: row.period_id });
+    return inviteReply(res, r, account);
+  } catch (err) {
+    return next(err);
   }
 }

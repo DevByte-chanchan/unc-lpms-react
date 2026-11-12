@@ -92,6 +92,8 @@ export const DepartmentsAPI = {
   update:      (id, patch) => request(idPath('/departments', id), { method: 'PATCH', body: patch }),
   unlistMany:  (ids) => request('/departments/unlist', { method: 'PATCH', body: { ids } }),
   remove:      (id) => request(idPath('/departments', id), { method: 'DELETE' }),
+  // Invite now / Resend for the department's Dean (VPAA).
+  inviteDean:  (id) => request(idPath('/departments', id) + '/invite-dean', { method: 'POST' }),
   upload:      (file, periodId) => uploadFile('/departments/upload', file, periodId),
   // Dry run — same route, nothing written. Feeds the Preview & Confirm step.
   uploadPreview: (file, periodId) => uploadPreview('/departments/upload', file, periodId),

@@ -11,7 +11,7 @@ import {
   grantConsultantAccess, revokeConsultantAccess, accessMessage, consultantAccountFor, ROLE as CONSULTANT_ROLE,
 } from '../services/consultantAccess.js';
 import { markDirty, accountsInvolved } from '../services/notices.js';
-import { accessSummaries, inviteNow, tooManyInvites } from '../services/invitations.js';
+import { accessSummaries, inviteNow, tooManyInvites, inviteReply } from '../services/invitations.js';
 import { resolveLinks } from './authController.js';
 import { getActiveTermId } from '../utils/latestPeriod.js';
 import { isAllowedEmailForRoles, normalizeEmail, domainMessage, externalConsultantEmailsAllowed } from '../utils/roles.js';
@@ -436,11 +436,7 @@ export async function inviteConsultant(req, res, next) {
     if (!account) return res.status(400).json({ message: 'No account for ' + row.name + ' yet. Give them an email in Manage first.' });
     if (await tooManyInvites(account.id)) return res.status(429).json({ message: 'At most 5 invitations an hour for one person. Try again later.' });
     const r = await inviteNow(account, { senderId: req.user.id, source: 'industry_consultants', periodId: row.period_id });
-    if (r.status === 'active') return res.status(409).json({ message: r.reason, hint: 'Use Forgot password.', access: r.invitation });
-    if (r.status === 'disabled') return res.status(400).json({ message: r.reason });
-    if (r.status === 'sent') return res.json({ message: 'Invitation sent to ' + account.email + '.', access: r.invitation });
-    if (r.status === 'skipped') return res.json({ message: 'Not sent: ' + (r.reason || 'skipped by the mailer'), access: r.invitation, skipped: true });
-    return res.status(502).json({ message: 'The email could not be sent: ' + (r.reason || 'unknown error'), access: r.invitation });
+    return inviteReply(res, r, account);
   } catch (err) {
     return next(err);
   }

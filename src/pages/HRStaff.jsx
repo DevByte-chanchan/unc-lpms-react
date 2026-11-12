@@ -16,7 +16,7 @@ import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
 import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
-import { Upload, Plus, Search, ArrowUp, ArrowDown } from "react-feather";
+import { Upload, Plus, Search, ArrowUp, ArrowDown, X } from "react-feather";
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { DepartmentsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
@@ -37,6 +37,7 @@ const DEPT_FIELDS = [
   { key: 'name', label: 'Name', required: true, placeholder: 'e.g. School of Computer and Information Sciences' },
   { key: 'code', label: 'Code', required: true, placeholder: 'e.g. SCIS' },
   { key: 'dean', label: 'Dean', placeholder: 'e.g. Dr. Maria Santos' },
+  { key: 'dean_email', label: 'Dean Email', placeholder: 'e.g. maria.santos@unc.edu.ph' },
   { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.department },
 ];
 
@@ -56,6 +57,14 @@ const HRStaff = () => {
   const [searchQuery, setSearchQuery]         = React.useState('');
   const [departments, setDepartments]         = React.useState([]);
   const fileInputRef = React.useRef(null);
+  // What Invite now / Resend answered: { text, tone: 'ok' | 'warn' | 'error' }.
+  const [notice, setNotice]                   = React.useState(null);
+  const [invitingId, setInvitingId]           = React.useState(null);
+  React.useEffect(() => {
+    if (!notice) return undefined;
+    const id = setTimeout(() => setNotice(null), 10000);
+    return () => clearTimeout(id);
+  }, [notice]);
 
   // Bumped on every successful upload so the Undo button re-reads its batch.
   const [uploadCount, setUploadCount]         = React.useState(0);
@@ -114,6 +123,22 @@ const HRStaff = () => {
     setShowUploadModal(true);
   };
 
+  // Invite now / Resend for the row's Dean. 409 = already has a password;
+  // 400 "Held: …" = no UNC email yet; 429 = the hourly limit.
+  const onInvite = async (row) => {
+    if (invitingId) return;
+    setInvitingId(row.id);
+    try {
+      const r = await DepartmentsAPI.inviteDean(row.id);
+      setNotice({ text: r.message, tone: r.skipped ? 'warn' : 'ok' });
+    } catch (err) {
+      setNotice({ text: err.message || 'Could not send the invitation.', tone: err.status === 409 || /^Held:/.test(err.message || '') ? 'warn' : 'error' });
+    } finally {
+      setInvitingId(null);
+      refresh();
+    }
+  };
+
   const onAddDepartment = async (record) => {
     await DepartmentsAPI.create(record, periodId);
     await refresh();
@@ -159,7 +184,7 @@ const HRStaff = () => {
   const visibleRows = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const rows = q
-      ? departments.filter((d) => [d.name, d.code, d.dean, d.status].filter(Boolean).some((v) => String(v).toLowerCase().includes(q)))
+      ? departments.filter((d) => [d.name, d.code, d.dean, d.dean_email, d.status].filter(Boolean).some((v) => String(v).toLowerCase().includes(q)))
       : departments.slice();
     // Sorting is handled by the table's column headers; here we only filter
     // and drop archived rows (Unlisted / Archived) to the global Archive.
@@ -180,6 +205,13 @@ const HRStaff = () => {
           {!isCurrentTermActive && currentPeriod && (
             <div style={{ marginBottom: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 13, lineHeight: '1.4' }}>
               <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
+            </div>
+          )}
+
+          {notice && (
+            <div role="status" style={{ ...(notice.tone === 'error' ? { background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B' } : notice.tone === 'warn' ? { background: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E' } : { background: '#F0FDF4', border: '1px solid #BBF7D0', color: '#166534' }), marginBottom: 12, padding: '10px 14px', borderRadius: 8, fontSize: 13, lineHeight: '1.4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <span>{notice.text}</span>
+              <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'inline-flex' }}><X size={14} /></button>
             </div>
           )}
 
@@ -204,6 +236,8 @@ const HRStaff = () => {
               departments={visibleRows}
               onEdit={isCurrentTermActive ? (d) => setEditingDept(d) : undefined}
               onArchive={isCurrentTermActive ? onArchiveRow : undefined}
+              onInvite={isCurrentTermActive ? onInvite : undefined}
+              invitingId={invitingId}
             />
           )}
 
@@ -236,6 +270,7 @@ const HRStaff = () => {
                 { key: 'name', label: 'Name', required: true },
                 { key: 'code', label: 'Code', required: true },
                 { key: 'dean', label: 'Dean', optional: true },
+                { key: 'dean_email', label: 'Dean Email', optional: true },
                 { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.department },
               ]}
               onSave={onSaveEdit}

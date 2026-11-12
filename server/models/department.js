@@ -15,6 +15,9 @@ export default (sequelize, DataTypes) =>
       name:   { type: DataTypes.STRING(100), allowNull: false },
       code:   { type: DataTypes.STRING(16),  allowNull: false },
       dean:   { type: DataTypes.STRING(50),  allowNull: true },
+      // From the Department List's Dean Email column: the Access column and
+      // Invite now / Resend use it. Blank → firstname.surname@unc.edu.ph.
+      dean_email: { type: DataTypes.STRING(254), allowNull: true },
       status: { type: DataTypes.STRING(16),  allowNull: false, defaultValue: 'Active' },
       period_id: {
         field: 'academic_period_id',

@@ -160,7 +160,7 @@ const DeanFaculty = () => {
     try {
       const r = await FacultyAPI.invite(row.id);
       setNotice({ text: r.message, tone: r.skipped ? 'warn' : 'ok' });
-      if (r.access) setFaculty((prev) => prev.map((f) => (f.id === row.id ? { ...f, access: { ...f.access, ...r.access, label: r.access.status === 'sent' ? 'Invited' : f.access.label } } : f)));
+      if (r.access) setFaculty((prev) => prev.map((f) => (f.id === row.id ? { ...f, access: { ...f.access, ...r.access, label: r.access.status === 'sent' ? 'Invitation sent' : f.access.label } } : f)));
       await refresh();
     } catch (err) {
       setNotice({ text: err.message || 'Could not send the invitation.', tone: err.status === 409 ? 'warn' : 'error' });

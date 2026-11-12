@@ -377,10 +377,12 @@ export async function tooManyInvites(accountId) {
   const n = await AccountInvitation.count({
     where: {
       user_account_id: accountId,
-      source_entity: ['manual', 'faculty', 'industry_consultants', 'request'],
+      source_entity: ['manual', 'faculty', 'industry_consultants', 'departments', 'request'],
       import_batch_id: null,
       createdAt: { [Op.gt]: new Date(Date.now() - 60 * 60 * 1000) },
-      status: { [Op.ne]: WAITING },
+      // Hand-sent ones only (Invite now / Resend / new link): an upload's waiting
+      // row that the first click replaced is not a try.
+      email_source: 'manual',
     },
   });
   return n >= MAX_MANUAL_INVITES_PER_HOUR;
@@ -405,6 +407,15 @@ export async function inviteNow(account, { senderId = null, source = 'manual', p
   const status = result.status === 'sent' || result.status === 'captured' ? 'sent' : result.status;
   const [summary] = Object.values(await invitationSummaries([account.id]));
   return { status, reason: result.reason || null, invitation: summary || null };
+}
+
+/** The HTTP answer for an inviteNow result (Invite now / Resend on every list page). */
+export function inviteReply(res, r, account) {
+  if (r.status === 'active') return res.status(409).json({ message: r.reason, hint: 'Use Forgot password.', access: r.invitation });
+  if (r.status === 'disabled') return res.status(400).json({ message: r.reason });
+  if (r.status === 'sent') return res.json({ message: 'Invitation sent to ' + account.email + '.', access: r.invitation });
+  if (r.status === 'skipped') return res.json({ message: 'Not sent: ' + (r.reason || 'skipped by the mailer'), access: r.invitation, skipped: true });
+  return res.status(502).json({ message: 'The email could not be sent: ' + (r.reason || 'unknown error'), access: r.invitation });
 }
 
 /**
@@ -697,7 +708,7 @@ export const ACCESS_LABELS = Object.freeze({
   waiting: 'Not invited yet',
   scheduled: 'Sending…',
   sending: 'Sending…',
-  sent: 'Invited',
+  sent: 'Invitation sent',
   expired: 'Expired',
   accepted: 'Active',
   failed: 'Failed',
