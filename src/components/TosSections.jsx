@@ -1658,7 +1658,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         <div key={c.id} className={`${layout.commentCard}${addingComment ? ` ${layout.commentCardDimmed}` : ''}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                             <div className={layout.commentCardHeader}>
                                                 <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
-                                                {!isReturnedView && <span className={layout.commentDeleteBtnWrap} onClick={e => { e.stopPropagation(); handleDeleteComment(c.id); }}><Trash2 size={16} /></span>}
+                                                {!isReturnedView && <span className={layout.commentDeleteBtnWrap} title="Delete comment" onClick={e => { e.stopPropagation(); handleDeleteComment(c.id); }}><Trash2 size={16} /></span>}
                                             </div>
                                             {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                             <div className={layout.commentCardBody}>{c.body}</div>
@@ -1899,7 +1899,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
                                                             <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
-                                                            <span className={layout.commentResolveBtnWrap} onClick={(e) => { e.stopPropagation(); handleResolveComment(c.id); }}><CheckCircle size={16} /></span>
+                                                            <span className={layout.commentResolveBtnWrap} title="Mark as resolved" onClick={(e) => { e.stopPropagation(); handleResolveComment(c.id); }}><CheckCircle size={16} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1920,7 +1920,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     <div key={c.id} className={`${layout.commentCard} ${layout.commentCardResolved}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
                                                             <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
-                                                            <span className={layout.commentUndoBtnWrap} onClick={(e) => { e.stopPropagation(); handleUnresolveComment(c.id); }}><RotateCcw size={16} /></span>
+                                                            <span className={layout.commentUndoBtnWrap} title="Unresolve comment" onClick={(e) => { e.stopPropagation(); handleUnresolveComment(c.id); }}><RotateCcw size={16} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -2361,6 +2361,9 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     <p style={{ color: "#555", margin: '0 0 12px 0' }}>
                                         The following {openComments.length === 1 ? 'comment' : `${openComments.length} comments`} will be discarded. Proceed to approval?
                                     </p>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                                        Comments to be discarded:
+                                    </div>
                                     <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
                                         {openComments.map(c => (
                                             <div key={c.id} style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB' }}>
@@ -2368,7 +2371,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     {formatScopeText(c.scope)}
                                                 </div>
                                                 <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.4 }}>
-                                                    {c.body}
+                                                    <span style={{ fontWeight: 600, color: '#374151' }}>Comment: </span>{c.body}
                                                 </div>
                                             </div>
                                         ))}
