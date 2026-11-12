@@ -70,9 +70,14 @@ jobs:
       - name: Frontend tests
         run: npm test
 
-      - name: Server tests
+      # Fails when any test is skipped: with MySQL here, every database test must run.
+      - name: Server tests (skipped 0)
         working-directory: server
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/server-tests.log
+          grep -E '^# (tests|pass|fail|skipped)' /tmp/server-tests.log
+          grep -qx '# skipped 0' /tmp/server-tests.log
 
       - name: Build
         run: npm run build
