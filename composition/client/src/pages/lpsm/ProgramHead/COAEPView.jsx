@@ -11,7 +11,7 @@ import EmptyState from '../../../components/EmptyState.jsx';
 import HeadBodyTable from '../../../components/HeadBodyTable.jsx';
 import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
-import { revisionLabel, termLabel, programShort } from '../../../utils/offeringLabels.js';
+import { courseOptions } from '../../../utils/offeringLabels.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { getSession } from '../../../utils/session.js';
 import { fetchFormInfo } from '../../../utils/formSettings.js';
@@ -40,24 +40,9 @@ const COAEPView = ({ tabs = null }) => {
       .then(response => {
         if (!active) return;
         const rows = Array.isArray(response) ? response : (response.data || []);
-        const byOffering = new Map();
-        rows.forEach(row => {
-          const offering = row.ProgramCourseOffering;
-          const course = offering?.Course;
-          if (!course?.course_no || !offering.pc_offering_id || byOffering.has(offering.pc_offering_id)) return;
-          const parts = [termLabel(offering), revisionLabel(offering)].filter(Boolean);
-          // the program too: one course can be offered by two programs in the same term
-          const program = programShort(offering.Program?.name);
-          byOffering.set(offering.pc_offering_id, {
-            id: String(offering.pc_offering_id),
-            code: course.course_no,
-            name: course.course_title || '',
-            label: `${course.course_no} — ${course.course_title || ''}${program ? ` · ${program}` : ''}${parts.length ? ` (${parts.join(', ')})` : ''}`,
-          });
-        });
-        const list = [...byOffering.values()].sort((left, right) => left.code.localeCompare(right.code) || left.label.localeCompare(right.label));
-        setCourses(list);
-        setOfferingId(list[0]?.id || '');
+        const { options, selected } = courseOptions(rows);
+        setCourses(options);
+        setOfferingId(selected);
       })
       .catch(err => { if (active) { setCourses([]); setError(apiErrorMessage(err, 'Could not load your courses.')); } });
     return () => { active = false; };

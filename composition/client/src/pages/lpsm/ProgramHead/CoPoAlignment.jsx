@@ -9,8 +9,7 @@ import CourseDocumentBar from '../../../components/CourseDocumentBar.jsx';
 import { openCourseDocument } from '../../../utils/courseDocuments.js';
 import { buildCoPoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
-import { computeOverallStatus } from '../../../utils/assignmentStatus.js';
-import { revisionLabel, termLabel, programShort } from '../../../utils/offeringLabels.js';
+import { courseOptions } from '../../../utils/offeringLabels.js';
 import unclogo from '../../../assets/unclogo.png';
 import cc from '../../../styles/SyllabusPreview.module.sass';
 import tbl from '../../../styles/AlignmentTables.module.sass';
@@ -20,23 +19,6 @@ import styles from '../../../styles/PoPeoAlignment.module.sass';
 
 // Instructors often type "CO1:" at the start of the outcome; the table numbers them itself.
 const withoutNumber = (text) => String(text || '').replace(/^\s*CO\s*\d+\s*[:.-]\s*/i, '');
-
-// One offering per option: the course, its term and its revision, so two revisions of a course
-// can be told apart. The outcomes and their PO marks come from the instructor's syllabus.
-const describe = (row) => {
-  const offering = row.ProgramCourseOffering || {};
-  const course = offering.Course || {};
-  const parts = [termLabel(offering), revisionLabel(offering)].filter(Boolean);
-  // the program too: one course can be offered by two programs in the same term
-  const program = programShort(offering.Program?.name);
-  return {
-    id: String(offering.pc_offering_id),
-    code: course.course_no || '',
-    name: course.course_title || '',
-    status: computeOverallStatus(row),
-    label: `${course.course_no || '?'} — ${course.course_title || ''}${program ? ` · ${program}` : ''}${parts.length ? ` (${parts.join(', ')})` : ''}`
-  };
-};
 
 // `tabs`: shown as the page header when this page is a tab of Outcomes Alignment.
 const CoPoAlignment = ({ tabs = null }) => {
@@ -53,10 +35,9 @@ const CoPoAlignment = ({ tabs = null }) => {
       .then(response => {
         if (!live) return;
         const rows = Array.isArray(response) ? response : (response.data || []);
-        const list = rows.filter(row => row.ProgramCourseOffering?.pc_offering_id).map(describe)
-          .sort((a, b) => a.code.localeCompare(b.code) || a.label.localeCompare(b.label));
-        setOfferings(list);
-        if (list.length > 0) setOfferingId(list[0].id);
+        const { options, selected } = courseOptions(rows);
+        setOfferings(options);
+        setOfferingId(selected);
       })
       .catch(err => { if (live) { setOfferings([]); setError(apiErrorMessage(err, 'Could not load your courses.')); } });
     return () => { live = false; };

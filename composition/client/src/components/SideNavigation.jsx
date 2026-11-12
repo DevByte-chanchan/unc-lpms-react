@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, LogOut, Sidebar, Target, UserCheck, Users } from 'react-feather'
+import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, Folder, GitMerge, Layers, LogOut, Sidebar, Target, UserCheck, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'
@@ -16,6 +16,7 @@ const NAVIGATION_ICON_COMPONENTS = {
     CheckCircle,
     Clipboard,
     FileText,
+    Folder,
     GitMerge,
     Layers,
     Target,

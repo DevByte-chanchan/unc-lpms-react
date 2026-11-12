@@ -30,3 +30,17 @@ test('a program is named by its initials, as the university writes them', async 
   assert.equal(programShort('Bachelor of Library and Information Science'), 'BLIS')
   assert.equal(programShort(''), '')
 })
+
+test('courseOptions: one option per offering, newest term first, opens on the newest term', async () => {
+  const { courseOptions } = await import('./offeringLabels.js')
+  const row = (id, code, year, extra = {}) => ({ ProgramCourseOffering: { pc_offering_id: id, school_year: year, semester: '1st', revision_number: 1,
+    Course: { course_no: code, course_title: 'T' }, Program: { name: 'Bachelor of Science in Information Technology' }, ...extra } })
+  const { options, selected } = courseOptions([row(1, 'B1', '2025-2026'), row(2, 'B1', '2027-2028', { carried_from_offering_id: 1 }),
+    row(3, 'A1', '2026-2027', { revision_number: 0 }), row(1, 'B1', '2025-2026')])
+  assert.deepEqual(options.map(o => o.label), ['A1 — T · 2026-2027 · 1st sem · Working copy',
+    'B1 — T · 2027-2028 · 1st sem · Carried over (Rev 1)', 'B1 — T · 2025-2026 · 1st sem · Rev 1'])
+  assert.equal(selected, '2')
+  const two = courseOptions([row(1, 'B1', '2025-2026'), row(4, 'B1', '2025-2026', { Program: { name: 'Associate in Computer Technology' } })])
+  assert.deepEqual(two.options.map(o => o.label.split(' · ')[1]).sort(), ['ACT', 'BSIT'])
+  assert.deepEqual(courseOptions([]), { options: [], selected: '' })
+})

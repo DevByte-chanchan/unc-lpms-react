@@ -25,3 +25,27 @@ export const historyRevisionLabel = (entry = {}) => {
 export const programShort = (name = '') => String(name)
   .split(/\s+/).filter(word => word && !/^(of|in|and|the|for)$/i.test(word))
   .map(word => word[0].toUpperCase()).join('')
+
+// The course picker of the CO and PO and COAEP pages, from /api/assignments rows: one option per offering, as
+// "BIT213L — Object-Oriented Programming · 2026-2027 · 1st sem · Rev 2". The program is named only when the list has
+// more than one (one course can be offered by two programs). Sorted by course code, newest term first; `selected`
+// is the first option of the newest term, so the page opens on the current work.
+export const courseOptions = (rows = []) => {
+  const byId = new Map()
+  for (const row of rows) {
+    const offering = row?.ProgramCourseOffering
+    if (offering?.pc_offering_id && offering.Course?.course_no && !byId.has(offering.pc_offering_id)) byId.set(offering.pc_offering_id, offering)
+  }
+  const offerings = [...byId.values()]
+  const manyPrograms = new Set(offerings.map(o => o.Program?.name).filter(Boolean)).size > 1
+  const options = offerings.map(o => ({
+    id: String(o.pc_offering_id),
+    code: o.Course.course_no,
+    name: o.Course.course_title || '',
+    year: o.school_year || '',
+    label: [`${o.Course.course_no} — ${o.Course.course_title || ''}`, manyPrograms && programShort(o.Program?.name),
+      termLabel(o), revisionLabel(o)].filter(Boolean).join(' · '),
+  })).sort((a, b) => a.code.localeCompare(b.code) || b.year.localeCompare(a.year) || a.label.localeCompare(b.label))
+  const newest = options.reduce((max, o) => (o.year > max ? o.year : max), '')
+  return { options, selected: (options.find(o => o.year === newest) || options[0])?.id || '' }
+}
