@@ -52,6 +52,8 @@ import OutcomeAlignment from './OutcomeAlignment'
 import CriteriaForGrading from './CriteriaForGrading'
 import { sectionsForRole, canSeeWholePlan } from '../utils/sectionAccess.js'
 import ConsultantDialog from './ConsultantDialog.jsx'
+import ConsultantReview from './ConsultantReview.jsx'
+import FutureSuggestions from './FutureSuggestions.jsx'
 
 
 
@@ -664,17 +666,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     fetchJson(`/api/course-consultants/signoffs/${validPcId}`).then(rows => { if (live) setSignoffs(Array.isArray(rows) ? rows : []) }).catch(() => {})
     return () => { live = false }
   }, [validPcId, planClosed])
-  const signedByMe = signoffs.some(s => s.mine)
-  const signPlan = async () => {
-    if (!window.confirm('Sign this learning plan as reviewed? This records your review; it does not change the approval.')) return
-    try {
-      const row = await fetchJson(`/api/course-consultants/signoffs/${validPcId}`, { method: 'POST' })
-      setSignoffs(list => [...list, row])
-      showToastMsg('Signed as reviewed.')
-    } catch (err) {
-      showToastMsg(apiErrorMessage(err, 'The plan was not signed.'), 'warning')
-    }
-  }
+  const mySignoff = signoffs.find(s => s.mine)
+  // "Suggest & Sign" (the consultant's window, components/ConsultantReview.jsx) and the Program Head's read-only list.
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  const closeReview = React.useCallback(() => setReviewOpen(false), [])
+  const closeSuggestions = React.useCallback(() => setSuggestionsOpen(false), [])
   const signedLine = signoffs.length > 0 && (
     <div role="note" style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
       <PenTool size={14} aria-hidden="true" />
@@ -898,6 +895,16 @@ ${suggestionLine}` : text,
           </button>
         )}
         {/* A consultant reviews Dean-approved plans only, so they are assigned from an approved plan. */}
+        {roleKey === 'industry-consultant' && approved && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setReviewOpen(true); }}>
+            <MessageSquare strokeWidth={2} size={14} /> Suggestions
+          </button>
+        )}
+        {roleKey === 'program-head' && approved && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setSuggestionsOpen(true); }}>
+            <MessageSquare strokeWidth={2} size={14} /> Consultant suggestions
+          </button>
+        )}
         {roleKey === 'program-head' && approved && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsConsultantOpen(true); }}>
             <UserPlus strokeWidth={2} size={14} /> Industry consultant
@@ -1007,19 +1014,16 @@ ${suggestionLine}` : text,
               </>)
             }
             if (roleKey === 'industry-consultant') {
-              // The consultant suggests and signs; they never comment for a return or approve.
+              // The consultant has one action, Suggest & Sign: they never return or approve. Their suggestions stay out
+              // of the comment panel; the ⋮ menu reopens them (Suggestions) for editing.
               const blocked = !reviewRecordAvailable || !canComment
               return (<>
-                <button type="button" className={`btn btn-secondary ${blocked ? styles['disabled-btn'] : ''}`} aria-disabled={blocked} onClick={() => {
+                <button type="button" className={`btn btn-primary ${blocked ? styles['disabled-btn'] : ''}`} aria-disabled={blocked} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
-                  if (!canComment) { showToastMsg('Suggestions open once the Dean approves this learning plan.', 'warning'); return }
-                  setReadOnlyCommentModal(false); openComment()
-                }}><MessageSquare size={16} /> {commentButtonLabel}</button>
-                <button type="button" className={`btn btn-primary ${(blocked || signedByMe) ? styles['disabled-btn'] : ''}`} aria-disabled={blocked || signedByMe} onClick={() => {
-                  if (signedByMe) { showToastMsg('You have already signed this learning plan.', 'warning'); return }
-                  if (blocked) { showToastMsg('You can sign once the Dean approves this learning plan.', 'warning'); return }
-                  signPlan()
-                }}><PenTool size={16} /> {signedByMe ? 'Signed' : 'Sign'}</button>
+                  if (blocked) { showToastMsg('Suggest & Sign opens once the Dean approves this learning plan.', 'warning'); return }
+                  setReviewOpen(true)
+                }}><PenTool size={16} /> {mySignoff ? 'Signed · Suggestions' : 'Suggest & Sign'}</button>
+                {effectiveStatus === 'approved' && exportMenu(true)}
               </>)
             }
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
@@ -1127,6 +1131,9 @@ ${suggestionLine}` : text,
             {roleKey === 'program-head' && <PlanChecks pcId={validPcId} />}
             {roleKey !== 'instructor' && <VersionHistory pcId={validPcId} />}
             {signedLine}
+            {reviewOpen && <ConsultantReview pcId={validPcId} signedAt={mySignoff?.signedAt}
+              onSigned={(row) => { setSignoffs(list => [...list, row]); showToastMsg('Signed as reviewed. Your signature is on the exported plan.') }} onClose={closeReview} />}
+            {suggestionsOpen && <FutureSuggestions pcId={validPcId} onClose={closeSuggestions} />}
             {(roleKey === 'program-head' || roleKey === 'industry-consultant') && <EarlierConsultantNotes pcId={validPcId} />}
             {/* A table of blank rows is the worst of both worlds — it looks
                 like the screen loaded but lost the data. Say plainly that
@@ -1323,9 +1330,9 @@ ${suggestionLine}` : text,
             Add Comment is available on every section and the comment box can
             target references and TLAs too — so a comment raised anywhere else
             was saved and then never shown. It belongs on every section. */}
-        {!embedded && roleKey !== 'vpaa' && (
+        {/* The consultant has no comment panel: their suggestions are in Suggest & Sign (and ⋮ > Suggestions). */}
+        {!embedded && roleKey !== 'vpaa' && roleKey !== 'industry-consultant' && (
           <CommentsSidebar
-            noun={roleKey === 'industry-consultant' ? 'suggestion' : 'comment'}
             panelId="approval-comments-panel"
             comments={visibleComments}
             iloLabels={iloLabels}

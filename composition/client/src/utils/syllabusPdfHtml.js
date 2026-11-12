@@ -894,8 +894,10 @@ function page14(syllabus, workflow, logo, pageNum, total) {
   const signatories = [
     { label: 'Prepared by:', name: extractInstructorName(), role: 'Faculty', date: extractDate(workflow?.submittedAt),
       image: workflow?.submittedAt ? signatureImageSrc(workflow?.signatureImages?.instructor) : '' },
-    // The industry consultant reviews as documentation only; this line is not part of the approval chain.
-    { label: 'Reviewed by:', name: '_____________', role: 'Industry Expert/Consultant', date: extractDate(null) },
+    // The industry consultant reviews the approved plan and signs it as reviewed (Suggest & Sign); not part of the
+    // approval chain. Blank until they sign.
+    { label: 'Reviewed by:', name: safe(workflow?.consultant?.name || '_____________'), role: 'Industry Expert/Consultant',
+      date: extractDate(workflow?.consultant?.signedAt), image: workflow?.consultant ? signatureImageSrc(workflow?.signatureImages?.['industry-consultant']) : '' },
     { label: 'Resources Certified by:', name: safe(librarian.name), role: 'Director of Libraries', date: librarian.date, image: librarian.image },
     { label: 'Approved By:', name: safe(programHead.name), role: 'Program Head', date: programHead.date, image: programHead.image },
     { label: 'Noted by:', name: safe(dean.name), role: 'College Dean', date: dean.date, image: dean.image },

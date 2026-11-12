@@ -32,8 +32,10 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
   const formInfo = await fetchFormInfo()
   // The e-signature images (decrypted by the server, only for steps each person performed). An export never
   // fails because of a signature: no key or no upload just means no image.
-  const signatureImages = (await fetchJson(`/api/assignments/offering/${pcId}/signatures`).catch(() => null))?.signatures || {}
-  workflow = { ...workflow, signatureImages }
+  const signed = await fetchJson(`/api/assignments/offering/${pcId}/signatures`).catch(() => null)
+  const signatureImages = signed?.signatures || {}
+  // The Industry Consultant's sign-off fills the "Reviewed by" box (name, date, e-signature).
+  workflow = { ...workflow, signatureImages, consultant: signed?.consultant || null }
 
   const [courseRes, coaRes, covRes, critRes, refRes] = await Promise.all([
     fetchJson(`/api/course-details/${offeringKey(pcId, revNum)}`).catch(() => null),

@@ -135,3 +135,28 @@ test('Future Suggestions: the consultant suggestions on this plan and its earlie
     assert.deepEqual((await suggestions(`${ids.consultantB}:industry-consultant`, ids.v3.id)).body.suggestions.map(s => s.message), ['B: more on testing']);
     assert.equal((await suggestions(`${ids.dean}:dean`, ids.v2.id)).status, 403);
 });
+
+const send = async (who, method, path, body) => {
+    const res = await fetch(`${base}${path}`, { method, headers: { 'x-user': who, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    return { status: res.status, body: await res.json().catch(() => ({})) };
+};
+
+test('Suggest & Sign: a consultant adds, edits and removes their own suggestions on an approved plan only', async () => {
+    // v3 is approved through the workflow too (the add route checks the plan's state).
+    for (const [role, action] of [['INSTRUCTOR', 'SUBMITTED'], ['LIBRARY_DIRECTOR', 'ACCEPTED'], ['PROGRAM_HEAD', 'ACCEPTED'], ['DEAN', 'ACCEPTED']]) {
+        await insert('INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [ids.v3.assignment, role, action, now(), now()]);
+    }
+    const A = `${ids.consultantA}:industry-consultant`;
+    const B = `${ids.consultantB}:industry-consultant`;
+    assert.equal((await send(A, 'POST', `/suggestions/${ids.v2.id}`, { message: 'not approved' })).status, 403, 'a plan not approved yet');
+    assert.equal((await send(A, 'POST', `/suggestions/${ids.v3.id}`, { message: '   ' })).status, 400, 'empty');
+    const added = await send(A, 'POST', `/suggestions/${ids.v3.id}`, { message: 'A: add a CI/CD lab' });
+    assert.equal(added.status, 201);
+    assert.equal((await send(B, 'PUT', `/suggestions/item/${added.body.id}`, { message: 'B edits A' })).status, 403, 'only the author edits');
+    assert.equal((await send(A, 'PUT', `/suggestions/item/${added.body.id}`, { message: 'A: add a CI/CD lab with GitHub Actions' })).status, 200);
+    const mine = (await suggestions(A, ids.v3.id)).body.suggestions.filter(s => s.thisPlan).map(s => s.message);
+    assert.deepEqual(mine, ['A: add a CI/CD lab with GitHub Actions']);
+    assert.equal((await send(`${ids.head}:program-head`, 'POST', `/suggestions/${ids.v3.id}`, { message: 'x' })).status, 403, 'consultants only');
+    assert.equal((await send(A, 'DELETE', `/suggestions/item/${added.body.id}`)).status, 200);
+    assert.deepEqual((await suggestions(A, ids.v3.id)).body.suggestions.filter(s => s.thisPlan), []);
+});

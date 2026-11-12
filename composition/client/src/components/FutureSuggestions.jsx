@@ -61,7 +61,7 @@ const FutureSuggestions = ({ pcId, onClose }) => {
                 <span><strong style={{ color: 'var(--ink)' }}>{s.name}</strong>{s.thisPlan ? '' : ` · ${planLabel(s)}`}</span>
                 <span>{new Date(s.at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
-              {(s.target || s.about) && (
+              {(s.target || ABOUT[s.about]) && (
                 <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
                   <strong>{ABOUT[s.about] || 'About'}:</strong> {s.target || 'the whole section'}
                 </div>

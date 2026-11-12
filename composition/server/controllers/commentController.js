@@ -116,6 +116,82 @@ exports.getConsultantSuggestions = async (req, res, next) => {
     }
 };
 
+// The Industry Consultant's own suggestions on an approved plan ("Suggest & Sign"). They are comments in the
+// database (commenter_role INDUSTRY_CONSULTANT, comment_for 'suggestion', no week), but they are not shown in the
+// comment panel: the instructor and the Program Head read them under Suggestions / Future Suggestions.
+const MAX_SUGGESTION = 2000;
+const suggestionText = (body) => String(body?.message ?? '').trim();
+
+/**
+ * POST /api/comments/suggestions/:pcId   body: { message }   the consultant adds a suggestion to an approved plan
+ * (requireOfferingAccess lets a consultant reach only the approved plans of their courses).
+ */
+exports.addConsultantSuggestion = async (req, res, next) => {
+    try {
+        const message = suggestionText(req.body);
+        if (!message) return res.status(400).json({ error: 'Write the suggestion first.' });
+        if (message.length > MAX_SUGGESTION) return res.status(400).json({ error: `A suggestion is at most ${MAX_SUGGESTION} characters.` });
+        const pcId = Number(req.params.pcId);
+        const [assignment] = await sequelize.query('SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = ? ORDER BY co_assign_id DESC LIMIT 1',
+            { replacements: [pcId], type: Sequelize.QueryTypes.SELECT });
+        if (!assignment) return res.status(404).json({ error: 'This learning plan has no instructor assigned.' });
+        if (planEditState(await effectiveLogs(sequelize, assignment.co_assign_id)).state !== 'Approved') {
+            return res.status(409).json({ error: 'The industry consultant suggests on approved learning plans only.' });
+        }
+        const now = new Date();
+        const [id] = await sequelize.query(
+            `INSERT INTO Comments (co_assign_id, commenter_role, commenter_user_id, commenter_name, message, resolved_status, week_id, comment_for, createdAt, updatedAt)
+             VALUES (?, 'INDUSTRY_CONSULTANT', ?, ?, ?, 0, NULL, 'suggestion', ?, ?)`,
+            { replacements: [assignment.co_assign_id, req.user.id, req.user.name || null, message, now, now], type: Sequelize.QueryTypes.INSERT });
+        return res.status(201).json({ id, message, at: now.toISOString() });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// The consultant's own suggestion, on a plan they can still open; otherwise the response is already sent.
+const ownSuggestion = async (req, res) => {
+    const id = Number(req.params.commentId);
+    const [row] = Number.isSafeInteger(id) ? await sequelize.query(
+        `SELECT c.comment_id, c.commenter_user_id, a.pc_offering_id FROM Comments c
+             INNER JOIN CourseOfferingAssignments a ON a.co_assign_id = c.co_assign_id
+         WHERE c.comment_id = ? AND c.commenter_role = 'INDUSTRY_CONSULTANT'`,
+        { replacements: [id], type: Sequelize.QueryTypes.SELECT }) : [];
+    if (!row) { res.status(404).json({ error: 'Suggestion not found.' }); return null; }
+    if (String(row.commenter_user_id) !== String(req.user.id) || !canAccessCourseRows(req.user, await loadOfferingCourseRows(row.pc_offering_id))) {
+        res.status(403).json({ error: 'You can change only your own suggestions.' }); return null;
+    }
+    return row;
+};
+
+/** PUT /api/comments/suggestions/item/:commentId   body: { message }   the consultant edits their suggestion. */
+exports.editConsultantSuggestion = async (req, res, next) => {
+    try {
+        const message = suggestionText(req.body);
+        if (!message) return res.status(400).json({ error: 'A suggestion cannot be empty; remove it instead.' });
+        if (message.length > MAX_SUGGESTION) return res.status(400).json({ error: `A suggestion is at most ${MAX_SUGGESTION} characters.` });
+        const row = await ownSuggestion(req, res);
+        if (!row) return undefined;
+        await sequelize.query('UPDATE Comments SET message = ?, updatedAt = ? WHERE comment_id = ?', { replacements: [message, new Date(), row.comment_id] });
+        return res.json({ id: row.comment_id, message });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+/** DELETE /api/comments/suggestions/item/:commentId   the consultant removes their suggestion. */
+exports.removeConsultantSuggestion = async (req, res, next) => {
+    try {
+        const row = await ownSuggestion(req, res);
+        if (!row) return undefined;
+        await sequelize.query('DELETE FROM CommentTargets WHERE comment_id = ?', { replacements: [row.comment_id] });
+        await sequelize.query('DELETE FROM Comments WHERE comment_id = ?', { replacements: [row.comment_id] });
+        return res.json({ removed: true });
+    } catch (error) {
+        return next(error);
+    }
+};
+
 /**
  * 2. GET /api/comments/filter/:iloId/:commentFor   (:iloId is the week id)
  */

@@ -21,6 +21,8 @@ const COVERAGE = { references: 'References', topics: 'Topic', tlas: 'TLA' }
 export const toPanelComments = (rows = [], courseCode = '') => {
   const byId = new Map()
   for (const r of Array.isArray(rows) ? rows : []) {
+    // The Industry Consultant's suggestions are read under Suggestions / Future Suggestions, not in this panel.
+    if (r.commenter_role === 'INDUSTRY_CONSULTANT') continue
     const id = `server-${r.comment_id}`
     if (byId.has(id)) {
       const card = byId.get(id)

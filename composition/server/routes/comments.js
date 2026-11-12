@@ -12,6 +12,10 @@ router.get('/unresolved-counts/:pcId', requireOfferingAccess, commentController.
 router.get('/earlier-consultant/:pcId', requireRole('program-head', 'industry-consultant'), requireOfferingAccess, commentController.getEarlierConsultantComments);
 // "Future Suggestions": the consultant's suggestions on this plan and its earlier versions
 router.get('/suggestions/:pcId', requireRole('instructor', 'program-head', 'industry-consultant'), requireOfferingAccess, commentController.getConsultantSuggestions);
+// The consultant's own suggestions on an approved plan: add, edit, remove (Suggest & Sign)
+router.post('/suggestions/:pcId', requireRole('industry-consultant'), requireOfferingAccess, commentController.addConsultantSuggestion);
+router.put('/suggestions/item/:commentId', requireRole('industry-consultant'), commentController.editConsultantSuggestion);
+router.delete('/suggestions/item/:commentId', requireRole('industry-consultant'), commentController.removeConsultantSuggestion);
 
 // REUSABLE: Target retrieval filter used by ReferenceForm, TopicForm, TLAForm
 router.get('/filter/:iloId/:commentFor', requireWeekParamAccess('iloId'), commentController.getCommentsByTarget);
