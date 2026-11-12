@@ -477,7 +477,7 @@ const ProgramHeadCourseAssignment = () => {
             )}
             <UndoUploadButton entity="course_offering_assignments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
             <ActionBtn variant="white" onClick={() => { if (assignments.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Course Assignment" />
-            {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Assignment" />}
+            {isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} disabled={!periodId || !selectedProgramId} icon={<Plus size={18} color="#FFFFFF" />} label="Add Assignment" />}
           </div>
         )}
       </div>
@@ -635,7 +635,13 @@ const ProgramHeadCourseAssignment = () => {
             <Clipboard size={40} color="#9CA3AF" />
           </div>
           <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No course assignments yet</div>
-          <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 480 }}>{periodId ? ('Upload a course assignment file for ' + (currentPeriod ? currentPeriod.label : 'this period') + ' to get started — each row is validated against Course Offerings and Faculty.') : 'Select an academic period to begin.'}</div>
+          <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 480 }}>{periodId ? ('Upload the course assignment file for ' + (currentPeriod ? currentPeriod.label : 'this period') + ', or add courses one at a time. Each one is checked against Course Offerings and Faculty.') : 'Select an academic period to begin.'}</div>
+          {periodId && isCurrentTermActive && selectedProgramId && (
+            <button type="button" onClick={() => setShowAddModal(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 4, padding: '8px 16px', height: 38, background: '#18191A', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+              <Plus size={16} color="#FFFFFF" /> Add one assignment
+            </button>
+          )}
         </div>
       )}
 
