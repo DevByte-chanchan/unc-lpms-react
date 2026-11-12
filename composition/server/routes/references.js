@@ -11,6 +11,19 @@ router.get('/types', controller.getReferenceTypes);
 router.get('/', controller.getAllReferences);
 // GET /api/references/library — all references + which courses use them (Reference Library)
 router.get('/library', controller.getReferenceLibrary);
+// GET /api/references/isbn/:isbn — title, authors, publisher, year from Open Library (utils/isbnLookup.js)
+router.get('/isbn/:isbn', async (req, res) => {
+    const { normalizeIsbn, lookupIsbn } = require('../utils/isbnLookup');
+    const isbn = normalizeIsbn(req.params.isbn);
+    if (!isbn) return res.status(400).json({ error: 'This is not a valid ISBN-10 or ISBN-13. Check the digits.' });
+    try {
+        const book = await lookupIsbn(isbn);
+        return book ? res.json(book) : res.status(404).json({ error: 'Open Library has no book with this ISBN. Fill the fields by hand.' });
+    } catch (err) {
+        console.warn('ISBN lookup failed:', err.message);
+        return res.status(502).json({ error: 'Open Library could not be reached. Try again, or fill the fields by hand.' });
+    }
+});
 router.get('/:id', controller.getReference);
 
 // Writes: reference:manage (the Director of Libraries only). There is no DELETE: references are archived.
