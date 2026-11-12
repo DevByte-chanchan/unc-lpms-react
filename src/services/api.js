@@ -252,6 +252,8 @@ export const CourseOfferingAssignmentsAPI = {
   remove: (id) => request(idPath('/course-offering-assignments', id), { method: 'DELETE' }),
   // Teaching load per faculty member: { max_units, faculty: [...], course_units }
   load: (periodId, programId) => request('/course-offering-assignments/load', { query: { period_id: periodId, program_id: programId || undefined } }),
+  // The program's course offerings this term: { offered, codes }
+  offered: (periodId, programId) => request('/course-offering-assignments/offered', { query: { period_id: periodId, program_id: programId } }),
   // Send the course's notice / invitation again to one Lead or Contributor. { message }
   notify: (id, facultyId) => request(idPath('/course-offering-assignments', id) + '/notify', { method: 'POST', body: { faculty_id: facultyId } }),
   upload: (file, periodId, programId) => {

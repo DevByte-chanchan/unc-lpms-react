@@ -13,12 +13,15 @@ import {
   compareOfficialOfferings,
   resendAssignmentNotice,
   getTeachingLoad,
+  getOfferedCourses,
 } from '../controllers/courseOfferingAssignmentController.js';
 
 const router = Router();
 router.get('/',           listCourseOfferingAssignments);
 // Teaching load per faculty member (before '/:id', or "load" would be an id).
 router.get('/load',       requireRole('Program Head', 'Dean', 'VPAA'), getTeachingLoad);
+// The program's course offerings this term (the progress strip's "of N").
+router.get('/offered',    requireRole('Program Head', 'Dean', 'VPAA'), getOfferedCourses);
 router.post('/revalidate', requireRole('Program Head'), revalidateCourseOfferingAssignments);
 // The registrar's Subject Offerings vs. the pre-assignment (?preview=1 = dry run).
 router.post('/compare-official', requireRole('Program Head'), uploadSheetOrPdf.single('file'), compareOfficialOfferings);

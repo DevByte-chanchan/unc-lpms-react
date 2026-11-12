@@ -43,6 +43,7 @@ import { lastUpdatedText, fmtDay } from "../services/assignmentTracking.js";
 import OfficialCompareModal from "../components/OfficialCompareModal.jsx";
 import TeachingLoadDialog from "../components/TeachingLoadDialog.jsx";
 import { leadLoadWarning } from "../utils/teachingLoad.js";
+import { progressOf, matchesProgress } from "../utils/assignmentProgress.js";
 
 // The sections this person handles on the course, from the official list
 // (row.sections = [{ faculty_id, faculty_name, sections }]) — matched by id, else name.
@@ -135,6 +136,9 @@ const ProgramHeadCourseAssignment = () => {
   const [load, setLoad]                       = React.useState(null);
   const [loadError, setLoadError]             = React.useState(null);
   const [showLoad, setShowLoad]               = React.useState(false);
+  // Progress strip: the program's offerings this term, and the part clicked (a table filter).
+  const [offered, setOffered]                 = React.useState(null);
+  const [progressFilter, setProgressFilter]   = React.useState(null); // null | 'assigned' | 'notified' | 'not_notified'
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setAssignments([]); setCourses([]); setFaculty([]); setAssignmentsPeriod(null); return; }
@@ -162,6 +166,18 @@ const ProgramHeadCourseAssignment = () => {
       .catch((err) => { if (!cancelled) { setLoad(null); setLoadError(err.message || 'Could not read the teaching load.'); } });
     return () => { cancelled = true; };
   }, [periodId, selectedProgramId, assignments]);
+
+  React.useEffect(() => {
+    setProgressFilter(null);
+    if (!periodId || !selectedProgramId) { setOffered(null); return undefined; }
+    let cancelled = false;
+    CourseOfferingAssignmentsAPI.offered(periodId, selectedProgramId)
+      .then((r) => { if (!cancelled) setOffered(r && Number.isFinite(r.offered) ? r.offered : null); })
+      .catch(() => { if (!cancelled) setOffered(null); });
+    return () => { cancelled = true; };
+  }, [periodId, selectedProgramId]);
+
+  const progress = React.useMemo(() => progressOf(assignments, { programId: selectedProgramId, offered }), [assignments, selectedProgramId, offered]);
 
   // Under Lead Faculty: a warning only, saving stays allowed.
   const loadHelper = (editingId) => (values) => {
@@ -331,10 +347,12 @@ const ProgramHeadCourseAssignment = () => {
     if (yearFilter !== 'all') {
       rows = rows.filter((a) => yearLevelNum(a.year_level) === yearFilter);
     }
+    // A click on the progress strip.
+    if (progressFilter) rows = rows.filter((a) => matchesProgress(a, progressFilter));
     // Sorting is handled by the table's column headers; here we only filter
     // and drop archived assignments to the global Archive view.
     return partitionByArchive(rows, 'courseassign').main;
-  }, [assignments, searchQuery, yearFilter]);
+  }, [assignments, searchQuery, yearFilter, progressFilter]);
 
   // Per-year-level counts for the YearFilter segments, computed from the
   // currently-loaded (non-archived) assignments — independent of search/year so
@@ -535,6 +553,33 @@ const ProgramHeadCourseAssignment = () => {
         </div>
       )}
       <TermOpenNote what="this semester's course assignments" />
+
+      {/* Progress strip: each part filters the table (utils/assignmentProgress.js). */}
+      {showTable && (() => {
+        const part = (key, text, tone) => {
+          const active = progressFilter === key;
+          return (
+            <button type="button" key={key} aria-pressed={active} onClick={() => setProgressFilter(active ? null : key)}
+              title={active ? 'Show all rows' : 'Show only these rows'}
+              style={{ background: active ? '#18191A' : 'transparent', color: active ? '#FFFFFF' : (tone || '#18191A'), border: 'none', borderRadius: 9999, padding: '3px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {text}
+            </button>
+          );
+        };
+        const dot = <span aria-hidden="true" style={{ color: '#9CA3AF' }}>·</span>;
+        return (
+          <div role="group" aria-label="Course assignment progress" style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 10, padding: '6px 8px', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 9999, width: 'fit-content', maxWidth: '100%' }}>
+            {part('assigned', progress.assigned + (progress.offered != null ? ' of ' + progress.offered : '') + ' course' + ((progress.offered != null ? progress.offered : progress.assigned) === 1 ? '' : 's') + ' assigned')}
+            {dot}
+            {part('notified', progress.notified + ' notified', '#166534')}
+            {dot}
+            {part('not_notified', progress.notNotified + ' not notified', progress.notNotified ? '#B45309' : '#6B7280')}
+            {progressFilter && (
+              <button type="button" onClick={() => setProgressFilter(null)} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 12, textDecoration: 'underline', cursor: 'pointer', marginLeft: 4 }}>Show all</button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Filter bar directly above the table — left-aligned: search beside the
           year-level filter. */}

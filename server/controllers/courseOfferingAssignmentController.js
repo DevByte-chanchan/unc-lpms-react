@@ -373,6 +373,28 @@ export async function getTeachingLoad(req, res, next) {
   } catch (err) { return next(err); }
 }
 
+/**
+ * GET /offered?period_id=&program_id= — the program's course offerings this
+ * term (catalog courses of the term's semester, not archived, offered by the
+ * program): { offered, codes }. The Course Assignment progress strip's "of N".
+ */
+export async function getOfferedCourses(req, res, next) {
+  try {
+    const period_id = getPeriodId(req);
+    const program_id = Number(req.query.program_id) || null;
+    if (!period_id || !program_id) return res.status(400).json({ message: 'period_id and program_id are required' });
+    const period = await AcademicPeriod.findByPk(period_id, { attributes: ['semester'] });
+    const termSem = period ? periodSemesterOf(period) : null;
+    const courses = (await Course.findAll({ where: await safeWhere(Course, { period_id }), attributes: ['course_id', 'course_no', 'term', 'semester', 'archived'], raw: true }))
+      .filter((c) => !c.archived && (!termSem || courseSemesterOf(c) === termSem));
+    const offered = new Set((await db.ProgramCourseOffering.findAll({
+      where: { program_id, course_id: courses.map((c) => c.course_id) }, attributes: ['course_id'], raw: true,
+    })).map((o) => Number(o.course_id)));
+    const codes = courses.filter((c) => offered.has(Number(c.course_id))).map((c) => c.course_no).sort();
+    return res.json({ period_id, program_id, offered: codes.length, codes });
+  } catch (err) { return next(err); }
+}
+
 export async function getCourseOfferingAssignment(req, res, next) {
   try {
     const row = await CourseOfferingAssignment.findByPk(req.params.id);
