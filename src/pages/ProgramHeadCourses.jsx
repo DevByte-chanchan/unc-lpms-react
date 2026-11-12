@@ -33,6 +33,7 @@ import { CoursesAPI, ProgramsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { useCurrentUser } from '../services/currentUser.jsx';
 import { courseSemesterOf, periodSemesterOf } from '../services/courseTerm.js';
+import TermOpenNote from "../components/TermOpenNote.jsx";
 
 const ACCENT = '#B91C1C';
 const SLATE9 = '#0F172A';
@@ -814,6 +815,7 @@ const ProgramHeadCourses = () => {
           <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
         </div>
       )}
+      <TermOpenNote what="this semester's course offerings" />
     </>
   );
 

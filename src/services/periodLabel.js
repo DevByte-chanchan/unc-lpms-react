@@ -53,3 +53,8 @@ export const prettifyLabel = (label) => {
   }
   return s;
 };
+
+// A term that opened by itself when the previous one ended: no Start / End of
+// Semester yet (the OVPAA sets them later from the dashboard). It is still the
+// current, editable term.
+export const termDatesPending = (p) => !!p && !p.start_date && !p.end_date;

@@ -68,6 +68,7 @@ import { statusPillStyle, partitionByArchive } from '../services/statusPolicy.js
 import { sortRows, statusRank, nextSort } from '../services/tableSort.js';
 import SortableTh from "../components/SortableTh.jsx";
 import { courseMatchesPeriod } from '../services/courseTerm.js';
+import TermOpenNote from "../components/TermOpenNote.jsx";
 
 const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
   <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, minWidth: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
@@ -500,6 +501,7 @@ const ProgramHeadCourseAssignment = () => {
           <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
         </div>
       )}
+      <TermOpenNote what="this semester's course assignments" />
 
       {/* Filter bar directly above the table — left-aligned: search beside the
           year-level filter. */}

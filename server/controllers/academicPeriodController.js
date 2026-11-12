@@ -10,6 +10,8 @@
  *
  * Periods have a lifecycle status: 'Active' (editable) or 'Closed'
  * (globally read-only). closePeriod and reopenPeriod flip this flag.
+ * When the current term ends, the next semester opens by itself with no
+ * dates yet (openNextTermAfterEnd), so the app is never locked between terms.
  * Adding a new period does NOT auto-close older ones — that's the
  * OVPAA's explicit decision.
  */
@@ -138,9 +140,73 @@ async function autoCloseSupersededTerms() {
   }
 }
 
+// "1st Semester 2026-2027" — the same canonical label the dashboard builds
+// (src/services/periodLabel.js#formatPeriodLabel).
+const semesterName = (s) => {
+  const v = String(s || '').trim();
+  if (v.toLowerCase() === 'summer' || v === '3') return 'Summer';
+  if (v === '1') return '1st Semester';
+  if (v === '2') return '2nd Semester';
+  return v;
+};
+export const periodLabelOf = ({ school_year, semester }) => (semesterName(semester) + ' ' + school_year).trim();
+
+/** The semester after `p`: 1st → 2nd of the same school year; 2nd (or Summer) → 1st of the next. */
+export function nextTermOf(p) {
+  const m = String(p.school_year || '').match(/(\d{4})\s*-\s*(\d{4})/);
+  if (!m) return null;
+  const from = Number(m[1]);
+  if (semRank(p.semester) === 1) return { school_year: m[1] + '-' + m[2], semester: '2' };
+  return { school_year: (from + 1) + '-' + (from + 2), semester: '1' };
+}
+
+/**
+ * NEVER LOCKED BETWEEN TERMS.
+ *
+ * When the current term's End of Semester passes, autoCloseExpired() closes it —
+ * and until the OVPAA created the next term, nothing in the app was editable:
+ * Program Heads couldn't prepare the next semester's Course Offerings or Course
+ * Assignment. Now, the moment the newest term has ended and no term is Active,
+ * the next semester opens by itself as the current term, with its dates left
+ * blank for the OVPAA to set (the dashboard shows "Set dates").
+ *
+ * Never reopens or duplicates: if that next term already exists (say the OVPAA
+ * closed it on purpose), nothing happens.
+ */
+async function openNextTermAfterEnd() {
+  try {
+    const rows = await AcademicPeriod.findAll({
+      attributes: ['id', 'label', 'school_year', 'semester', 'status', 'end_date', 'sort_order'],
+      raw: true,
+    });
+    if (!rows.length || rows.some((p) => p.status === 'Active')) return null;
+    const newest = [...rows].sort((a, b) => rankOf(b) - rankOf(a))[0];
+    const today = new Date().toISOString().slice(0, 10);
+    const ended = newest.end_date && String(newest.end_date).slice(0, 10) < today;
+    if (!ended) return null;
+    const next = nextTermOf(newest);
+    if (!next) return null;
+    const label = periodLabelOf(next);
+    const exists = rows.some((p) => p.label === label
+      || (p.school_year === next.school_year && semRank(p.semester) === semRank(next.semester)));
+    if (exists) return null;
+    const created = await AcademicPeriod.create({
+      label, ...next, status: 'Active', is_active: true, sort_order: Number(newest.sort_order) || 50,
+    });
+    // eslint-disable-next-line no-console
+    console.log('[periods] ' + newest.label + ' ended; opened ' + label + ' (dates not set yet).');
+    return created;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[periods] could not open the next term:', err.message);
+    return null;
+  }
+}
+
 export async function listPeriods(_req, res, _next) {
   try {
     await autoCloseExpired();
+    await openNextTermAfterEnd();
     await autoCloseSupersededTerms();
     const rows = await AcademicPeriod.findAll({
       order: [['sort_order', 'DESC'], ['label', 'ASC']],

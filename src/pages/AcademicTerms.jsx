@@ -29,7 +29,7 @@ import React from 'react';
 import { Plus, Lock, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, Edit2, RefreshCw, X, Save, Calendar, Check } from 'react-feather';
 import { PeriodsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
-import { formatSemester, formatPeriodLabel } from '../services/periodLabel.js';
+import { formatSemester, formatPeriodLabel, termDatesPending } from '../services/periodLabel.js';
 import {
   BLANK_TERM_DATES, calendarOrderIssue, termDatesOf, termDatesPayload,
 } from '../services/schoolCalendar.js';
@@ -1050,6 +1050,13 @@ const AcademicTerms = () => {
                     }}>
                       {formatSemester(currentTerm.semester)}
                     </div>
+                    {termDatesPending(currentTerm) && (
+                      <button type="button" onClick={startEdit}
+                        title="This term opened when the last semester ended. Set its Start and End of Semester."
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 9999, border: '1px solid #FCD34D', background: '#FFFBEB', color: '#92400E', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+                        <AlertTriangle size={13} /> Dates not set yet · Set dates
+                      </button>
+                    )}
                     {(() => {
                       const next = nextCalendarDate(currentTerm, today);
                       if (!next) return null;
@@ -1118,7 +1125,9 @@ const AcademicTerms = () => {
                     <div style={{ marginBottom: 10 }}>
                       <DetailLabel>Semester Duration</DetailLabel>
                       <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: SLATE_900 }}>
-                        {fmtDate(currentTerm.start_date)} &nbsp;—&nbsp; {fmtDate(currentTerm.end_date)}
+                        {termDatesPending(currentTerm)
+                          ? <span style={{ color: '#92400E' }}>Not set yet. This term opened when the last semester ended.</span>
+                          : <>{fmtDate(currentTerm.start_date)} &nbsp;—&nbsp; {fmtDate(currentTerm.end_date)}</>}
                         {termWeeks(currentTerm) != null && (
                           <span style={{ color: SLATE_500, fontWeight: 400 }}> · {termWeeks(currentTerm)} weeks</span>
                         )}
@@ -1151,6 +1160,7 @@ const AcademicTerms = () => {
                     gap: 10, marginTop: 10, paddingTop: 10,
                     borderTop: '1px solid ' + SLATE_100,
                   }}>
+                    {termDatesPending(currentTerm) ? <span /> : (
                     <button
                       onClick={startEdit}
                       style={{
@@ -1166,6 +1176,21 @@ const AcademicTerms = () => {
                     >
                       <Edit2 size={13} /> Edit
                     </button>
+                    )}
+                    {termDatesPending(currentTerm) ? (
+                    <button
+                      onClick={startEdit}
+                      style={{
+                        background: ACCENT, color: '#FFFFFF', border: 'none', cursor: 'pointer',
+                        padding: '0 16px', height: 34, borderRadius: 10,
+                        fontSize: 13, fontWeight: 600,
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                      }}
+                    >
+                      <Calendar size={13} /> Set dates
+                    </button>
+                    ) : (
                     <button
                       onClick={() => startUpdate(nextAction)}
                       style={{
@@ -1186,6 +1211,7 @@ const AcademicTerms = () => {
                     >
                       <RefreshCw size={13} /> {nextAction === 'sem' ? 'Update Sem' : 'Update Term'}
                     </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1196,7 +1222,7 @@ const AcademicTerms = () => {
             <div className="termCardPane" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
                 <div>
-                  <div style={{ ...eyebrow(SLATE_500), textAlign: 'left' }}>Edit Current Sem</div>
+                  <div style={{ ...eyebrow(SLATE_500), textAlign: 'left' }}>{termDatesPending(currentTerm) ? 'Set Dates' : 'Edit Current Sem'}</div>
                   <div style={{ marginTop: 6, fontSize: 20, fontWeight: 700, color: SLATE_900, letterSpacing: '-0.01em' }}>
                     {currentTerm.school_year} · {formatSemester(currentTerm.semester)}
                   </div>

@@ -11,7 +11,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, AlertTriangle, Lock, ChevronDown } from 'react-feather';
 import { usePeriod } from '../services/period.jsx';
 import { useCurrentUser } from '../services/currentUser.jsx';
-import { prettifyLabel } from '../services/periodLabel.js';
+import { prettifyLabel, termDatesPending } from '../services/periodLabel.js';
 import styles from '../styles/PeriodSelector.module.sass';
 
 // Chronological rank used to sort within each group (newest first).
@@ -152,6 +152,11 @@ const PeriodSelector = ({ prominent = false }) => {
                   }}
                 >
                   <span>{prettifyLabel(p.label)}</span>
+                  {!locked && termDatesPending(p) && (
+                    <span title="Opened when the last semester ended. The OVPAA hasn't set its dates yet." style={{ fontSize: 11, fontWeight: 600, color: '#1D4ED8', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 9999, padding: '1px 8px' }}>
+                      dates not set
+                    </span>
+                  )}
                   {locked && <Lock size={14} color="#6B7280" />}
                 </button>
               );
