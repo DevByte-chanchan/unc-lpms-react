@@ -2522,7 +2522,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                         <div className={layout.modalActions}>
                             <button className={layout.cancelBtn} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>Cancel</button>
                             <button className={layout.confirmBtn} onClick={handleConfirmApprove}>
-                                <CheckCircle size={15} /> {openComments.length > 0 ? 'Proceed to Approval' : 'Approve TOS'}
+                                <CheckCircle size={15} /> {openComments.length > 0 ? 'Proceed' : 'Approve TOS'}
                             </button>
                         </div>
                     </div>
