@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { confirmDialog } from '../utils/appDialog.jsx'
 import { createPortal } from 'react-dom'
 import { X, Edit2, Trash2, PenTool } from 'react-feather'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
@@ -43,10 +44,13 @@ const ConsultantReview = ({ pcId, signedAt, onSigned, onClose }) => {
   const json = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
   const add = () => run(async () => { await fetchJson(`/api/comments/suggestions/${pcId}`, json('POST', { message: draft })); setDraft('') })
   const save = () => run(async () => { await fetchJson(`/api/comments/suggestions/item/${editing.id}`, json('PUT', { message: editing.text })); setEditing(null) })
-  const remove = (id) => window.confirm('Remove this suggestion?') && run(() => fetchJson(`/api/comments/suggestions/item/${id}`, { method: 'DELETE' }))
+  const remove = async (id) => {
+    if (!(await confirmDialog('Remove this suggestion? It cannot be brought back.', { title: 'Remove suggestion', confirmLabel: 'Remove', danger: true }))) return
+    run(() => fetchJson(`/api/comments/suggestions/item/${id}`, { method: 'DELETE' }))
+  }
   // Sign: a suggestion still typed in the box is saved first, so nothing written is lost.
   const sign = async () => {
-    if (!window.confirm('Sign this learning plan as reviewed? Your name and signature go in the "Reviewed by" box of the exported plan; the approval does not change.')) return
+    if (!(await confirmDialog('Your name and signature go in the "Reviewed by" box of the exported learning plan. The approval does not change.', { title: 'Sign as reviewed?', confirmLabel: 'Sign' }))) return
     const ok = await run(async () => {
       if (draft.trim()) { await fetchJson(`/api/comments/suggestions/${pcId}`, json('POST', { message: draft })); setDraft('') }
       const row = await fetchJson(`/api/course-consultants/signoffs/${pcId}`, { method: 'POST' })

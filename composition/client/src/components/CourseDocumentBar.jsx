@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { confirmDialog } from '../utils/appDialog.jsx'
 import { Download, FileText, Upload, Zap } from 'react-feather'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { downloadFromApi, openCourseDocument } from '../utils/courseDocuments.js'
@@ -97,8 +98,10 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
     }
   }
 
-  const remove = () => window.confirm(`Remove the uploaded ${label}? View / Export goes back to the generated table.`)
-    && run(() => fetchJson(`/api/course-documents/${pcId}/${kind}`, { method: 'DELETE' }))
+  const remove = async () => {
+    if (!(await confirmDialog(`View and Export go back to the table generated from the plan.`, { title: `Remove the uploaded ${label}?`, confirmLabel: 'Remove', danger: true }))) return
+    run(() => fetchJson(`/api/course-documents/${pcId}/${kind}`, { method: 'DELETE' }))
+  }
 
   if (!pcId) return null
   return (

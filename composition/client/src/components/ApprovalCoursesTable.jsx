@@ -1,4 +1,5 @@
 import Select from './Select.jsx'
+import { alertDialog } from "../utils/appDialog.jsx";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
@@ -169,7 +170,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         })
       } catch (err) {
         console.warn('Export failed:', err)
-        alert('Export error: ' + (err?.message || err || 'unknown'))
+        alertDialog('The learning plan could not be exported: ' + (err?.message || err || 'unknown error') + '. Try again.', { title: 'Export failed' })
       } finally {
         setExporting(false)
       }
@@ -218,7 +219,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 10000);
       }
-      if (failed.length) alert(`${failed.length} plan${failed.length === 1 ? ' was' : 's were'} left out (the server could not make the PDF): ${failed.join(', ')}. Try again, or export ${failed.length === 1 ? 'it' : 'them'} one by one.`);
+      if (failed.length) alertDialog(`${failed.length} plan${failed.length === 1 ? ' was' : 's were'} left out (the server could not make the PDF): ${failed.join(', ')}. Try again, or export ${failed.length === 1 ? 'it' : 'them'} one by one.`, { title: 'Some plans were left out' });
     };
 
     const loadAssignments = useCallback(async () => {

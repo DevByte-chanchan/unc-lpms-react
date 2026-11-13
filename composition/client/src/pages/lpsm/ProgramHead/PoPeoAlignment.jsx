@@ -1,4 +1,5 @@
 import Select from '../../../components/Select.jsx'
+import { confirmDialog } from '../../../utils/appDialog.jsx'
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Edit3, Check, X, Plus, Trash2, Upload, Zap, Download, FileText } from 'react-feather';
 import { SOURCE_LABEL } from '../../../utils/scanSource.js';
@@ -116,7 +117,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
   }
 
   const removeFront = async () => {
-    if (!window.confirm(`Remove the uploaded front pages of ${programName}? Exports go back to the generated pages.`)) return
+    if (!(await confirmDialog('Exports go back to the generated front pages.', { title: `Remove the front pages of ${programName}?`, confirmLabel: 'Remove', danger: true }))) return
     setBusy(true); setError(''); setNotice('')
     try {
       await fetchJson(`/api/program-outcomes/${programId}/front-pages`, { method: 'DELETE' })

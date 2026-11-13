@@ -1,4 +1,5 @@
 import Select from './Select.jsx'
+import { alertDialog } from '../utils/appDialog.jsx';
 import { historyRevisionLabel } from "../utils/offeringLabels.js";
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
@@ -71,7 +72,7 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
         try {
             setRecordFile(await buildReviewRecordFile({ pcId: rev.pcId, code }));
         } catch (err) {
-            alert('Failed to generate the review record: ' + (err?.message || err));
+            alertDialog('The review record could not be made: ' + (err?.message || err) + '. Try again.', { title: 'Review record failed' });
         } finally {
             setRecordBusy(null);
         }

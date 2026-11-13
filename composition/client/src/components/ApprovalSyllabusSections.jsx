@@ -1,4 +1,5 @@
 import Select from './Select.jsx'
+import { alertDialog } from '../utils/appDialog.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
@@ -177,7 +178,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     try {
       setPreviewFile(await buildReviewRecordFile({ pcId: validPcId, code: codeToUse }))
     } catch (err) {
-      alert('Failed to generate the review record: ' + (err?.message || err))
+      alertDialog('The review record could not be made: ' + (err?.message || err) + '. Try again.', { title: 'Review record failed' })
     } finally {
       setExportingPdf(false)
     }
@@ -210,7 +211,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       })
     } catch (err) {
       console.warn('Export generation failed:', err)
-      alert('Failed to generate export: ' + (err?.message || err))
+      alertDialog('The learning plan could not be exported: ' + (err?.message || err) + '. Try again.', { title: 'Export failed' })
     } finally {
       setExportingPdf(false)
     }
@@ -581,7 +582,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     recordWorkflowAction('ACCEPTED').then(() => {
       reloadWorkflow()
       setRefreshKey(k => k + 1)
-    }).catch(e => alert(apiErrorMessage(e, 'Could not record your approval.')))
+    }).catch(e => alertDialog(apiErrorMessage(e, 'Could not record your approval.'), { title: 'Approval not saved' }))
   }, [recordWorkflowAction, reloadWorkflow, reviewRecordAvailable])
 
   // Approve countdown: gives the approver a window to undo before it takes effect
@@ -611,7 +612,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       navigate(backPath)
     }).catch(e => {
       setShowSubmitModal(false)
-      alert(apiErrorMessage(e, 'Could not submit the learning plan.'))
+      alertDialog(apiErrorMessage(e, 'Could not submit the learning plan.'), { title: 'Not submitted' })
     })
   }
 
@@ -1070,7 +1071,7 @@ ${suggestionLine}` : text,
                     })
                   } catch (err) {
                     console.warn('Export generation failed:', err)
-                    alert('Failed to generate export: ' + (err?.message || err))
+                    alertDialog('The learning plan could not be exported: ' + (err?.message || err) + '. Try again.', { title: 'Export failed' })
                   } finally {
                     setExportingPdf(false)
                   }
