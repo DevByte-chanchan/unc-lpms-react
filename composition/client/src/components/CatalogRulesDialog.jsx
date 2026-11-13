@@ -61,17 +61,17 @@ const CatalogRulesDialog = ({ open, onClose, onSaved }) => {
           {!form ? <p>Loading…</p> : (
             <>
               <div className={styles.field}>
-                <label className={styles.label} htmlFor="rules-years">A title is recent if published within the last … years (1 to 30)</label>
+                <label className={styles.label} htmlFor="rules-years">Books older than … years are outdated (1 to 30)</label>
                 <input id="rules-years" className={styles.control} type="number" min="1" max="30" value={form.recencyYears}
                   onChange={(e) => setForm({ ...form, recencyYears: e.target.value })} />
               </div>
               <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <input type="checkbox" checked={form.enforceRecency} onChange={(e) => setForm({ ...form, enforceRecency: e.target.checked })} />
-                Keep older titles out of the list a plan can attach from
+                Hide outdated books when instructors add references
               </label>
               <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <input type="checkbox" checked={form.requireLibraryAvailability} onChange={(e) => setForm({ ...form, requireLibraryAvailability: e.target.checked })} />
-                Only titles the library holds can be attached
+                Instructors can only add books from the library catalog
               </label>
             </>
           )}
