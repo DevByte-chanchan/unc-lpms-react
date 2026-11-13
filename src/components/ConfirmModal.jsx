@@ -8,6 +8,7 @@
  *   - tone="destructive"(red, e.g. delete / log out)
  */
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Trash2 } from 'react-feather';
 
 const ConfirmModal = ({
@@ -52,10 +53,10 @@ const ConfirmModal = ({
   };
   const focusRing = '0 0 0 3px ' + (destructive ? 'rgba(185,28,28,0.25)' : 'rgba(24,25,26,0.2)');
 
-  return (
+  const modalContent = (
     <>
       <div
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 60 }}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 3000 }}
         onClick={() => !busy && onCancel && onCancel()}
       />
       <div
@@ -64,7 +65,7 @@ const ConfirmModal = ({
         style={{
           position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
           width: 440, maxWidth: 'calc(100vw - 32px)', padding: 24, background: '#FFFFFF', borderRadius: 12,
-          display: 'flex', flexDirection: 'column', gap: 16, zIndex: 61,
+          display: 'flex', flexDirection: 'column', gap: 16, zIndex: 3001,
           boxShadow: '0 18px 40px rgba(0,0,0,0.2)', boxSizing: 'border-box'
         }}
       >
@@ -79,20 +80,22 @@ const ConfirmModal = ({
         </div>
         <div style={{ fontSize: 14, color: '#374151', lineHeight: '1.5' }}>{message}</div>
         <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-          <button
-            ref={cancelRef}
-            type="button"
-            disabled={busy}
-            onClick={onCancel}
-            style={{
-              ...buttonBase, background: '#FFFFFF', border: '1px solid #D1D5DB', color: '#18191A',
-              cursor: busy ? 'not-allowed' : 'pointer',
-              boxShadow: 'none',
-              outline: 'none',
-            }}
-          >
-            {cancelLabel}
-          </button>
+          {cancelLabel ? (
+            <button
+              ref={cancelRef}
+              type="button"
+              disabled={busy}
+              onClick={onCancel}
+              style={{
+                ...buttonBase, background: '#FFFFFF', border: '1px solid #D1D5DB', color: '#18191A',
+                cursor: busy ? 'not-allowed' : 'pointer',
+                boxShadow: 'none',
+                outline: 'none',
+              }}
+            >
+              {cancelLabel}
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={busy}
@@ -114,6 +117,8 @@ const ConfirmModal = ({
       </div>
     </>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
 
 export default ConfirmModal;

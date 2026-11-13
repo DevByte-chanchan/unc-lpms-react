@@ -22,20 +22,31 @@ const storage = multer.diskStorage({
     }
 });
 
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.txt'];
+
 const upload = multer({ 
     storage,
     limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
     fileFilter: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase();
-        if (ext === '.pdf' || ext === '.docx') {
+        if (ALLOWED_EXTENSIONS.includes(ext)) {
             cb(null, true);
         } else {
-            cb(new Error('Only PDF and DOCX files are allowed'));
+            cb(new Error('Only PDF, DOCX, Spreadsheets (XLSX, CSV), Images, and Text files are allowed'));
         }
     }
 });
 
-router.post('/:code/:period/attachments', lockGuard, upload.single('file'), async (req, res) => {
+const handleUpload = (req, res, next) => {
+    upload.single('file')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ error: err.message || 'File upload failed' });
+        }
+        next();
+    });
+};
+
+router.post('/:code/:period/attachments', lockGuard, handleUpload, async (req, res) => {
     try {
         const { code, period } = req.params;
         const { iloId, type } = req.body;
@@ -74,7 +85,7 @@ router.get('/:code/:period/attachments', async (req, res) => {
 
 // Replace the file of an existing attachment in place. The attachment id (and therefore
 // every point row linked to it via attachmentId) is preserved.
-router.put('/:code/:period/attachments/:id', lockGuard, upload.single('file'), async (req, res) => {
+router.put('/:code/:period/attachments/:id', lockGuard, handleUpload, async (req, res) => {
     const newFilename = req.file ? req.file.filename : null;
     const discardNewFile = () => {
         if (newFilename) {
@@ -137,18 +148,42 @@ router.delete('/:code/:period/attachments/:id', lockGuard, async (req, res) => {
     }
 });
 
-router.get('/download/:filename', (req, res) => {
+router.get('/download/:filename', async (req, res) => {
     const filePath = path.join(uploadDir, req.params.filename);
-    if (fs.existsSync(filePath)) {
-        if (req.query.inline === '1' && path.extname(req.params.filename).toLowerCase() === '.pdf') {
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'inline');
-            fs.createReadStream(filePath).pipe(res);
-        } else {
-            res.download(filePath);
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Determine the original human filename (e.g. "Prelim_Exam.docx")
+    let originalName = req.query.name;
+    if (!originalName) {
+        try {
+            const att = await IloAttachment.findOne({ where: { filepath: req.params.filename } });
+            if (att?.filename) originalName = att.filename;
+        } catch {
+            // fallback to disk filename
         }
+    }
+    if (!originalName) originalName = req.params.filename;
+
+    const ext = path.extname(req.params.filename).toLowerCase();
+    if (req.query.inline === '1') {
+        if (ext === '.pdf') res.setHeader('Content-Type', 'application/pdf');
+        else if (ext === '.docx' || ext === '.doc') res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        else if (ext === '.xlsx') res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        else if (ext === '.xls') res.setHeader('Content-Type', 'application/vnd.ms-excel');
+        else if (ext === '.csv') res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        else if (ext === '.png') res.setHeader('Content-Type', 'image/png');
+        else if (ext === '.jpg' || ext === '.jpeg') res.setHeader('Content-Type', 'image/jpeg');
+        else if (ext === '.webp') res.setHeader('Content-Type', 'image/webp');
+        else if (ext === '.gif') res.setHeader('Content-Type', 'image/gif');
+        else if (ext === '.svg') res.setHeader('Content-Type', 'image/svg+xml');
+        else if (ext === '.txt') res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(originalName)}"`);
+        fs.createReadStream(filePath).pipe(res);
     } else {
-        res.status(404).json({ error: 'File not found' });
+        // Downloads the actual, raw uploaded file with its original filename
+        res.download(filePath, originalName);
     }
 });
 

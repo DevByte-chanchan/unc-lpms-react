@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Eye, Download, ChevronDown, ChevronRight } from "react-feather";
+import { Eye, ExternalLink, Download, ChevronDown, ChevronRight } from "react-feather";
 import layout from "../styles/TosPreview.module.sass";
 import { fetchAttachments, ACTIVE_PERIOD } from "../services/api.js";
+import AttachmentPreviewModal, { canPreviewFile, getNewTabUrl } from "./AttachmentPreviewModal.jsx";
 
 const _getCognitiveLevelsForIlo = (iloId) => {
     if (iloId === 'ILO1') return ['Remembering', 'Understanding'];
@@ -19,6 +20,7 @@ const formatFileSize = (bytes) => {
 export default function AssessmentOutput({ outcomeData = [], questions = [], courseCode, period = ACTIVE_PERIOD, examType, targetScope = null, addingComment = false, activeScope = null, onFileClick = null, onRowClick = null, attachments: propAttachments = null }) {
     const [attachments, setAttachments] = useState(propAttachments || []);
     const [attLoading, setAttLoading] = useState(propAttachments ? false : (!!courseCode));
+    const [previewFile, setPreviewFile] = useState(null);
     const [collapsedCOs, setCollapsedCOs] = useState(new Set());
     const [collapsedILOs, setCollapsedILOs] = useState(new Set());
 
@@ -164,7 +166,7 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                         const filePoints = fileRows.reduce((sum, r) => sum + (Number(r.points) || 0), 0);
                                                         const sizeStr = formatFileSize(att.size);
                                                         const tool = (ilo.assessmentTool || '').trim();
-                                                        const isPdf = (att.filepath || '').toLowerCase().endsWith('.pdf');
+                                                        const canPreview = canPreviewFile(att.filename || att.filepath);
 
                                                         const isFileActive = activeScope && !activeScope.rowId && !activeScope.assessmentItemId && (
                                                             (activeScope.fileId && Number(activeScope.fileId) === Number(att.id)) ||
@@ -180,6 +182,8 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                                 data-filename={att.filename}
                                                                 data-co={co.co}
                                                                 data-ilo={ilo.id}
+                                                                onDoubleClick={() => window.open(getNewTabUrl(att), '_blank')}
+                                                                title="Double-click to open in new tab"
                                                                 onClick={() => {
                                                                     if (addingComment && onFileClick) {
                                                                         onFileClick(att, co, ilo, fileRows);
@@ -200,26 +204,26 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                                     </div>
                                                                     <div className={layout.fileCardRight}>
                                                                         <span className={layout.filePointsChip}>{filePoints} pts</span>
-                                                                        {isPdf && (
+                                                                        {canPreview && (
                                                                             <a
-                                                                                href={`/api/attachments/download/${encodeURIComponent(att.filepath)}?inline=1`}
+                                                                                href={getNewTabUrl(att)}
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
-                                                                                title="Open file in new tab"
-                                                                                aria-label="Open file in new tab"
+                                                                                title="Open in new tab"
+                                                                                aria-label="Open in new tab"
                                                                                 className={layout.iconBtn}
                                                                                 onClick={e => e.stopPropagation()}
                                                                             >
-                                                                                <Eye size={16} />
+                                                                                <ExternalLink size={16} />
                                                                             </a>
                                                                         )}
                                                                         <a
-                                                                            href={`/api/attachments/download/${encodeURIComponent(att.filepath)}`}
+                                                                            href={`/api/attachments/download/${encodeURIComponent(att.filepath)}?name=${encodeURIComponent(att.filename)}`}
                                                                             download={att.filename}
                                                                             target="_blank"
                                                                             rel="noreferrer"
-                                                                            title="Download file"
-                                                                            aria-label="Download file"
+                                                                            title="Download original file"
+                                                                            aria-label="Download original file"
                                                                             className={layout.iconBtn}
                                                                             onClick={e => e.stopPropagation()}
                                                                         >
@@ -279,6 +283,11 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                     ))}
                 </div>
             )}
+            <AttachmentPreviewModal
+                isOpen={!!previewFile}
+                file={previewFile}
+                onClose={() => setPreviewFile(null)}
+            />
         </div>
     );
 }

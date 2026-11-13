@@ -184,7 +184,16 @@ export const uploadAttachment = async (courseCode, period, iloId, file) => {
         method: 'POST',
         body: formData
     });
-    if (!res.ok) throw new Error('Upload failed');
+    if (!res.ok) {
+        let errMsg = 'Upload failed';
+        try {
+            const errData = await res.json();
+            if (errData?.error) errMsg = errData.error;
+        } catch {
+            // ignore
+        }
+        throw new Error(errMsg);
+    }
     return res.json();
 };
 

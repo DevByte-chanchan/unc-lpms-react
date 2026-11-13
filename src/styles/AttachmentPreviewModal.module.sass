@@ -1,0 +1,417 @@
+.modalOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100vw
+  height: 100vh
+  background-color: rgba(17, 24, 39, 0.55)
+  backdrop-filter: blur(4px)
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 2000
+  animation: fadeIn 0.15s ease-out
+
+.modal
+  background: #FFFFFF
+  width: min(96vw, 1100px)
+  height: 90vh
+  border-radius: 12px
+  border: 1px solid #E5E7EB
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18), 0 6px 16px rgba(0, 0, 0, 0.08)
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  animation: modalScaleUp 0.18s ease-out
+
+.standalonePage
+  width: 100vw
+  height: 100vh
+  display: flex
+  flex-direction: column
+  background: #FFFFFF
+  overflow: hidden
+
+@keyframes fadeIn
+  from
+    opacity: 0
+  to
+    opacity: 1
+
+@keyframes modalScaleUp
+  from
+    opacity: 0
+    transform: scale(0.97)
+  to
+    opacity: 1
+    transform: scale(1)
+
+.header
+  padding: 14px 20px
+  border-bottom: 1px solid #E5E7EB
+  display: flex
+  justify-content: space-between
+  align-items: center
+  background: #FFFFFF
+  flex-shrink: 0
+
+.headerLeft
+  display: flex
+  align-items: center
+  gap: 10px
+  min-width: 0
+
+.fileIcon
+  color: #4B5563
+  flex-shrink: 0
+
+.title
+  margin: 0
+  font-size: 15px
+  font-weight: 600
+  color: #111827
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  max-width: 550px
+
+.badge
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 7px
+  border-radius: 4px
+  text-transform: uppercase
+  flex-shrink: 0
+
+.badgePdf
+  background: #FEE2E2
+  color: #DC2626
+
+.badgeDocx
+  background: #DBEAFE
+  color: #1D4ED8
+
+.badgeExcel
+  background: #DCFCE7
+  color: #15803D
+
+.badgeImage
+  background: #FEF3C7
+  color: #D97706
+
+.badgeText
+  background: #E0E7FF
+  color: #4338CA
+
+.badgeGeneric
+  background: #F3F4F6
+  color: #4B5563
+
+.headerRight
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-shrink: 0
+
+.actionBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 6px 12px
+  border-radius: 6px
+  border: 1px solid #D1D5DB
+  background: #FFFFFF
+  color: #374151
+  font-size: 13px
+  font-weight: 500
+  cursor: pointer
+  transition: all 0.15s ease
+  text-decoration: none
+
+  &:hover
+    background: #F3F4F6
+    color: #111827
+    border-color: #9CA3AF
+
+.closeBtn
+  display: inline-flex !important
+  align-items: center !important
+  gap: 6px !important
+  padding: 6px 12px !important
+  border-radius: 6px !important
+  border: 1px solid #D1D5DB !important
+  background: #F3F4F6 !important
+  color: #1F2937 !important
+  font-size: 13px !important
+  font-weight: 500 !important
+  cursor: pointer !important
+  transition: all 0.15s ease !important
+  text-decoration: none !important
+
+  svg
+    stroke: #1F2937 !important
+    color: #1F2937 !important
+    width: 14px !important
+    height: 14px !important
+    display: inline-block !important
+    flex-shrink: 0 !important
+
+  &:hover
+    background: #E5E7EB !important
+    border-color: #9CA3AF !important
+    color: #111827 !important
+
+    svg
+      stroke: #111827 !important
+
+.body
+  flex: 1
+  min-height: 0
+  background: #F9FAFB
+  position: relative
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.iframe
+  width: 100%
+  height: 100%
+  border: none
+  background: #FFFFFF
+
+.docxContainer
+  width: 100%
+  height: 100%
+  overflow: auto
+  background: #E5E7EB
+  display: flex
+  flex-direction: column
+  align-items: center
+
+  :global(.docx-wrapper)
+    background: transparent !important
+    padding: 30px 16px !important
+    width: 100%
+    display: flex
+    flex-direction: column
+    align-items: center
+
+  :global(.docx-wrapper > section.docx)
+    background: #FFFFFF !important
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14) !important
+    border-radius: 4px !important
+    margin-bottom: 24px !important
+
+  :global(.docx-wrapper table)
+    border-collapse: collapse !important
+    width: 100% !important
+    margin: 14px 0 !important
+    border: 1px solid #9CA3AF !important
+
+  :global(.docx-wrapper td), :global(.docx-wrapper th)
+    border: 1px solid #9CA3AF !important
+    padding: 8px 12px !important
+    min-width: 40px !important
+    vertical-align: top !important
+    box-sizing: border-box !important
+
+.sheetsContainer
+  display: flex
+  flex-direction: column
+  height: 100%
+  width: 100%
+  background: #FFFFFF
+  overflow: hidden
+
+.sheetTabs
+  display: flex
+  gap: 4px
+  padding: 8px 16px 0
+  background: #F3F4F6
+  border-bottom: 1px solid #D1D5DB
+  overflow-x: auto
+  flex-shrink: 0
+
+.sheetTab
+  padding: 6px 14px
+  font-size: 13px
+  font-weight: 500
+  color: #4B5563
+  background: #E5E7EB
+  border: 1px solid #D1D5DB
+  border-bottom: none
+  border-radius: 6px 6px 0 0
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.15s ease
+
+  &:hover
+    background: #FFFFFF
+    color: #111827
+
+.sheetTabActive
+  background: #FFFFFF
+  color: #15803D
+  font-weight: 600
+  border-top: 2px solid #16A34A
+
+.sheetToolbar
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 8px 16px
+  background: #F9FAFB
+  border-bottom: 1px solid #E5E7EB
+  font-size: 12px
+  color: #6B7280
+  flex-shrink: 0
+
+.sheetSearchInput
+  padding: 4px 10px
+  border: 1px solid #D1D5DB
+  border-radius: 4px
+  font-size: 12px
+  color: #111827
+  background: #FFFFFF
+  outline: none
+  width: 200px
+
+  &:focus
+    border-color: #15803D
+
+.sheetTableWrap
+  flex: 1
+  overflow: auto
+  min-height: 0
+  background: #FFFFFF
+
+.excelHtmlWrap
+  padding: 24px
+  background: #FFFFFF
+  min-width: 100%
+  overflow: auto
+
+  :global(table)
+    border-collapse: collapse !important
+    font-size: 13px !important
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important
+    color: #111827 !important
+    background: #FFFFFF !important
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important
+    margin-bottom: 24px !important
+
+  :global(td), :global(th)
+    border: 1px solid #D1D5DB !important
+    padding: 7px 12px !important
+    white-space: nowrap !important
+    min-width: 50px !important
+    line-height: 1.4 !important
+
+  :global(tr:first-child td), :global(tr:first-child th)
+    font-weight: 600 !important
+    background-color: #F9FAFB !important
+
+  :global(tr:hover td)
+    background-color: #F8FAFC !important
+
+.sheetTable
+  width: 100%
+  border-collapse: collapse
+  font-size: 13px
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif
+
+  th, td
+    border: 1px solid #E5E7EB
+    padding: 6px 10px
+    white-space: nowrap
+
+  th
+    background: #F9FAFB
+    font-weight: 600
+    color: #374151
+    position: sticky
+    top: 0
+    z-index: 2
+
+  th.rowNumCell
+    z-index: 3
+    top: 0
+    left: 0
+
+  .rowNumCell
+    background: #F3F4F6
+    color: #6B7280
+    font-size: 11px
+    text-align: center
+    width: 40px
+    position: sticky
+    left: 0
+    z-index: 1
+
+  tbody tr:hover
+    background: #F8FAFC
+
+.imageContainer
+  width: 100%
+  height: 100%
+  overflow: auto
+  padding: 32px
+  display: flex
+  align-items: center
+  justify-content: center
+  background: #F3F4F6
+
+.imagePreview
+  max-width: 100%
+  max-height: 100%
+  object-fit: contain
+  border-radius: 6px
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12)
+  background: #FFFFFF
+
+.textContainer
+  width: 100%
+  height: 100%
+  overflow: auto
+  padding: 24px
+  background: #FFFFFF
+
+.textPre
+  margin: 0
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+  font-size: 13px
+  line-height: 1.6
+  color: #1F2937
+  white-space: pre-wrap
+  word-break: break-word
+
+.loadingWrap
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  height: 100%
+  width: 100%
+  gap: 12px
+  color: #6B7280
+
+.spinner
+  animation: spin 0.8s linear infinite
+
+@keyframes spin
+  from
+    transform: rotate(0deg)
+  to
+    transform: rotate(360deg)
+
+.errorWrap
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  height: 100%
+  width: 100%
+  gap: 14px
+  padding: 24px
+  text-align: center
+  color: #374151

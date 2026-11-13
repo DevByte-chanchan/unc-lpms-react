@@ -246,6 +246,215 @@ const statuses = [
     }
 ];
 
+// Detailed, domain-specific assessment tools per course, outcome, and ILO
+export const ASSESSMENT_TOOLS = {
+    BSCS313L: {
+        CO1: ['Objective-Type Assessment', 'Persona & Empathy Map Rubric', 'Card Sorting & IA Design Rubric'],
+        CO2: ['Heuristic Evaluation Rubric', 'Low-Fidelity Wireframing Rubric', 'UI Prototype & Visual Design Rubric']
+    },
+    BSCS212L: {
+        CO1: ['Objective-Type Assessment', 'Responsive Layout Lab Exam', 'DOM Manipulation Practical Exam'],
+        CO2: ['Component Architecture Rubric', 'SPA Routing & Fetching Lab', 'Performance Profiling Exercise']
+    },
+    BSCS111L: {
+        CO1: ['Written Logic & Flowchart Exam', 'Modular Programming Practical', 'Data Structures Coding Task'],
+        CO2: ['TDD Unit Testing Lab', 'File I/O Programming Exercise', 'Exception Handling Practical Exam']
+    },
+    BSCS214L: {
+        CO1: ['Objective-Type Written Exam', 'Algorithm Implementation Lab', 'Complexity Analysis Problem Set'],
+        CO2: ['Pointer Manipulation Practical', 'Balanced Trees Coding Task', 'Graph Algorithms Lab Exam']
+    },
+    BSCS315L: {
+        CO1: ['Objective-Type Assessment', 'Memory Management Problem Set', 'Deadlock Analysis Case Study'],
+        CO2: ['Multithreading & Concurrency Lab', 'IPC Socket/Pipe Programming', 'CPU Scheduling Simulation Task']
+    },
+    BSCS321L: {
+        CO1: ['ER Diagram Design Rubric', 'Schema Normalization Exercise', 'Complex SQL Query Exam'],
+        CO2: ['Transaction & ACID Practical', 'Index Optimization Lab Task', 'Database Security Configuration Rubric']
+    },
+    BSCS322L: {
+        CO1: ['Requirements Specification Rubric', 'UML Modeling Design Task', 'Effort Estimation Worksheet'],
+        CO2: ['Agile Backlog & Sprint Plan', 'CI/CD Pipeline Configuration Lab', 'Test Suite Execution Rubric']
+    },
+    BSCS331L: {
+        CO1: ['Protocol Analysis Written Exam', 'Subnetting & Addressing Worksheet', 'Wireshark Packet Analysis Lab'],
+        CO2: ['VLAN & Switching Configuration', 'Firewall & ACL Lab Exam', 'Network Troubleshooting Practical']
+    },
+    BSCS341L: {
+        CO1: ['Search Algorithms Written Exam', 'First-Order Logic Problem Set', 'CSP Solver Programming Lab'],
+        CO2: ['Supervised Learning Practical', 'Clustering Analysis Lab Exam', 'Data Preprocessing Pipeline Rubric']
+    },
+    BSCS351L: {
+        CO1: ['Threat Modeling Written Exam', 'NIST Risk Assessment Report', 'Cryptographic Protocol Lab'],
+        CO2: ['IDS/SIEM Configuration Lab', 'Vulnerability Assessment Report', 'Incident Response Playbook Rubric']
+    },
+    BSCS221L: {
+        CO1: ['OOP Concepts Written Exam', 'Encapsulation & Modular Design Lab', 'Design Patterns Coding Project'],
+        CO2: ['Exception Handling Practical', 'Collections & Streams Coding Task', 'File I/O Stream Programming Lab']
+    },
+    BSCS222L: {
+        CO1: ['Objective-Type Written Exam', 'Truth Tables & Set Relations Worksheet', 'Mathematical Proof Construction'],
+        CO2: ['Graph Theory Problem Set', 'Combinatorics Application Problems', 'Graph Coloring Optimization Task']
+    },
+    BSCS312L: {
+        CO1: ['Database Design Written Exam', 'Advanced SQL & Window Functions Lab', 'Stored Procedures & Triggers Practical'],
+        CO2: ['Concurrency Control Lab Task', 'Query Optimization Exercise', 'Role-Based Access Control Rubric']
+    },
+    BSCS324L: {
+        CO1: ['Agile & Scrum Written Exam', 'Microservices Architecture Rubric', 'Static Analysis & Code Quality Review'],
+        CO2: ['CI/CD Automated Deployment Lab', 'Docker Containerization Practical', 'Infrastructure-as-Code Terraform Task']
+    },
+    BSCS342L: {
+        CO1: ['Data Preprocessing Lab Exam', 'Supervised Model Training Practical', 'Unsupervised Clustering Task'],
+        CO2: ['Cross-Validation & Metrics Lab', 'Hyperparameter Tuning Task', 'Ensemble & Regularization Exercise'],
+        CO3: ['Model Evaluation Problem Set', 'Grid Search Lab Task'],
+        CO4: ['Model REST API Packaging Lab', 'Model Monitoring Dashboard Rubric']
+    },
+    BSCS223L: {
+        CO1: ['React Component Architecture Lab', 'REST API Backend Implementation', 'JWT/OAuth Authentication Practical'],
+        CO2: ['Cloud Deployment Practical Exam', 'Observability & Logging Task', 'Feature Flag Rollout Plan']
+    },
+    BSCS314L: {
+        CO1: ['Signal Modulation Written Exam', 'Multiplexing Analysis Worksheet', 'Error Detection & CRC Problem Set'],
+        CO2: ['IP Subnetting Configuration Lab', 'OSPF & BGP Routing Practical', 'Wireshark Diagnostic Exam']
+    },
+    BSCS323L: {
+        CO1: ['Requirements Elicitation Rubric', 'UML Process Modeling Task', 'Traceability Matrix Review'],
+        CO2: ['System Architecture Rubric', 'Technical Specification Document', 'ATAM Architecture Evaluation']
+    },
+    BSCS332L: {
+        CO1: ['Network Threat Written Exam', 'Cryptographic Ciphers Lab Task', 'PKI & Digital Certificates Practical'],
+        CO2: ['Firewall Rules Configuration Lab', 'Snort IDS/IPS Tuning Practical', 'IPsec & TLS VPN Deployment Rubric']
+    },
+    BSCS413L: {
+        CO1: ['Project Charter & Scope Document', 'WBS & Risk Register Rubric', 'Agile Sprint Review & Defense'],
+        CO2: ['Full-Stack Implementation Rubric', 'Technical System Documentation', 'Final Oral Presentation & Defense']
+    }
+};
+
+export function getAssessmentTool(courseCode, co, iloIdx) {
+    const courseMap = ASSESSMENT_TOOLS[courseCode];
+    if (courseMap && courseMap[co] && courseMap[co][iloIdx]) {
+        return courseMap[co][iloIdx];
+    }
+    return (iloIdx + 1) % 2 === 1 ? 'Objective-Type Assessment' : 'Performance Task Rubric';
+}
+
+export function getAttachmentDisplayFilename(courseCode, co, iloIdx, type) {
+    if (type === 'objective') {
+        return iloIdx === 0
+            ? `${courseCode}_Midterm_Exam_PartA.pdf`
+            : `${courseCode}_Midterm_Exam_PartB.pdf`;
+    }
+    return `${courseCode}_Project_Rubric.pdf`;
+}
+
+export function getAttachmentSize(courseCode, co, iloIdx, type) {
+    const base = type === 'objective' ? (iloIdx === 0 ? 185 * 1024 : 260 * 1024) : 420 * 1024;
+    const seedVal = (courseCode.charCodeAt(4) || 65) * 19 + (co.charCodeAt(2) || 1) * 37 + iloIdx * 83;
+    const offset = ((seedVal % 15) * 16 + (seedVal % 7) * 4) * 1024;
+    return base + offset;
+}
+
+export function getPointRowInstructions(courseCode, co, iloIdx) {
+    const RETURNED_COURSES = ['BSCS214L', 'BSCS222L', 'BSCS324L', 'BSCS341L'];
+    if (RETURNED_COURSES.includes(courseCode)) {
+        return { ref1: 'Items 1-5', ref2: 'Part II' };
+    }
+
+    const INSTRUCTION_VARIANTS = {
+        BSCS313L: [
+            { ref1: 'Test I: Multiple Choice (Q1–Q3)', ref2: 'Test II: Conceptual Identification' },
+            { ref1: 'Rubric Criterion 1: Persona Quality', ref2: 'Rubric Criterion 2: Empathy Mapping' },
+            { ref1: 'Test III: Usability Critique', ref2: 'Test IV: UI Prototype Design' }
+        ],
+        BSCS212L: [
+            { ref1: 'Test I: HTML5 Semantics (Q1–Q3)', ref2: 'Test II: Code Snippet Analysis' },
+            { ref1: 'Lab Task 1: Responsive Layout Grid', ref2: 'Lab Task 2: Flexbox Media Queries' },
+            { ref1: 'Test III: DOM Event Handling', ref2: 'Test IV: SPA Client Routing' }
+        ],
+        BSCS111L: [
+            { ref1: 'Test I: Syntax & Logic (Q1–Q3)', ref2: 'Test II: Flowchart Interpretation' },
+            { ref1: 'Lab Task 1: Modular Function', ref2: 'Lab Task 2: Parameter Passing' },
+            { ref1: 'Test III: Code Refactoring', ref2: 'Test IV: Exception Handling Design' }
+        ],
+        BSCS315L: [
+            { ref1: 'Test I: OS Concepts (Q1–Q3)', ref2: 'Test II: State Diagram Analysis' },
+            { ref1: 'Lab Task 1: Mutex Synchronization', ref2: 'Lab Task 2: Deadlock Detection' },
+            { ref1: 'Test III: Paging & Virtual Memory', ref2: 'Test IV: Kernel Architecture' }
+        ],
+        BSCS321L: [
+            { ref1: 'Test I: Relational Model (Q1–Q3)', ref2: 'Test II: ER Model Evaluation' },
+            { ref1: 'Lab Task 1: Normalization to BCNF', ref2: 'Lab Task 2: Complex Join Queries' },
+            { ref1: 'Test III: Query Plan Optimization', ref2: 'Test IV: Transaction ACID Guard' }
+        ],
+        BSCS322L: [
+            { ref1: 'Test I: SDLC Terminology (Q1–Q3)', ref2: 'Test II: Requirements Elicitation' },
+            { ref1: 'Rubric Criterion 1: UML Sequence', ref2: 'Rubric Criterion 2: Use Case Specs' },
+            { ref1: 'Test III: Design Pattern Assessment', ref2: 'Test IV: Architecture Proposal' }
+        ],
+        BSCS331L: [
+            { ref1: 'Test I: OSI & TCP/IP Model (Q1–Q3)', ref2: 'Test II: Protocol Header Analysis' },
+            { ref1: 'Lab Task 1: Subnetting Calculation', ref2: 'Lab Task 2: Route Table Config' },
+            { ref1: 'Test III: Packet Trace Evaluation', ref2: 'Test IV: Network Redundancy Plan' }
+        ],
+        BSCS351L: [
+            { ref1: 'Test I: Threat Vectors (Q1–Q3)', ref2: 'Test II: Vulnerability Classification' },
+            { ref1: 'Lab Task 1: NIST Framework Mapping', ref2: 'Lab Task 2: Cryptographic Cipher Lab' },
+            { ref1: 'Test III: Vulnerability Severity', ref2: 'Test IV: Security Playbook Design' }
+        ],
+        BSCS221L: [
+            { ref1: 'Test I: OOP Core Principles (Q1–Q3)', ref2: 'Test II: Inheritance Hierarchy' },
+            { ref1: 'Lab Task 1: Interface Abstraction', ref2: 'Lab Task 2: Design Pattern Coding' },
+            { ref1: 'Test III: Collections & Stream API', ref2: 'Test IV: Concurrent Java Program' }
+        ],
+        BSCS312L: [
+            { ref1: 'Test I: Schema Design Concepts', ref2: 'Test II: Relational Algebra' },
+            { ref1: 'Lab Task 1: Window Functions & CTE', ref2: 'Lab Task 2: Trigger & Stored Proc' },
+            { ref1: 'Test III: Index Strategy Review', ref2: 'Test IV: Security Role Definition' }
+        ],
+        BSCS342L: [
+            { ref1: 'Test I: ML Foundations (Q1–Q3)', ref2: 'Test II: Bias-Variance Tradeoff' },
+            { ref1: 'Lab Task 1: Cross-Validation Split', ref2: 'Lab Task 2: Hyperparameter Tuning' },
+            { ref1: 'Test III: Model Metrics Analysis', ref2: 'Test IV: End-to-End Pipeline' }
+        ],
+        BSCS223L: [
+            { ref1: 'Test I: React Hooks & State', ref2: 'Test II: Context API Evaluation' },
+            { ref1: 'Lab Task 1: REST Endpoint Creation', ref2: 'Lab Task 2: JWT Auth Middleware' },
+            { ref1: 'Test III: Performance Audit', ref2: 'Test IV: Cloud Deployment Arch' }
+        ],
+        BSCS314L: [
+            { ref1: 'Test I: Signal Modulation (Q1–Q3)', ref2: 'Test II: Multiplexing Comparison' },
+            { ref1: 'Lab Task 1: CRC Polynomial Check', ref2: 'Lab Task 2: Hamming Code Trace' },
+            { ref1: 'Test III: Protocol Efficiency', ref2: 'Test IV: Transmission Topology' }
+        ],
+        BSCS323L: [
+            { ref1: 'Test I: Systems Analysis Concepts', ref2: 'Test II: Use Case Validation' },
+            { ref1: 'Rubric Criterion 1: Activity Model', ref2: 'Rubric Criterion 2: Process Specs' },
+            { ref1: 'Test III: Architecture Tradeoffs', ref2: 'Test IV: Technical Contract Design' }
+        ],
+        BSCS332L: [
+            { ref1: 'Test I: Cryptography Principles', ref2: 'Test II: Attack Surface Analysis' },
+            { ref1: 'Lab Task 1: Firewall Rule Defense', ref2: 'Lab Task 2: Snort Rule Tuning' },
+            { ref1: 'Test III: PenTest Report Critique', ref2: 'Test IV: Zero-Trust Network Design' }
+        ],
+        BSCS413L: [
+            { ref1: 'Milestone 1: Project Charter', ref2: 'Milestone 2: Stakeholder Agreement' },
+            { ref1: 'Sprint Review 1: Backlog Delivery', ref2: 'Sprint Review 2: Velocity Tracking' },
+            { ref1: 'Final Defense: Architecture Specs', ref2: 'Final Defense: Technical Demo' }
+        ]
+    };
+
+    const courseList = INSTRUCTION_VARIANTS[courseCode];
+    if (courseList && courseList[iloIdx]) {
+        return courseList[iloIdx];
+    }
+    return {
+        ref1: `Test I (Q1–Q${iloIdx + 3})`,
+        ref2: `Test II: Problem Solving`
+    };
+}
+
 export async function createItemsForCourse(courseCode) {
     const statusRow = await TosStatus.findOne({ where: { courseCode, examPeriod: 'Midterm' } });
     const isDraft = !statusRow || statusRow.status === 'draft';
@@ -291,13 +500,15 @@ export async function createItemsForCourse(courseCode) {
                 else if (iloIdx === 1) { pts1 = 3; pts2 = 3; }
                 else { pts1 = 7; pts2 = 9; }
             }
+            const { ref1, ref2 } = getPointRowInstructions(courseCode, o.co, iloIdx);
             const rowsToCreate = [];
-            if (pts1 > 0) rowsToCreate.push({ points: pts1, cognitiveLevel: levels[0], ref: 'Items 1-5' });
-            if (pts2 > 0) rowsToCreate.push({ points: pts2, cognitiveLevel: levels[1], ref: 'Part II' });
+            if (pts1 > 0) rowsToCreate.push({ points: pts1, cognitiveLevel: levels[0], ref: ref1 });
+            if (pts2 > 0) rowsToCreate.push({ points: pts2, cognitiveLevel: levels[1], ref: ref2 });
 
             const type = iloIdx % 2 === 0 ? 'objective' : 'non-objective';
             const filename = `${courseCode}_${o.co}_ILO${iloIdx+1}_${type}.pdf`;
-            const displayFilename = type === 'objective' ? 'Midterm Exam - Part A.pdf' : 'Project Rubric.pdf';
+            const displayFilename = getAttachmentDisplayFilename(courseCode, o.co, iloIdx, type);
+            const fileSize = getAttachmentSize(courseCode, o.co, iloIdx, type);
             
             createPdf(filename, `Sample ${type} assessment for ${courseCode}`);
 
@@ -308,7 +519,7 @@ export async function createItemsForCourse(courseCode) {
                 filename: displayFilename,
                 filepath: filename,
                 type,
-                size: 10240
+                size: fileSize
             });
 
             for (const row of rowsToCreate) {
@@ -346,7 +557,7 @@ async function seed() {
                     outcome.ilos.map((ilo, idx) => ({
                         ...ilo,
                         coId: created.id,
-                        assessmentTool: (idx + 1) % 2 === 1 ? 'Objective-Type Assessment' : 'Modular Programming'
+                        assessmentTool: getAssessmentTool(data.courseCode, outcome.co, idx)
                     }))
                 );
             }

@@ -6,6 +6,7 @@ import ProgramHeadTOS from "./pages/ProgramHeadTOS.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProgramHeadDashboard from "./pages/ProgramHeadDashboard.jsx";
 import Login from "./pages/Login.jsx";
+import AttachmentViewerPage from "./pages/AttachmentViewerPage.jsx";
 
 function App() {
     return (
@@ -19,6 +20,7 @@ function App() {
                     <Route path={'/tos/:code'} element={<TOS />} />
                     <Route path={'/role/program-head/dashboard'} element={<ProgramHeadDashboard />} />
                     <Route path={'/role/program-head/tos'} element={<ProgramHeadTOS />} />
+                    <Route path={'/preview-attachment'} element={<AttachmentViewerPage />} />
                 </Routes>
             </div>
         </Router>

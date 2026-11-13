@@ -39,8 +39,8 @@ const commentsData = [
         courseCode: 'BSCS214L',
         co: 'CO1',
         ilo: 'ILO2',
-        cognitiveLevel: 'Project Rubric.pdf',
-        body: 'In Project Rubric.pdf, separate the grading criteria for code correctness and algorithmic efficiency so each carries an explicit weight.'
+        cognitiveLevel: 'BSCS214L_Project_Rubric.pdf',
+        body: 'In BSCS214L_Project_Rubric.pdf, separate the grading criteria for code correctness and algorithmic efficiency so each carries an explicit weight.'
     },
     {
         courseCode: 'BSCS214L',
@@ -61,8 +61,8 @@ const commentsData = [
         courseCode: 'BSCS214L',
         co: 'CO2',
         ilo: 'ILO1',
-        cognitiveLevel: 'Midterm Exam - Part A.pdf',
-        body: 'In Midterm Exam - Part A.pdf, add a diagram reference for the pointer manipulation questions on singly and doubly linked lists.'
+        cognitiveLevel: 'BSCS214L_Midterm_Exam_PartA.pdf',
+        body: 'In BSCS214L_Midterm_Exam_PartA.pdf, add a diagram reference for the pointer manipulation questions on singly and doubly linked lists.'
     },
     {
         courseCode: 'BSCS214L',
@@ -175,8 +175,8 @@ const commentsData = [
         courseCode: 'BSCS222L',
         co: 'CO2',
         ilo: 'ILO2',
-        cognitiveLevel: 'Project Rubric.pdf',
-        body: 'In Project Rubric.pdf, weight combinatorial modeling and application at 60% and terminology/definitions at 40%.',
+        cognitiveLevel: 'BSCS222L_Project_Rubric.pdf',
+        body: 'In BSCS222L_Project_Rubric.pdf, weight combinatorial modeling and application at 60% and terminology/definitions at 40%.',
         returnNumber: 1
     },
     {
@@ -202,8 +202,8 @@ const commentsData = [
         courseCode: 'BSCS222L',
         co: 'CO1',
         ilo: 'ILO1',
-        cognitiveLevel: 'Midterm Exam - Part A.pdf',
-        body: 'In Midterm Exam - Part A.pdf, one option in the logical fallacy item is ambiguous — add a brief clarification in the answer key.',
+        cognitiveLevel: 'BSCS222L_Midterm_Exam_PartA.pdf',
+        body: 'In BSCS222L_Midterm_Exam_PartA.pdf, one option in the logical fallacy item is ambiguous — add a brief clarification in the answer key.',
         returnNumber: 2
     },
     {
@@ -278,8 +278,8 @@ const commentsData = [
         courseCode: 'BSCS324L',
         co: 'CO1',
         ilo: 'ILO2',
-        cognitiveLevel: 'Project Rubric.pdf',
-        body: 'In Project Rubric.pdf, include teamsize, service discovery, and observability criteria for the microservices vs. monolith design task.'
+        cognitiveLevel: 'BSCS324L_Project_Rubric.pdf',
+        body: 'In BSCS324L_Project_Rubric.pdf, include teamsize, service discovery, and observability criteria for the microservices vs. monolith design task.'
     },
     {
         courseCode: 'BSCS324L',
@@ -392,8 +392,8 @@ const commentsData = [
         courseCode: 'BSCS341L',
         co: 'CO2',
         ilo: 'ILO1',
-        cognitiveLevel: 'Midterm Exam - Part A.pdf',
-        body: 'In Midterm Exam - Part A.pdf, include a non-linearly separable dataset scenario so students can demonstrate kernel selection concepts.',
+        cognitiveLevel: 'BSCS341L_Midterm_Exam_PartA.pdf',
+        body: 'In BSCS341L_Midterm_Exam_PartA.pdf, include a non-linearly separable dataset scenario so students can demonstrate kernel selection concepts.',
         returnNumber: 1
     },
     {

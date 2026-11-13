@@ -1,5 +1,5 @@
 import { Course, CourseOutcome, IloItem, TosStatus, AssessmentItem } from './models/index.js';
-import { createItemsForCourse } from './seed.js';
+import { createItemsForCourse, getAssessmentTool } from './seed.js';
 import { structureTopics } from './topics.js';
 
 const newCourses = [
@@ -272,7 +272,7 @@ async function seedNewCourses() {
                     outcome.ilos.map((ilo, idx) => ({
                         ...ilo,
                         coId: created.id,
-                        assessmentTool: (idx + 1) % 2 === 1 ? 'Objective-Type Assessment' : 'Modular Programming'
+                        assessmentTool: getAssessmentTool(data.courseCode, outcome.co, idx)
                     }))
                 );
             }

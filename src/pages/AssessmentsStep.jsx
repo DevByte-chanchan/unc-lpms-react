@@ -1,8 +1,10 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
-import { X, FileText, Plus, ChevronDown, ChevronUp, ChevronRight, Upload, Trash2, Download, Eye, RefreshCw } from "react-feather";
+import { X, FileText, Plus, ChevronDown, ChevronUp, ChevronRight, Upload, Trash2, Download, Eye, ExternalLink, RefreshCw } from "react-feather";
 import { useSearchParams } from "react-router-dom";
 import layout from "../styles/QuestionCognitiveMapping.module.sass";
 import { uploadAttachment, replaceAttachment, fetchAttachments, deleteAttachment, ACTIVE_PERIOD } from '../services/api.js';
+import AttachmentPreviewModal, { canPreviewFile, getNewTabUrl } from "../components/AttachmentPreviewModal.jsx";
+import ConfirmModal from '../components/ConfirmModal.jsx';
 
 let _uid = 0;
 const uid = () => `${++_uid}_${Math.random().toString(36).slice(2, 6)}`;
@@ -107,14 +109,22 @@ const OutcomeDropdown = ({ activeCoData, activeIloData, topicsList }) => {
     );
 };
 
-const UploadModal = ({ co, ilo, loading, onClose, onUpload, title = 'Upload file', actionLabel = 'Upload', busyLabel = 'Uploading…', subtitle = null }) => {
+const UploadModal = ({ co, ilo, loading, onClose, onUpload, onNotice, title = 'Upload file', actionLabel = 'Upload', busyLabel = 'Uploading…', subtitle = null }) => {
     const [file, setFile] = useState(null);
     const [dragOver, setDragOver] = useState(false);
     const inputRef = useRef(null);
-    const valid = (f) => f && /\.(pdf|docx)$/i.test(f.name);
+    const valid = (f) => f && canPreviewFile(f.name);
     const pick = (f) => {
         if (!f) return;
-        if (!valid(f)) { alert('Only .pdf and .docx files are supported.'); return; }
+        if (!valid(f)) {
+            if (onNotice) {
+                onNotice({
+                    title: 'Unsupported File Format',
+                    message: 'Please select a supported file (.pdf, .docx, .xlsx, .csv, image, or text).'
+                });
+            }
+            return;
+        }
         setFile(f);
     };
     const sizeLabel = file ? (file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`) : '';
@@ -137,7 +147,7 @@ const UploadModal = ({ co, ilo, loading, onClose, onUpload, title = 'Upload file
                         onDrop={e => { e.preventDefault(); setDragOver(false); pick(e.dataTransfer.files?.[0]); }}
                         style={{ border: `2px dashed ${dragOver ? '#19282C' : '#D1D5DB'}`, background: dragOver ? '#F3F4F6' : '#F9FAFB', borderRadius: 8, padding: '28px 16px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.12s' }}
                     >
-                        <input ref={inputRef} type="file" accept=".pdf,.docx" style={{ display: 'none' }} onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} />
+                        <input ref={inputRef} type="file" accept=".pdf,.docx,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.webp,.txt" style={{ display: 'none' }} onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} />
                         {file ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                                 <FileText size={22} color="#4B5563" />
@@ -150,7 +160,7 @@ const UploadModal = ({ co, ilo, loading, onClose, onUpload, title = 'Upload file
                             <>
                                 <Upload size={24} color="#6B7280" style={{ marginBottom: 8 }} />
                                 <div style={{ fontSize: 14, color: '#1A1A1A', fontWeight: 500 }}>Drag a file here, or <span style={{ textDecoration: 'underline' }}>browse</span></div>
-                                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>PDF or DOCX</div>
+                                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>PDF, DOCX, Spreadsheets, Images, or Text</div>
                             </>
                         )}
                     </div>
@@ -235,68 +245,9 @@ const AssessmentsStep = ({
 
     const [showUpload, setShowUpload] = useState(false);
     const [replaceTarget, setReplaceTarget] = useState(null);
-
-    const handleUpload = async (file) => {
-        if (!file || !activeIloData) return;
-        if (!activeIloData.iloDbId) {
-            alert("Couldn't upload. Select an ILO and try again.");
-            return;
-        }
-        setLoading(true);
-        try {
-            const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file);
-            const knownIds = new Set(attachments.map(a => Number(a.id)));
-            const nextAtts = [...attachments, att];
-            setAttachments(nextAtts);
-            onAttachmentsChange(nextAtts);
-            // Rows of this ILO that point at no existing file are attached to the new file
-            // instead of adding a blank row.
-            const isOrphan = q => Number(q.iloId) === Number(activeIloData.iloDbId) && !knownIds.has(Number(q.attachmentId));
-            const hasOrphans = (questions || []).some(isOrphan);
-            if (hasOrphans) {
-                setQuestions(prev => prev.map(q => isOrphan(q) ? { ...q, attachmentId: att.id } : q));
-            } else {
-                addPointRow(att.id);
-            }
-            setShowUpload(false);
-        } catch (err) {
-            alert(err.message || 'Upload failed');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleReplace = async (file) => {
-        if (!file || !replaceTarget || readOnly) return;
-        setLoading(true);
-        try {
-            const updated = await replaceAttachment(courseCode, examType, replaceTarget.id, file);
-            // Same attachment id: point rows stay linked, only the file details change.
-            const nextAtts = attachments.map(a => Number(a.id) === Number(updated.id) ? { ...a, ...updated } : a);
-            setAttachments(nextAtts);
-            onAttachmentsChange(nextAtts);
-            setReplaceTarget(null);
-        } catch (err) {
-            alert(err.message || 'Replace failed');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDeleteAttachment = async (id) => {
-        if (readOnly) return;
-        if (!window.confirm("Are you sure? Point rows for this file will also be deleted.")) return;
-        try {
-            await deleteAttachment(courseCode, examType, id);
-            // Drop the file's rows first so they are never seen as unattached rows.
-            setQuestions(prev => prev.filter(q => Number(q.attachmentId) !== Number(id)));
-            const nextAtts = attachments.filter(a => a.id !== id);
-            setAttachments(nextAtts);
-            onAttachmentsChange(nextAtts);
-        } catch {
-            alert('Failed to delete attachment');
-        }
-    };
+    const [previewFile, setPreviewFile] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [modalNotice, setModalNotice] = useState(null);
 
     const getCognitiveLevelsForIlo = (iloId) => {
         if (iloId === 'ILO1') return ['Remembering', 'Understanding'];
@@ -314,7 +265,7 @@ const AssessmentsStep = ({
         setQuestions(prev => {
             // Default the new row to whatever is still unallocated for this ILO (sum across all its files)
             const allocated = prev
-                .filter(q => q.co === coName && q.ilo === iloName)
+                .filter(q => (q.co === coName && q.ilo === iloName) || (activeIloData.iloDbId && Number(q.iloId) === Number(activeIloData.iloDbId)))
                 .reduce((s, q) => s + (Number(q.points) || 0), 0);
             const unallocated = Math.max(0, iloTarget - allocated);
             return [...prev, {
@@ -329,6 +280,155 @@ const AssessmentsStep = ({
                 attachmentId
             }];
         });
+    };
+
+    const handleUpload = async (file) => {
+        if (!file || !activeIloData) return;
+        if (!activeIloData.iloDbId) {
+            setModalNotice({
+                title: "Cannot Upload",
+                message: "Please select an Intended Learning Outcome (ILO) first and try again."
+            });
+            return;
+        }
+        setLoading(true);
+        try {
+            const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file);
+            const knownIds = new Set(attachments.map(a => Number(a.id)));
+            const nextAtts = [...attachments, att];
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
+
+            const isOrphan = q => Number(q.iloId) === Number(activeIloData.iloDbId) && !knownIds.has(Number(q.attachmentId));
+            const hasOrphans = (questions || []).some(isOrphan);
+
+            const coName = activeCoData.co;
+            const iloName = activeIloData.id;
+            const iloTarget = Number(activeIloData.items) || 0;
+            const defaultLevel = getCognitiveLevelsForIlo(iloName)[0] || '';
+
+            if (hasOrphans) {
+                setQuestions(prev => {
+                    let currentAllocated = prev
+                        .filter(q => !isOrphan(q) && ((q.co === coName && q.ilo === iloName) || (activeIloData.iloDbId && Number(q.iloId) === Number(activeIloData.iloDbId))))
+                        .reduce((s, q) => s + (Number(q.points) || 0), 0);
+
+                    let didAllocate = false;
+                    const updated = prev.map(q => {
+                        if (!isOrphan(q)) return q;
+                        let pts = q.points;
+                        if (!pts || Number(pts) === 0) {
+                            const unallocated = Math.max(0, iloTarget - currentAllocated);
+                            if (unallocated > 0 && !didAllocate) {
+                                pts = String(unallocated);
+                                currentAllocated += unallocated;
+                                didAllocate = true;
+                            }
+                        } else {
+                            currentAllocated += Number(pts);
+                        }
+                        return {
+                            ...q,
+                            attachmentId: att.id,
+                            points: pts || q.points || '',
+                            co: q.co || coName,
+                            ilo: q.ilo || iloName
+                        };
+                    });
+
+                    const totalNow = updated
+                        .filter(q => (q.co === coName && q.ilo === iloName) || (activeIloData.iloDbId && Number(q.iloId) === Number(activeIloData.iloDbId)))
+                        .reduce((s, q) => s + (Number(q.points) || 0), 0);
+
+                    if (totalNow < iloTarget) {
+                        const rem = iloTarget - totalNow;
+                        return [...updated, {
+                            id: uid(),
+                            co: coName,
+                            ilo: iloName,
+                            iloId: activeIloData.iloDbId,
+                            instruction: '',
+                            points: String(rem),
+                            cognitiveLevel: defaultLevel,
+                            span: 1,
+                            attachmentId: att.id
+                        }];
+                    }
+                    return updated;
+                });
+            } else {
+                setQuestions(prev => {
+                    const allocated = prev
+                        .filter(q => (q.co === coName && q.ilo === iloName) || (activeIloData.iloDbId && Number(q.iloId) === Number(activeIloData.iloDbId)))
+                        .reduce((s, q) => s + (Number(q.points) || 0), 0);
+                    const unallocated = Math.max(0, iloTarget - allocated);
+                    return [...prev, {
+                        id: uid(),
+                        co: coName,
+                        ilo: iloName,
+                        iloId: activeIloData.iloDbId,
+                        instruction: '',
+                        points: unallocated > 0 ? String(unallocated) : (iloTarget > 0 ? String(iloTarget) : ''),
+                        cognitiveLevel: defaultLevel,
+                        span: 1,
+                        attachmentId: att.id
+                    }];
+                });
+            }
+            setShowUpload(false);
+        } catch (err) {
+            setModalNotice({
+                title: "Upload Failed",
+                message: err.message || 'Failed to upload attachment. Please try again.'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReplace = async (file) => {
+        if (!file || !replaceTarget || readOnly) return;
+        setLoading(true);
+        try {
+            const updated = await replaceAttachment(courseCode, examType, replaceTarget.id, file);
+            // Same attachment id: point rows stay linked, only the file details change.
+            const nextAtts = attachments.map(a => Number(a.id) === Number(updated.id) ? { ...a, ...updated } : a);
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
+            setReplaceTarget(null);
+        } catch (err) {
+            setModalNotice({
+                title: "Replace Failed",
+                message: err.message || 'Failed to replace attachment. Please try again.'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteAttachment = (att) => {
+        if (readOnly || !att) return;
+        setDeleteTarget(att);
+    };
+
+    const executeDeleteAttachment = async () => {
+        if (!deleteTarget) return;
+        const id = deleteTarget.id;
+        try {
+            await deleteAttachment(courseCode, examType, id);
+            // Drop the file's rows first so they are never seen as unattached rows.
+            setQuestions(prev => prev.filter(q => Number(q.attachmentId) !== Number(id)));
+            const nextAtts = attachments.filter(a => a.id !== id);
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
+        } catch {
+            setModalNotice({
+                title: "Delete Failed",
+                message: 'Failed to delete attachment. Please try again.'
+            });
+        } finally {
+            setDeleteTarget(null);
+        }
     };
 
     const updatePointRow = (id, field, value) => {
@@ -551,7 +651,7 @@ const AssessmentsStep = ({
                                 const rows = (questions || []).filter(q => Number(q.attachmentId) === Number(att.id));
                                 const attPoints = rows.reduce((s, r) => s + (Number(r.points) || 0), 0);
                                 const sizeStr = att.size ? (att.size > 1048576 ? `${(att.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(att.size / 1024))} KB`) : '';
-                                const isPdf = (att.filepath || '').toLowerCase().endsWith('.pdf');
+                                const canPreview = canPreviewFile(att.filename || att.filepath);
                                 return (
                                     <div
                                         key={att.id}
@@ -559,7 +659,9 @@ const AssessmentsStep = ({
                                         data-filename={att.filename}
                                         data-co={activeCoData?.co}
                                         data-ilo={activeIloData?.id}
-                                        style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', overflow: 'hidden' }}
+                                        onDoubleClick={() => window.open(getNewTabUrl(att), '_blank')}
+                                        title="Double-click to open in new tab"
+                                        style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', overflow: 'hidden', cursor: 'pointer' }}
                                     >
                                         <div className={layout.fileCardHeader}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -595,25 +697,26 @@ const AssessmentsStep = ({
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                                 <span className={layout.ptsChip}>{attPoints} pts</span>
-                                                {isPdf && (
+                                                {canPreview && (
                                                     <a
-                                                        href={`/api/attachments/download/${encodeURIComponent(att.filepath)}?inline=1`}
+                                                        href={getNewTabUrl(att)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        title="View file"
-                                                        aria-label="View file"
+                                                        title="Open in new tab"
+                                                        aria-label="Open in new tab"
                                                         className={layout.iconBtn}
+                                                        onClick={e => e.stopPropagation()}
                                                     >
-                                                        <Eye size={16} />
+                                                        <ExternalLink size={16} />
                                                     </a>
                                                 )}
                                                 <a
-                                                    href={`/api/attachments/download/${encodeURIComponent(att.filepath)}`}
+                                                    href={`/api/attachments/download/${encodeURIComponent(att.filepath)}?name=${encodeURIComponent(att.filename)}`}
                                                     download={att.filename}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    title="Download file"
-                                                    aria-label="Download file"
+                                                    title="Download original file"
+                                                    aria-label="Download original file"
                                                     className={layout.iconBtn}
                                                 >
                                                     <Download size={16} />
@@ -632,7 +735,7 @@ const AssessmentsStep = ({
                                                 {!readOnly && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleDeleteAttachment(att.id)}
+                                                        onClick={() => handleDeleteAttachment(att)}
                                                         title="Delete file"
                                                         aria-label="Delete file"
                                                         className={layout.iconBtn}
@@ -768,6 +871,7 @@ const AssessmentsStep = ({
                     loading={loading}
                     onClose={() => !loading && setShowUpload(false)}
                     onUpload={handleUpload}
+                    onNotice={setModalNotice}
                 />
             )}
 
@@ -782,8 +886,39 @@ const AssessmentsStep = ({
                     busyLabel="Replacing…"
                     onClose={() => !loading && setReplaceTarget(null)}
                     onUpload={handleReplace}
+                    onNotice={setModalNotice}
                 />
             )}
+
+            {previewFile && (
+                <AttachmentPreviewModal
+                    isOpen={!!previewFile}
+                    file={previewFile}
+                    onClose={() => setPreviewFile(null)}
+                />
+            )}
+
+            <ConfirmModal
+                open={!!deleteTarget}
+                tone="destructive"
+                title="Delete attachment?"
+                message={`Are you sure you want to delete "${deleteTarget?.filename || 'this file'}"? Any point rows linked to this file will also be deleted.`}
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                onConfirm={executeDeleteAttachment}
+                onCancel={() => setDeleteTarget(null)}
+            />
+
+            <ConfirmModal
+                open={!!modalNotice}
+                tone={modalNotice?.tone || "default"}
+                title={modalNotice?.title || "Notice"}
+                message={modalNotice?.message || ""}
+                confirmLabel="OK"
+                cancelLabel={null}
+                onConfirm={() => setModalNotice(null)}
+                onCancel={() => setModalNotice(null)}
+            />
         </div>
     );
 };

@@ -9,6 +9,7 @@ import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";
 import AssessmentOutput from "./AssessmentOutput.jsx";
 import DocumentViewerModal from "./DocumentViewerModal.jsx";
+import ConfirmModal from "./ConfirmModal.jsx";
 import { buildTosExportFiles, revokeExportFiles } from '../utils/exportTos.js';
 import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, fetchAttachments, ACTIVE_PERIOD } from '../services/api.js';
 import { PROGRAM_HEAD, INSTRUCTOR } from '../constants/users.js';
@@ -524,17 +525,35 @@ const TosSections = ({role = 'instructor'}) => {
         return () => clearTimeout(timer);
     }, [viewMode, lastClickedItemId]);
 
-    const handleSectionChange = (eOrValue) => {
-        if (!confirmDiscard()) return;
-        const val = typeof eOrValue === 'string' ? eOrValue : (eOrValue?.target?.value || eOrValue);
+    const [pendingDiscardAction, setPendingDiscardAction] = useState(null);
+
+    const handleConfirmDiscard = () => {
+        const action = pendingDiscardAction;
+        setPendingDiscardAction(null);
+        setCommentBody('');
         setAddingComment(false);
         setActiveScope(null);
-        setCommentBody('');
-        if (isProgramHead) {
-            setPhSection(val);
-        } else {
-            setSearchParams({ section: val });
+        if (typeof action === 'function') action();
+    };
+
+    const handleSectionChange = (eOrValue) => {
+        const val = typeof eOrValue === 'string' ? eOrValue : (eOrValue?.target?.value || eOrValue);
+        const proceed = () => {
+            setAddingComment(false);
+            setActiveScope(null);
+            setCommentBody('');
+            if (isProgramHead) {
+                setPhSection(val);
+            } else {
+                setSearchParams({ section: val });
+            }
+        };
+
+        if (commentBody.trim()) {
+            setPendingDiscardAction(() => proceed);
+            return;
         }
+        proceed();
     };
 
     const isReviewMode = isReturnedView || isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved';
@@ -568,15 +587,20 @@ const TosSections = ({role = 'instructor'}) => {
     const commentBtnRef = useRef(null);
     const commentBodyRef = useRef(null);
 
-    const confirmDiscard = () => !commentBody.trim() || window.confirm('Discard this comment?');
-
     const closeCommentPanel = () => {
-        if (!confirmDiscard()) return;
-        setAddingComment(false);
-        setActiveScope(null);
-        setCommentBody('');
-        setShowComment(false);
-        setShowResolvedPH(false);
+        const proceed = () => {
+            setAddingComment(false);
+            setActiveScope(null);
+            setCommentBody('');
+            setShowComment(false);
+            setShowResolvedPH(false);
+        };
+
+        if (commentBody.trim()) {
+            setPendingDiscardAction(() => proceed);
+            return;
+        }
+        proceed();
     };
 
     const toggleCommentPanel = () => {
@@ -821,21 +845,29 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     const handleStartCommentFromPopup = (t) => {
-        if (!t || !confirmDiscard()) return;
-        setViewItemsTarget(null);
-        setShowComment(true);
-        setShowResolvedPH(false);
-        setAddingComment(true);
-        setActiveScope({
-            co: t.co || '\u2014',
-            ilo: t.ilo || '\u2014',
-            cognitiveLevel: t.cognitiveLevel || '\u2014',
-            itemNumber: undefined,
-            courseOutcomeId: t.courseOutcomeId || null,
-            assessmentItemId: null
-        });
-        setCommentType('');
-        setCommentBody('');
+        if (!t) return;
+        const proceed = () => {
+            setViewItemsTarget(null);
+            setShowComment(true);
+            setShowResolvedPH(false);
+            setAddingComment(true);
+            setActiveScope({
+                co: t.co || '\u2014',
+                ilo: t.ilo || '\u2014',
+                cognitiveLevel: t.cognitiveLevel || '\u2014',
+                itemNumber: undefined,
+                courseOutcomeId: t.courseOutcomeId || null,
+                assessmentItemId: null
+            });
+            setCommentType('');
+            setCommentBody('');
+        };
+
+        if (commentBody.trim()) {
+            setPendingDiscardAction(() => proceed);
+            return;
+        }
+        proceed();
     };
 
     const handleAssessmentFileClick = (att, co, ilo) => {
@@ -911,10 +943,17 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     const handleCancelComment = () => {
-        if (!confirmDiscard()) return;
-        setActiveScope(null);
-        setAddingComment(false);
-        setCommentBody('');
+        const proceed = () => {
+            setActiveScope(null);
+            setAddingComment(false);
+            setCommentBody('');
+        };
+
+        if (commentBody.trim()) {
+            setPendingDiscardAction(() => proceed);
+            return;
+        }
+        proceed();
     };
 
     useEffect(() => {
@@ -2574,6 +2613,17 @@ const items = aggregatedData[co.co][ilo.id][level];
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                open={!!pendingDiscardAction}
+                tone="destructive"
+                title="Discard comment?"
+                message="You have unsaved changes in your comment. Discard it?"
+                confirmLabel="Discard"
+                cancelLabel="Keep editing"
+                onConfirm={handleConfirmDiscard}
+                onCancel={() => setPendingDiscardAction(null)}
+            />
 
             {showHistoryLog && (() => {
                 const formatInstructorDisplay = (raw) => {
