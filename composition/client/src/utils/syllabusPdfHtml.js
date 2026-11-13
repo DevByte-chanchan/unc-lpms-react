@@ -969,12 +969,15 @@ function page14(syllabus, workflow, logo, pageNum, total) {
       </div>
     </div>
 
-    <table style="width:100%; border-collapse:collapse; border:1px solid black; font-size:8pt; margin-top:3mm;">
+    <!-- Five equal, fixed columns: a signature picture never widens its column, and every box keeps the same
+         height with or without one, so the block prints the same whoever has signed. -->
+    <table style="width:100%; table-layout:fixed; border-collapse:collapse; border:1px solid black; font-size:8pt; margin-top:3mm; page-break-inside:avoid;">
+      <colgroup>${signatories.map(() => '<col style="width:20%;">').join('')}</colgroup>
       <tr>
         ${signatories.map(s => '<td style="' + SIG_CELL + 'background:#d9d9d9; font-weight:bold;">' + s.label + '</td>').join('\n        ')}
       </tr>
       <tr>
-        ${signatories.map(s => '<td style="' + SIG_CELL + 'vertical-align:bottom; font-weight:bold; padding-top:' + (s.image ? '4px' : '20px') + ';">' + (s.image ? '<img src="' + s.image + '" alt="Signature" style="display:block; margin:0 auto 2px; max-height:14mm; max-width:90%;">' : '') + s.name + '<br><span style="font-size:7.5pt; font-weight:normal;">' + s.role + '</span></td>').join('\n        ')}
+        ${signatories.map(s => '<td style="' + SIG_CELL + 'vertical-align:bottom; font-weight:bold; overflow:hidden; word-wrap:break-word;"><div style="height:10mm; display:flex; align-items:flex-end; justify-content:center; margin-bottom:1mm;">' + (s.image ? '<img src="' + s.image + '" alt="Signature" style="display:block; max-height:10mm; max-width:100%; object-fit:contain;">' : '') + '</div>' + s.name + '<br><span style="font-size:7.5pt; font-weight:normal;">' + s.role + '</span></td>').join('\n        ')}
       </tr>
       <tr>
         ${signatories.map(s => '<td style="' + SIG_CELL + 'font-size:7.5pt;">Date: ' + s.date + '</td>').join('\n        ')}

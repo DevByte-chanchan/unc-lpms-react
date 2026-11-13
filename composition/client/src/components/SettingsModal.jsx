@@ -13,8 +13,8 @@ import SignatureTab from './SignatureTab.jsx'
 const TABS = [
   { key: 'account', label: 'Account' },
   { key: 'security', label: 'Security' },
-  // Only roles with a step on the plan's signature block (Prepared, Resources Certified, Approved, Noted by).
-  { key: 'signature', label: 'Signature', roles: ['instructor', 'program-head', 'director-of-libraries', 'dean'] }
+  // Only roles with a box on the plan's signature block (Prepared, Reviewed, Resources Certified, Approved, Noted by).
+  { key: 'signature', label: 'Signature', roles: ['instructor', 'industry-consultant', 'program-head', 'director-of-libraries', 'dean'] }
 ]
 
 const Row = ({ label, hint, children }) => (
