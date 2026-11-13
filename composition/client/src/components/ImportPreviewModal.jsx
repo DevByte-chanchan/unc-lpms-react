@@ -91,11 +91,11 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
-          <button type="button" onClick={onClose} style={{ padding: '8px 18px', border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>{result ? 'Close' : 'Cancel'}</button>
+          {/* The app's own buttons: an inline-styled one took the global button colors (white text on white). */}
+          <button type="button" className="btn btn-secondary" onClick={onClose}>{result ? 'Close' : 'Cancel'}</button>
           {!result && (
-            <button type="button" onClick={commit} disabled={busy || !preview || preview.valid === 0}
-              style={{ padding: '8px 18px', border: 'none', borderRadius: 8, background: '#1f2937', color: '#fff', cursor: busy || !preview || preview.valid === 0 ? 'not-allowed' : 'pointer', opacity: !preview || preview.valid === 0 ? 0.5 : 1 }}>
-              {busy ? 'Importing…' : `Import ${preview?.valid ?? ''} valid row(s)`}
+            <button type="button" className="btn btn-primary" onClick={commit} disabled={busy || !preview || preview.valid === 0}>
+              {busy ? 'Importing…' : !preview ? 'Checking…' : preview.valid === 0 ? 'Nothing to import' : `Import ${preview.valid} valid row${preview.valid === 1 ? '' : 's'}`}
             </button>
           )}
         </div>
