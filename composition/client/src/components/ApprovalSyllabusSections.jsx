@@ -1095,6 +1095,7 @@ ${suggestionLine}` : text,
         <div className={styles['chain-strip']}>
           <ApprovalChainStatus
             workflow={workflowState}
+            signoffs={signoffs}
             activeRole={roleKey}
             onActivate={() => {
               if (!reviewRecordAvailable) {
@@ -1422,8 +1423,8 @@ ${suggestionLine}` : text,
             <h3 style={{ fontSize: 20, fontWeight: 600, color: 'black', margin: '0 0 10px' }}>{isReturned ? 'Submit Revision' : 'Submit for Review'}</h3>
             <p style={{ fontSize: 14, color: '#6b7280', fontWeight: 300, margin: '0 0 24px', lineHeight: 1.5 }}>
               {isReturned
-                ? `Are you sure you want to re-submit your revision for ${codeToUse}? It will be re-sent to the Director of Libraries and Industry Consultant for review.`
-                : `Are you sure you want to submit ${codeToUse} for review? It will be sent to the Director of Libraries and Industry Consultant for parallel review.`}
+                ? `Are you sure you want to re-submit your revision for ${codeToUse}? It will be re-sent to the Director of Libraries and the Program Head for review.`
+                : `Are you sure you want to submit ${codeToUse} for review? It will be sent to the Director of Libraries and the Program Head, who review it at the same time.`}
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button className="btn btn-secondary" onClick={() => setShowSubmitModal(false)}>Cancel</button>

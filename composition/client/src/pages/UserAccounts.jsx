@@ -41,7 +41,7 @@ const Dialog = ({ label, onClose, children, actions }) => (
     <div role="dialog" aria-modal="true" aria-label={label}
       className={`${pageStyles.managementDialog} ${pageStyles.dialogNarrow} ${pageStyles.dialogElevated}`}>
       <div className={pageStyles.dialogHeader}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>{label}</h2>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>{label}</h2>
         {onClose && <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} /></button>}
       </div>
       <div className={pageStyles.dialogContent} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{children}</div>
@@ -187,7 +187,7 @@ export const UserAccountsPanel = () => {
         <h2 className="app-page-title">User Accounts</h2>
         <div className={pageStyles.pageHeaderActions}>
           <button type="button" className="btn btn-primary" onClick={() => { setError(''); setForm(emptyForm) }}>
-            <UserPlus size={18} color="#FFFFFF" /> Create account
+            <UserPlus size={18} color="currentColor" /> Create account
           </button>
         </div>
       </div>
@@ -270,8 +270,8 @@ export const UserAccountsPanel = () => {
         </TableScrollRegion>
       ) : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No accounts match</div>
-          <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>Change the search or filter, or create an account.</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>No accounts match</div>
+          <div style={{ color: 'var(--ink-muted)', textAlign: 'center', maxWidth: 420 }}>Change the search or filter, or create an account.</div>
         </div>
       )}
 
@@ -317,7 +317,7 @@ export const UserAccountsPanel = () => {
               })}
             </fieldset>
           ))}
-          {!form.id && <div style={{ color: '#6B7280', fontSize: 13 }}>A temporary password (valid 72 hours) is e-mailed, or shown once here if mail is not set up.</div>}
+          {!form.id && <div style={{ color: 'var(--ink-muted)', fontSize: 13 }}>A temporary password (valid 72 hours) is e-mailed, or shown once here if mail is not set up.</div>}
         </Dialog>
       )}
 
@@ -326,7 +326,7 @@ export const UserAccountsPanel = () => {
           <button type="button" onClick={() => setShown(null)} className="btn btn-primary" style={{ flex: 1 }}>I have saved it</button>
         }>
           <div>{shown.label}</div>
-          <code style={{ fontSize: 15, padding: 8, background: '#F3F4F6', borderRadius: 6, userSelect: 'all', wordBreak: 'break-all' }}>{shown.value}</code>
+          <code style={{ fontSize: 15, padding: 8, background: 'var(--surface-sunken)', borderRadius: 6, userSelect: 'all', wordBreak: 'break-all' }}>{shown.value}</code>
         </Dialog>
       )}
     </div>

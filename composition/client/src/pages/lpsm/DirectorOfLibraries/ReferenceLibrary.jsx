@@ -680,7 +680,7 @@ const ReferenceLibrary = () => {
         <div className={styles.modalOverlay} onClick={() => setArchiveRef(null)}>
           <div className={styles.deleteModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.deleteIcon}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 4H3" /><path d="M8 2v2" /><path d="M16 2v2" /><rect x="5" y="6" width="14" height="16" rx="2" /><line x1="10" y1="11" x2="14" y2="11" />
               </svg>
             </div>

@@ -34,7 +34,7 @@ const today = new Date()
 const currentYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1
 const YEARS = [currentYear + 1, currentYear, currentYear - 1].map(y => `${y}-${y + 1}`)
 
-const cellStyle = (col) => (col.grow ? { flex: '1 1 0', minWidth: 0 } : { flex: `0 0 ${col.width}px`, minWidth: 0 })
+const cellStyle = (col) => (col.grow ? { flex: '1 1 0', minWidth: 200 } : { flex: `0 0 ${col.width}px`, minWidth: 0 })
 
 // "CASIMERO DANNY BOY: OBa, OBb, OBc", one line per faculty (sections without one grouped under '').
 const officialByFaculty = (sections) => {
@@ -110,11 +110,11 @@ const CourseAssignment = () => {
   // Same header as the approver lists: uppercase, click to sort. The rows are flex rows (index.css), so every
   // column gets a fixed basis, and the course name the rest from 0: header and rows line up whatever the text.
   const COLUMNS = [
-    { key: 'course_no', label: 'CODE', width: 110 },
+    { key: 'course_no', label: 'CODE', width: 100 },
     { key: 'course_title', label: 'COURSE NAME', grow: true },
-    { key: 'pre', label: 'PRE-ASSIGNED', width: 240, sortValue: r => instructorName(r.pre?.instructor_user_id) },
-    { key: 'official', label: 'OFFICIAL', width: 260, sortValue: r => officialByFaculty(r.official)[0]?.name || '' },
-    { key: 'status', label: 'STATUS', width: 190, sortValue: r => (STATUS[r.status] || STATUS.unassigned).label },
+    { key: 'pre', label: 'PRE-ASSIGNED', width: 220, sortValue: r => instructorName(r.pre?.instructor_user_id) },
+    { key: 'official', label: 'OFFICIAL', width: 200, sortValue: r => officialByFaculty(r.official)[0]?.name || '' },
+    { key: 'status', label: 'STATUS', width: 170, sortValue: r => (STATUS[r.status] || STATUS.unassigned).label },
   ].map(col => ({ ...col, thStyle: cellStyle(col) }))
   const cell = (key) => cellStyle(COLUMNS.find(c => c.key === key))
   // Search (course no., name, pre-assigned or official faculty) and the year level, both on the rows already loaded.

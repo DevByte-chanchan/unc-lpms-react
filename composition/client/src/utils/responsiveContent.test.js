@@ -246,7 +246,8 @@ test('reference discovery uses the available desktop space without crowding comp
 
   assert.match(container, /padding:\s*20px 30px/)
   assert.match(top, /display:\s*grid/)
-  assert.match(top, /grid-template-columns:\s*minmax\(520px, 1fr\) auto/)
+  // min 0, not 520px: with the sidebar open at 1280px a 520px floor pushed the header buttons off-screen.
+  assert.match(top, /grid-template-columns:\s*minmax\(0, 1fr\) auto/)
   assert.match(top, /padding:\s*0 0 30px/)
   assert.match(pageHeader, /gap:\s*24px/)
   assert.match(pageHeader, /grid-column:\s*1 \/ -1/)

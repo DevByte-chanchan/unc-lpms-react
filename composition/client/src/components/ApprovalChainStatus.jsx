@@ -38,7 +38,8 @@ const shortDate = (iso) => {
 // role keys arrive in several casings (program-head / PROGRAM_HEAD / dean / DEAN)
 const normalizeKey = (k) => String(k || '').toLowerCase().replace(/[^a-z]/g, '')
 
-const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onActivate = null }) => {
+// - signoffs: the Industry Consultant's sign-offs ([{ name, signedAt }]); a signed consultant chip turns green.
+const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onActivate = null, signoffs = [] }) => {
     const status = consolidatedStatus(workflow || {})
 
     // A returned plan is waiting for its instructor, not for the approvers, and an unsubmitted one is not in review
@@ -58,6 +59,8 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
         <div className={`${styles.strip} ${compact ? styles.compact : ''}`}>
             {status.steps.map(step => {
                 const signed = step.signature && verifySignature(step.signature)
+                // The consultant never approves; their sign-off (Suggest & Sign) is what the chip shows.
+                const signoff = step.role === 'industry-consultant' ? signoffs[0] : null
                 const mine = !!activeRole && normalizeKey(step.role) === normalizeKey(activeRole)
                 // The chip is a live control only when it is the caller's stage
                 // AND the workflow has actually reached them. Others stay badges.
@@ -65,22 +68,23 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
                     step.status !== 'approved' && canAcceptOnStage(activeRole, workflow || {})
 
                 const title = [
-                    step.readOnly ? 'Read-only access to approved plans' : `${step.label}: ${step.status}`,
+                    signoff ? `Signed as reviewed by ${signoff.name}` : step.readOnly ? 'Read-only access to approved plans' : `${step.label}: ${step.status}`,
                     actionable ? 'Click to approve this stage' : '',
-                    step.completedAt ? shortDate(step.completedAt) : '',
+                    signoff ? shortDate(signoff.signedAt) : step.completedAt ? shortDate(step.completedAt) : '',
                     signed ? `Signed by ${step.signature.name} (${step.signature.signatureId})` : ''
                 ].filter(Boolean).join(' · ')
 
                 const className = [
                     styles.step,
-                    styles[step.status] || styles.pending,
+                    signoff ? styles.approved : (styles[step.status] || styles.pending),
                     actionable ? styles.actionable : ''
                 ].filter(Boolean).join(' ')
 
                 const body = (
                     <>
-                        {iconFor(step)}
+                        {signoff ? <PenTool size={14} /> : iconFor(step)}
                         {step.label}
+                        {signoff && <span className={styles.date}>· {shortDate(signoff.signedAt)}</span>}
                         {step.final && step.completedAt && <span className={styles.date}>· {shortDate(step.completedAt)}</span>}
                         {signed && <PenTool size={12} />}
                     </>

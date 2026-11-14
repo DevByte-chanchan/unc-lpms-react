@@ -33,7 +33,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(520px, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto; // min 0: a 520px floor pushed the buttons off-screen beside the sidebar
   align-items: end;
   column-gap: 24px;
   flex: 0 0 auto;
