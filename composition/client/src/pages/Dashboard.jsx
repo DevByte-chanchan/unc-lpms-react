@@ -4,7 +4,6 @@ import Header from '../components/Header.jsx';
 import SideNavigation from '../components/SideNavigation.jsx';
 import CurrentTermCard from '../components/CurrentTermCard.jsx';
 import MiniAssignedCourses from '../components/MiniAssignedCourses.jsx';
-import MiniAssignedTOS from '../components/MiniAssignedTOS.jsx';
 import styles from '../styles/Dashboard.module.sass';
 import { fetchJson } from '../utils/api.js';
 import { useCurrentUser } from '../services/currentUser.jsx';
@@ -69,8 +68,8 @@ const DashboardContent = () => {
                         loading={loading}
                     />
 
-                    {/* Row 2: Assigned Table of Specifications (Assigned TOS) */}
-                    <MiniAssignedTOS />
+                    {/* ponytail: the Assigned TOS panel (components/MiniAssignedTOS.jsx) is sample data until
+                        a TOS module exists here; show it again once it reads real assignments. */}
                 </div>
             </div>
         </div>

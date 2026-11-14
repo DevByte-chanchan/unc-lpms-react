@@ -171,12 +171,12 @@ export const UserAccountsPanel = () => {
   const statusOf = (a) => (a.status === 'Active' ? (a.locked ? 'Locked' : 'Active') : 'Disabled')
   const headsOf = (a) => [...(a.heads?.programs || []), ...(a.heads?.departments || [])]
   const COLUMNS = [
-    { key: 'name', label: 'NAME', width: 160 },
+    { key: 'name', label: 'NAME', width: 150 },
     { key: 'email', label: 'EMAIL', grow: true },
-    { key: 'roles', label: 'ROLES', width: 180, sortValue: a => a.roles.map(roleLabel).join(', ') },
-    { key: 'status', label: 'STATUS', width: 90, sortValue: statusOf },
-    { key: 'invitation', label: 'INVITATION', width: 120, sortValue: a => invitationLabel(a.invitation) },
-    { key: 'actions', label: 'ACTIONS', width: 320, sortable: false },
+    { key: 'roles', label: 'ROLES', width: 160, sortValue: a => a.roles.map(roleLabel).join(', ') },
+    { key: 'status', label: 'STATUS', width: 80, sortValue: statusOf },
+    { key: 'invitation', label: 'INVITATION', width: 110, sortValue: a => invitationLabel(a.invitation) },
+    { key: 'actions', label: 'ACTIONS', width: 265, sortable: false },
   ].map(col => ({ ...col, thStyle: col.grow ? { flex: '1 1 0', minWidth: 0 } : { flex: `0 0 ${col.width}px`, minWidth: 0 } }))
   const cell = (key) => COLUMNS.find(c => c.key === key).thStyle
   const rows = sortRows(visible, COLUMNS, sort.sortKey, sort.sortDir)
@@ -206,7 +206,7 @@ export const UserAccountsPanel = () => {
       </div>
 
       {loading ? <p>Loading accounts…</p> : visible.length > 0 ? (
-        <TableScrollRegion label="User accounts" minWidth={1000} className={styles['table-container']}>
+        <TableScrollRegion label="User accounts" minWidth={880} className={styles['table-container']}>
           <table>
             <thead>
               <tr>
@@ -225,7 +225,7 @@ export const UserAccountsPanel = () => {
                 return (
                   <tr key={account.id}>
                     <td style={cell('name')}>{account.name}{isMe ? ' (you)' : ''}</td>
-                    <td style={cell('email')} title={account.email}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{account.email}</span></td>
+                    <td style={cell('email')} title={account.email}><span style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{account.email.split('@')[0]}<wbr />@{account.email.split('@')[1]}</span></td>
                     <td style={{ ...cell('roles'), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2 }}>
                       <span>{account.roles.map(roleLabel).join(', ')}</span>
                       {headsOf(account).length > 0 && (
@@ -243,18 +243,18 @@ export const UserAccountsPanel = () => {
                         Edit
                       </button>{' '}
                       {invitable ? (
-                        <button type="button" className="btn btn-secondary btn-sm" disabled={busy || !active} onClick={() => sendLink(account, 'invitation')}>
-                          {account.invitation ? 'Resend invitation' : 'Send invitation'}
+                        <button type="button" className="btn btn-secondary btn-sm" disabled={busy || !active} title="E-mail a link to set their password (works 7 days)" onClick={() => sendLink(account, 'invitation')}>
+                          {account.invitation ? 'Resend invite' : 'Invite'}
                         </button>
                       ) : (
-                        <button type="button" className="btn btn-secondary btn-sm" disabled={busy || !active || isMe} onClick={() => sendLink(account, 'reset')}>
-                          Send password reset
+                        <button type="button" className="btn btn-secondary btn-sm" disabled={busy || !active || isMe} title="E-mail a link to choose a new password (works 1 hour)" onClick={() => sendLink(account, 'reset')}>
+                          Reset link
                         </button>
                       )}{' '}
                       <button type="button" className="btn btn-secondary btn-sm" disabled={busy || !active || isMe}
-                        title={isMe ? 'Use Change password for your own account.' : undefined}
+                        title={isMe ? 'Use Change password for your own account.' : 'Issue a temporary password; their current one stops working'}
                         onClick={() => resetToTemporary(account)}>
-                        Temporary password
+                        Temp password
                       </button>{' '}
                       <button type="button" className={`btn btn-sm ${active ? 'btn-danger-outline' : 'btn-secondary'}`} disabled={busy || (isMe && active)}
                         title={isMe && active ? 'You cannot disable your own account.' : undefined}
