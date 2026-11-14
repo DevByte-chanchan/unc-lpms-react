@@ -19,6 +19,7 @@ try { localStorage.removeItem('lpsm_workflow_v1'); localStorage.removeItem('lpsm
 // Each workspace is loaded only when its route is opened. This keeps the large
 // syllabus editors and PDF helpers out of the login and course-list download.
 const AssignedCourses = lazy(() => import('./pages/AssignedCourses.jsx'))
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
 const SuperuserUsers = lazy(() => import('./pages/SuperuserUsers.jsx'))
 const ChangePassword = lazy(() => import('./pages/ChangePassword.jsx'))
 const Syllabus = lazy(() => import('./pages/Syllabus.jsx'))
@@ -112,6 +113,7 @@ function App() {
                     <Routes>
                         {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
                         <Route path={'/'} element={<ErrorBoundary><AssignedCourses /></ErrorBoundary>} />
+                        <Route path={'/dashboard'} element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
                         {/* The Profile page is gone; old links and bookmarks land on Change password. */}
                         <Route path={'/profile'} element={<Navigate to={'/change-password'} replace />} />
                         <Route path={'/change-password'} element={<ErrorBoundary><ChangePassword /></ErrorBoundary>} />

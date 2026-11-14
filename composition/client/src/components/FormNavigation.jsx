@@ -52,7 +52,17 @@ const FormNavigation = ({
         return <Bookmark size={14} className={styles.tabIcon} />;
     };
 
-    const fallbackWeeks = isOrientation ? [1] : [1, 2, 3, 4];
+    const getFallbackWeeks = (coNum, orient) => {
+        if (orient) return [1];
+        const n = Number(coNum) || 1;
+        if (n === 1) return [1, 2, 3, 4];
+        if (n === 2) return [5, 6, 7, 8];
+        if (n === 3) return [10, 11, 12, 13];
+        if (n === 4) return [14, 15, 16, 17];
+        const start = n <= 2 ? (n - 1) * 4 + 1 : (n - 1) * 4 + 2;
+        return [start, start + 1, start + 2, start + 3];
+    };
+    const fallbackWeeks = getFallbackWeeks(coNumber, isOrientation);
     const isReturned = String(status).toLowerCase() === "returned";
 
     // Calculate unresolved comment count for a specific week
@@ -147,7 +157,7 @@ const FormNavigation = ({
                         <div className={styles.weekNotepadGroup}>
                             {weeks.length > 0 ? (
                                 weeks.map((week, idx) => {
-                                    const weekNum = week.weekNumber || idx + 1;
+                                    const weekNum = week.weekNumber || fallbackWeeks[idx] || (idx + 1);
                                     const isActive = Number(week.week_id) === Number(activeWeekId);
                                     const weekUnresolved = getWeekUnresolvedCount(week);
                                     const hasComments = weekUnresolved > 0;
@@ -161,9 +171,7 @@ const FormNavigation = ({
                                             title={
                                                 isOrientation
                                                     ? `Course Orientation • Week 1 (${week.hours || 2} hrs Lecture Session)`
-                                                    : (week.globalWeekNumber
-                                                        ? `CO ${coNumber || ""} • Week ${weekNum} (Course Week ${week.globalWeekNumber} • ${week.hours || 5} hrs)${hasComments ? ` — ${weekUnresolved} unresolved comment(s)` : ""}`
-                                                        : `Week ${weekNum}`)
+                                                    : `CO ${coNumber || ""} • Week ${weekNum} (${week.hours || 5} hrs)${hasComments ? " — " + weekUnresolved + " unresolved comment(s)" : ""}`
                                             }
                                         >
                                             <span className={styles.notepadBinding} />
@@ -182,7 +190,7 @@ const FormNavigation = ({
                                     <button
                                         key={num}
                                         type="button"
-                                        className={`${styles.weekNotepadBtn} ${num === 1 ? styles.activeWeekBtn : ""}`}
+                                        className={`${styles.weekNotepadBtn} ${num === fallbackWeeks[0] ? styles.activeWeekBtn : ""}`}
                                     >
                                         <span className={styles.notepadBinding} />
                                         <span className={styles.weekSmallTag}>WEEK</span>

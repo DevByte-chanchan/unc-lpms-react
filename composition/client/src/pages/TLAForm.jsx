@@ -2,6 +2,8 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } f
 import TextField from "../components/TextField.jsx";
 import Dropdown from "../components/Dropdown.jsx";
 import TextArea from "../components/TextArea.jsx";
+import SpellCheckInput from "../components/SpellCheckInput.jsx";
+import { checkSpelling } from "../utils/spellChecker.js";
 import { Plus, Award, X, Edit2 } from "react-feather";
 import { fetchJson } from "../utils/api.js";
 import { PERIODS, periodLabel, periodCode, parseWeight } from "../utils/assessmentWeights.js";
@@ -14,7 +16,32 @@ import tStyles from "../styles/TopicSelector.module.sass";
 
 const ILO_LABEL_OF = (weekIlos) => (ilo) => `ILO ${weekIlos.indexOf(ilo) + 1}${ilo.iedLevel ? ` (${IED_LEVELS.find(level => level.code === ilo.iedLevel)?.name || ilo.iedLevel})` : ''}`;
 
-const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, label }, ref) => {
+// Serialization helpers for deep change detection
+const serializeTlas = (items) => {
+    if (!Array.isArray(items)) return '[]';
+    return JSON.stringify(items.map(t => ({
+        classPhase: t.classPhase || '',
+        performedBy: t.performedBy || '',
+        tlaName: (t.tlaName || '').trim(),
+        tlaDescription: (t.tlaDescription || '').trim(),
+        isLab: Boolean(t.isLab || t.laboratory),
+        assessmentType: (t.assessmentType || '').trim(),
+        assessmentDetail: (t.assessmentDetail || '').trim(),
+        assessmentPeriod: t.assessmentPeriod || '',
+        assessmentWeight: String(t.assessmentWeight ?? ''),
+        assessmentIloId: String(t.assessmentIloId ?? '')
+    })));
+};
+
+const serializeComments = (comments) => {
+    if (!Array.isArray(comments)) return '[]';
+    return JSON.stringify(comments.map(c => ({
+        id: c.comment_id,
+        resolved: Boolean(c.resolved_status)
+    })));
+};
+
+const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, onCommentsChange, label }, ref) => {
     const ALL_PHASES = ['Asynchronous', 'Synchronous', 'Pre-class', 'In-class', 'Post-class'];
 
     const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +57,8 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
     const [weekIlos, setWeekIlos] = useState([]);
     const [levelWeights, setLevelWeights] = useState(null);
     const ILO_LABEL = ILO_LABEL_OF(weekIlos);
+    const initialTlasRef = useRef(null);
+    const initialCommentsRef = useRef(null);
 
     const normalizeClassPhase = (val) => {
         if (!val) return '';
@@ -84,20 +113,26 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
 
                 const initialComments = (Array.isArray(targetedComments) ? targetedComments : []).map(c => ({
                     ...c,
-                    resolved_status: c.resolved_status === 1 || c.resolved_status === true
+                    resolved_status: c.resolved_status === 1 || c.resolved_status === true,
+                    return_number: Number(c.return_number) || 1,
+                    return_date: c.return_date || c.createdAt
                 }));
                 setReviewComments(initialComments);
 
                 if (existingTlas && existingTlas.length > 0) {
                     const mappedTlas = existingTlas.map(mapDbToUi);
                     setTlas(mappedTlas);
+                    initialTlasRef.current = serializeTlas(mappedTlas);
                 } else {
-                    setTlas([{
+                    const defaultTlas = [{
                         id: Date.now(), classPhase: '', performedBy: '',
                         tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
                         assessmentType: '', assessmentDetail: '', assessmentPeriod: '', assessmentWeight: '', assessmentIloId: ''
-                    }]);
+                    }];
+                    setTlas(defaultTlas);
+                    initialTlasRef.current = serializeTlas(defaultTlas);
                 }
+                initialCommentsRef.current = serializeComments(initialComments);
             } catch (error) {
                 console.error("Error fetching TLA data components:", error);
             } finally {
@@ -112,7 +147,10 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
         if (setUnresolvedCount) {
             setUnresolvedCount(reviewComments.filter(c => !c.resolved_status).length);
         }
-    }, [reviewComments, setUnresolvedCount]);
+        if (onCommentsChange) {
+            onCommentsChange(reviewComments);
+        }
+    }, [reviewComments, setUnresolvedCount, onCommentsChange]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -150,29 +188,122 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
     };
 
     const validateForm = () => {
+        if (!tlas || tlas.length === 0) {
+            return "At least one Teaching & Learning Activity is required.";
+        }
         let newErrors = {};
-        tlas.forEach((tla) => {
-            if (!tla.classPhase) newErrors[`tla_${tla.id}_classPhase`] = "Required";
-            if (!tla.performedBy) newErrors[`tla_${tla.id}_performedBy`] = "Required";
-            if (!tla.tlaName.trim()) newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
-            if (!tla.tlaDescription.trim()) newErrors[`tla_${tla.id}_tlaDescription`] = "Description required";
+        const errorList = [];
 
-            const hasAssessment = Boolean(tla.assessmentType || tla.assessmentDetail);
+        tlas.forEach((tla, idx) => {
+            const tlaNum = idx + 1;
+            const missing = [];
+            if (!tla.classPhase) {
+                newErrors[`tla_${tla.id}_classPhase`] = "Required";
+                missing.push("Class Phase");
+            }
+            if (!tla.performedBy) {
+                newErrors[`tla_${tla.id}_performedBy`] = "Required";
+                missing.push("Performed By");
+            }
+            if (!tla.tlaName || !tla.tlaName.trim()) {
+                newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
+                missing.push("TLA Name");
+            }
+            if (!tla.tlaDescription || !tla.tlaDescription.trim()) {
+                newErrors[`tla_${tla.id}_tlaDescription`] = "Description required";
+                missing.push("TLA Description");
+            }
+
+            const hasAssessment = Boolean((tla.assessmentType && tla.assessmentType.trim()) || (tla.assessmentDetail && tla.assessmentDetail.trim()));
             if (hasAssessment) {
-                if (!tla.assessmentType.trim()) newErrors[`tla_${tla.id}_assessmentType`] = "Required";
-                if (!tla.assessmentDetail.trim()) newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
-                if (!tla.assessmentPeriod) newErrors[`tla_${tla.id}_assessmentPeriod`] = "Choose a period";
+                if (!tla.assessmentType || !tla.assessmentType.trim()) {
+                    newErrors[`tla_${tla.id}_assessmentType`] = "Required";
+                    missing.push("Assessment Type");
+                }
+                if (!tla.assessmentDetail || !tla.assessmentDetail.trim()) {
+                    newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
+                    missing.push("Assessment Detail");
+                }
+                if (!tla.assessmentPeriod) {
+                    newErrors[`tla_${tla.id}_assessmentPeriod`] = "Choose a period";
+                    missing.push("Assessment Period");
+                }
                 const weight = weightOf(tla.assessmentWeight);
-                if (weight === null) newErrors[`tla_${tla.id}_assessmentWeight`] = "Enter a weight from 0 to 100";
-                if (weight > 0 && weekIlos.length > 1 && !tla.assessmentIloId) newErrors[`tla_${tla.id}_assessmentIloId`] = "Choose the ILO it assesses";
+                if (weight === null) {
+                    newErrors[`tla_${tla.id}_assessmentWeight`] = "Enter a weight from 0 to 100";
+                    missing.push("Assessment Weight");
+                }
+                if (weight > 0 && weekIlos.length > 1 && !tla.assessmentIloId) {
+                    newErrors[`tla_${tla.id}_assessmentIloId`] = "Choose the ILO it assesses";
+                    missing.push("Assessed ILO");
+                }
+            }
+
+            if (missing.length > 0) {
+                errorList.push(`TLA #${tlaNum}${tla.tlaName ? ` (${tla.tlaName})` : ''}: Missing ${missing.join(', ')}.`);
             }
         });
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0 ? null : "TLAs contain missing required fields.";
+        return errorList.length > 0 ? errorList : null;
+    };
+
+    const collectSpellWarnings = () => {
+        const warnings = [];
+        tlas.forEach((tla, idx) => {
+            const labelPrefix = `TLA #${idx + 1}${tla.tlaName ? ` (${tla.tlaName})` : ''}`;
+
+            const nameMisspelled = checkSpelling(tla.tlaName || '');
+            if (nameMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — TLA Name`,
+                    words: nameMisspelled
+                });
+            }
+
+            const descMisspelled = checkSpelling(tla.tlaDescription || '');
+            if (descMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — TLA Description`,
+                    words: descMisspelled
+                });
+            }
+
+            const typeMisspelled = checkSpelling(tla.assessmentType || '');
+            if (typeMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — Assessment Type`,
+                    words: typeMisspelled
+                });
+            }
+
+            const detailMisspelled = checkSpelling(tla.assessmentDetail || '');
+            if (detailMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — Assessment Detail`,
+                    words: detailMisspelled
+                });
+            }
+        });
+        return warnings;
     };
 
     useImperativeHandle(ref, () => ({
         validate: validateForm,
+        hasChanges: () => {
+            if (initialTlasRef.current === null) return false;
+            const tlasChanged = serializeTlas(tlas) !== initialTlasRef.current;
+            const commentsChanged = serializeComments(reviewComments) !== initialCommentsRef.current;
+            return tlasChanged || commentsChanged;
+        },
+        resetInitialState: () => {
+            initialTlasRef.current = serializeTlas(tlas);
+            initialCommentsRef.current = serializeComments(reviewComments);
+        },
+        getSpellWarnings: collectSpellWarnings,
         getComments: () => reviewComments,
         toggleComment: (commentId) => {
             setReviewComments(prev => prev.map(c =>
@@ -203,6 +334,8 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                     tlas: payloadTlas
                 })
             });
+            initialTlasRef.current = serializeTlas(tlas);
+            initialCommentsRef.current = serializeComments(reviewComments);
         },
         getCommentTargetLabel: (comment) => {
             if (comment.target_title) return comment.target_title;
@@ -251,7 +384,7 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                                             <div className={`${styles.tlaLabDot} ${item.isLab ? styles.activeLabDot : ''}`} title={item.isLab ? "Laboratory" : "Standard"} />
                                             <div className={tStyles.inputWrapper}>
                                                 <Edit2 size={12} className={tStyles.editIcon} />
-                                                <input
+                                                <SpellCheckInput
                                                     className={tStyles.topicTitleInput}
                                                     value={item.tlaName}
                                                     onChange={(e) => handleTlaChange(item.id, 'tlaName', e.target.value)}

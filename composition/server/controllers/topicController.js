@@ -46,8 +46,48 @@ async function resolveWeekRecord(rawId) {
     return week;
 }
 
+// Helper: Calculate weekly contact hours from Course credit & contact_hrs
+function computeWeeklyContactHoursFromCourse(course) {
+    let lecCredits = 0;
+    let labCredits = 0;
+    if (course && course.credit) {
+        const lecMatch = String(course.credit).match(/(\d+)\s*LEC/i);
+        const labMatch = String(course.credit).match(/(\d+)\s*LAB/i);
+        if (lecMatch) lecCredits = parseInt(lecMatch[1], 10);
+        if (labMatch) labCredits = parseInt(labMatch[1], 10);
+    }
+    if (lecCredits === 0 && labCredits === 0) {
+        lecCredits = 2;
+        labCredits = 1;
+    }
+
+    let lecContactHours = lecCredits * 1;
+    let labContactHours = labCredits * 3;
+    if (course && course.contact_hrs) {
+        const lecHrsMatch = String(course.contact_hrs).match(/(\d+)\s*Hrs?\s*Lec/i);
+        const labHrsMatch = String(course.contact_hrs).match(/(\d+)\s*Hrs?\s*Lab/i);
+        if (lecHrsMatch) lecContactHours = parseInt(lecHrsMatch[1], 10);
+        if (labHrsMatch) labContactHours = parseInt(labHrsMatch[1], 10);
+    }
+
+    const totalWeeklyHours = (lecContactHours + labContactHours) || 5;
+    const orientationHours = (lecContactHours > 0 && lecContactHours < totalWeeklyHours)
+        ? lecContactHours
+        : Math.min(2, Math.max(1, totalWeeklyHours - 1));
+
+    return {
+        lecCredits,
+        labCredits,
+        lecContactHours,
+        labContactHours,
+        totalWeeklyHours,
+        orientationHours
+    };
+}
+
 // GET /api/topics/week-context/:weekId
-// Returns the Course Outcome metadata, ILOs, all Course Outcomes for switching, unresolved comment counts per week, and all Weeks
+// Returns the Course Outcome metadata, Course Details (description, credits, contact_hrs, calculated weekly hours),
+// ILOs, all Course Outcomes for switching, unresolved comment counts per week, and all Weeks
 async function getWeekContext(req, res) {
     try {
         const rawId = req.params.weekId || req.query.weekId || req.query.iloId;
@@ -61,26 +101,30 @@ async function getWeekContext(req, res) {
         const currentCo = await CourseOutcome.findByPk(week.co_id, {
             include: [{
                 model: ProgramCourseOffering,
-                include: [{ model: Course, attributes: ['course_id', 'course_no', 'credit', 'contact_hrs'] }]
+                include: [{
+                    model: Course,
+                    attributes: ['course_id', 'course_no', 'course_title', 'credit', 'contact_hrs']
+                }]
             }]
         });
         if (!currentCo) {
             return res.status(404).json({ message: 'Course Outcome not found' });
         }
 
-        // Determine lecture contact hours for Week 1 Orientation session
-        let lecContactHours = 2;
-        const course = currentCo.ProgramCourseOffering?.Course;
-        if (course) {
-            if (course.contact_hrs) {
-                const lecHrsMatch = course.contact_hrs.match(/(\d+)\s*Hrs?\s*Lec/i);
-                if (lecHrsMatch) lecContactHours = parseInt(lecHrsMatch[1], 10);
-            } else if (course.credit) {
-                const lecMatch = course.credit.match(/(\d+)\s*LEC/i);
-                if (lecMatch) lecContactHours = parseInt(lecMatch[1], 10);
-            }
-        }
-        const orientationHours = lecContactHours > 0 ? lecContactHours : 2;
+        const pco = currentCo.ProgramCourseOffering;
+        const course = pco?.Course;
+        const courseDescription = (pco?.course_description || pco?.description || '').replace(/\s+/g, ' ').trim();
+        const courseTitle = course?.course_title || '';
+        const courseNo = course?.course_no || '';
+        const courseCredit = course?.credit || '';
+        const courseContactHrs = course?.contact_hrs || '';
+
+        const {
+            lecContactHours,
+            labContactHours,
+            totalWeeklyHours,
+            orientationHours
+        } = computeWeeklyContactHoursFromCourse(course);
 
         // Fetch all Course Outcomes for this offering to determine CO number, ILOs, and global week numbers
         const allCos = await CourseOutcome.findAll({
@@ -139,32 +183,48 @@ async function getWeekContext(req, res) {
         const coIndex = allCos.findIndex(c => c.co_id === currentCo.co_id);
         const coNumber = isOrientation ? 0 : (coIndex >= 0 ? coIndex + 1 : 1);
 
-        // Build structured weeks and ILOs per Course Outcome
-        let globalCounter = 1;
+        // Build structured weeks and ILOs per Course Outcome matching 18-week academic term:
+        // CO 1: Weeks 1-4 (Week 1 shares Course Orientation)
+        // CO 2: Weeks 5-8
+        // Week 9: Midterm Exam (buffer week)
+        // CO 3: Weeks 10-13
+        // CO 4: Weeks 14-17
+        // Week 18: Final Exam (buffer week)
+        let currentWeekCounter = 1;
         const weeksByCo = {};
-        for (const w of allWeeks) {
-            const globalWeekNumber = globalCounter++;
-            const cid = Number(w.co_id);
-            if (!weeksByCo[cid]) weeksByCo[cid] = [];
-            const weekNumberInCo = weeksByCo[cid].length + 1;
-            const rawWeekHours = Number(w.hours);
-            const cIdx = allCos.findIndex(c => Number(c.co_id) === cid);
-            const cNum = cIdx >= 0 ? cIdx + 1 : 1;
+        for (let cIdx = 0; cIdx < allCos.length; cIdx++) {
+            const co = allCos[cIdx];
+            const cid = Number(co.co_id);
+            weeksByCo[cid] = [];
 
-            const effectiveHours = (cNum === 1 && weekNumberInCo === 1)
-                ? Math.max(0, rawWeekHours - orientationHours)
-                : rawWeekHours;
+            // After CO 2 (or when week counter reaches 9), skip Week 9 because it is dedicated to Midterm Exam
+            if (cIdx === 2 || currentWeekCounter === 9) {
+                if (currentWeekCounter <= 9) currentWeekCounter = 10;
+            }
 
-            const weekComments = commentCountsByWeek[Number(w.week_id)] || { topics: 0, tlas: 0, references: 0, total: 0 };
+            const coWeeksList = allWeeks.filter(w => Number(w.co_id) === cid);
+            for (let wIdx = 0; wIdx < coWeeksList.length; wIdx++) {
+                const w = coWeeksList[wIdx];
+                const seqWeekNumber = currentWeekCounter++;
+                const rawWeekHours = Number(w.hours) || totalWeeklyHours;
+                const cNum = cIdx + 1;
 
-            weeksByCo[cid].push({
-                week_id: w.week_id,
-                co_id: w.co_id,
-                weekNumber: weekNumberInCo,
-                globalWeekNumber,
-                hours: effectiveHours,
-                unresolvedComments: weekComments
-            });
+                const effectiveHours = (cNum === 1 && wIdx === 0)
+                    ? Math.max(1, rawWeekHours - orientationHours)
+                    : rawWeekHours;
+
+                const weekComments = commentCountsByWeek[Number(w.week_id)] || { topics: 0, tlas: 0, references: 0, total: 0 };
+
+                weeksByCo[cid].push({
+                    week_id: w.week_id,
+                    co_id: w.co_id,
+                    weekNumber: seqWeekNumber,
+                    weekIndexInCo: wIdx + 1,
+                    globalWeekNumber: seqWeekNumber,
+                    hours: effectiveHours,
+                    unresolvedComments: weekComments
+                });
+            }
         }
 
         const ilosByCo = {};
@@ -193,6 +253,8 @@ async function getWeekContext(req, res) {
         const orientationWeeks = firstCoWeeks.length > 0
             ? [{
                 ...firstCoWeeks[0],
+                weekNumber: 1,
+                globalWeekNumber: 1,
                 hours: orientationHours
             }]
             : [];
@@ -244,9 +306,17 @@ async function getWeekContext(req, res) {
             co_id: currentCo.co_id,
             pc_offering_id: currentCo.pc_offering_id,
             revision_number: currentCo.ProgramCourseOffering?.revision_number || 1,
+            courseNo,
+            courseTitle,
+            courseDescription,
+            courseCredit,
+            courseContactHrs,
+            lecContactHours,
+            labContactHours,
+            totalWeeklyHours,
             coNumber,
             coDescription: isOrientation
-                ? 'Introduce students to the University and College Vision, Mission, and Objectives (VMO), course expectations, grading system, and ethical AI guidelines.'
+                ? orientationDescription
                 : (currentCo.co_description || '').replace(/^CO\s*\d+\s*:\s*/i, '').trim(),
             ilos: currentCoIlos,
             weeks: returnedWeeks,
@@ -587,18 +657,136 @@ async function assignTopicsToILO(req, res) {
     }
 }
 
-// AI-Driven Topic Suggestions using Google Gemini
+/**
+ * Normalizes AI-generated or fallback topics so that:
+ * 1. Primary (recommended) topics have subtopic time weights (`minutes`) whose total sum EXACTLY equals `targetWeeklyMinutes` (computed from weekly hours).
+ * 2. Alternative topics also have realistic subtopic time weights (`minutes`) and `isAlternative: true`.
+ * 3. Subtopics are NOT padded or truncated to 5 — the exact realistic number of subtopics returned by the AI is preserved, and within each row pair (0&1, 2&3, etc.), the cards dynamically align in height on the frontend.
+ */
+function normalizeSuggestedTopicsWithWeights(rawPrimary = [], rawAlternatives = [], targetWeeklyMinutes = 180) {
+    const cleanTopicList = (list, isAlt) => {
+        return (Array.isArray(list) ? list : [])
+            .filter(t => t && (t.title || t.topic))
+            .map((t, idx) => {
+                const rawSubs = Array.isArray(t.subtopics) ? t.subtopics : [];
+                const subs = rawSubs
+                    .map((s, sIdx) => {
+                        if (typeof s === 'string') {
+                            return {
+                                id: `ai-sub-${Date.now()}-${isAlt ? 'alt' : 'rec'}-${idx}-${sIdx}-${Math.random().toString(36).slice(2, 6)}`,
+                                title: s.trim(),
+                                minutes: 30
+                            };
+                        }
+                        const rawMin = Number(s.minutes || s.weight || s.duration || 30);
+                        const roundedMin = Math.max(10, Math.round(rawMin / 5) * 5);
+                        return {
+                            id: s.id || `ai-sub-${Date.now()}-${isAlt ? 'alt' : 'rec'}-${idx}-${sIdx}-${Math.random().toString(36).slice(2, 6)}`,
+                            title: String(s.title || s.name || '').trim(),
+                            minutes: roundedMin
+                        };
+                    })
+                    .filter(s => Boolean(s.title));
+
+                return {
+                    id: t.id || `ai-topic-${Date.now()}-${isAlt ? 'alt' : 'rec'}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+                    title: String(t.title || t.topic || `Topic ${idx + 1}`).trim(),
+                    isAlternative: Boolean(isAlt),
+                    checked: !isAlt,
+                    subtopics: subs.map(s => ({
+                        ...s,
+                        checked: !isAlt
+                    }))
+                };
+            })
+            .filter(t => t.subtopics.length > 0);
+    };
+
+    const primaryTopics = cleanTopicList(rawPrimary, false);
+    const alternativeTopics = cleanTopicList(rawAlternatives, true);
+
+    // Calibrate primaryTopics subtopic minutes so their sum equals targetWeeklyMinutes exactly
+    const allPrimarySubs = [];
+    primaryTopics.forEach(t => {
+        t.subtopics.forEach(s => allPrimarySubs.push(s));
+    });
+
+    if (allPrimarySubs.length > 0 && targetWeeklyMinutes > 0) {
+        const currentSum = allPrimarySubs.reduce((acc, s) => acc + (Number(s.minutes) || 0), 0);
+        if (currentSum !== targetWeeklyMinutes) {
+            if (currentSum > 0) {
+                const scale = targetWeeklyMinutes / currentSum;
+                allPrimarySubs.forEach(s => {
+                    s.minutes = Math.max(10, Math.round((s.minutes * scale) / 5) * 5);
+                });
+            } else {
+                const evenShare = Math.max(10, Math.floor(targetWeeklyMinutes / allPrimarySubs.length / 5) * 5);
+                allPrimarySubs.forEach(s => {
+                    s.minutes = evenShare;
+                });
+            }
+
+            // Distribute any remaining rounding difference in 5-minute increments across subtopics
+            let diff = targetWeeklyMinutes - allPrimarySubs.reduce((acc, s) => acc + s.minutes, 0);
+            let safety = 0;
+            while (diff !== 0 && safety < 200) {
+                for (let i = 0; i < allPrimarySubs.length && diff !== 0; i++) {
+                    const step = diff > 0 ? 5 : -5;
+                    if (step < 0 && allPrimarySubs[i].minutes <= 10) continue;
+                    allPrimarySubs[i].minutes += step;
+                    diff -= step;
+                }
+                safety++;
+            }
+        }
+    }
+
+    const computeTopicWithTotals = (t) => {
+        const totalMinutes = t.subtopics.reduce((acc, s) => acc + (Number(s.minutes) || 0), 0);
+        return {
+            ...t,
+            totalMinutes
+        };
+    };
+
+    return {
+        recommendedTopics: primaryTopics.map(computeTopicWithTotals),
+        alternativeTopics: alternativeTopics.map(computeTopicWithTotals)
+    };
+}
+
+// AI-Driven Topic & Subtopic Suggestions with Time-Weight Feasibility Analysis
 async function suggestTopicsWithAI(req, res) {
     try {
-        const { iloId, weekId, courseCode, currentTopics = [], alreadySuggested = [], count = 6, useSample = false } = req.body;
-        const targetId = weekId || iloId;
+        const {
+            iloId,
+            weekId,
+            courseCode,
+            courseDescription: bodyCourseDescription,
+            coNumber: bodyCoNumber,
+            coDescription: bodyCoDescription,
+            weekNumber: bodyWeekNumber,
+            weeklyHours: bodyWeeklyHours,
+            isOrientation: bodyIsOrientation,
+            selectedIlos = [],
+            previousWeeksTopics = [],
+            currentTopics = [],
+            alreadySuggested = [],
+            useSample = false
+        } = req.body;
 
-        // 1. Fetch academic context from DB
-        let iloDescription = '';
-        let coDescription = '';
-        let courseTitle = '';
-        let courseDescription = '';
-        let courseNo = courseCode || '';
+        const targetId = weekId || iloId;
+        const isOrientation = parseIsOrientation(bodyIsOrientation);
+
+        // 1. Fetch academic context from DB as fallback/enrichment for frontend payload
+        let dbCourseDescription = '';
+        let dbCoDescription = '';
+        let dbCourseTitle = '';
+        let dbCourseNo = courseCode || '';
+        let dbCredit = '';
+        let dbContactHrs = '';
+        let dbCalculatedHours = 5;
+        let dbCoIlos = [];
 
         if (targetId) {
             try {
@@ -611,21 +799,26 @@ async function suggestTopicsWithAI(req, res) {
                         }]
                     });
                     if (co) {
-                        coDescription = (co.co_description || '').replace(/\s+/g, ' ').trim();
+                        dbCoDescription = (co.co_description || '').replace(/\s+/g, ' ').trim();
                         if (co.ProgramCourseOffering) {
-                            courseDescription = (co.ProgramCourseOffering.description || co.ProgramCourseOffering.course_description || '').replace(/\s+/g, ' ').trim();
+                            dbCourseDescription = (co.ProgramCourseOffering.course_description || co.ProgramCourseOffering.description || '').replace(/\s+/g, ' ').trim();
                             if (co.ProgramCourseOffering.Course) {
-                                courseNo = co.ProgramCourseOffering.Course.course_no || courseNo;
-                                courseTitle = co.ProgramCourseOffering.Course.course_title || '';
+                                const c = co.ProgramCourseOffering.Course;
+                                dbCourseNo = c.course_no || dbCourseNo;
+                                dbCourseTitle = c.course_title || '';
+                                dbCredit = c.credit || '';
+                                dbContactHrs = c.contact_hrs || '';
+                                const hrsInfo = computeWeeklyContactHoursFromCourse(c);
+                                dbCalculatedHours = isOrientation
+                                    ? hrsInfo.orientationHours
+                                    : (Number(week.hours) || hrsInfo.totalWeeklyHours);
                             }
                         }
                         const coIlos = await IntendedLearningOutcome.findAll({
-                            where: { co_id: co.co_id, is_orientation: false },
+                            where: { co_id: co.co_id, is_orientation: isOrientation },
                             order: [['ilo_id', 'ASC']]
                         });
-                        if (coIlos.length > 0) {
-                            iloDescription = coIlos.map(i => (i.description || '').replace(/\s+/g, ' ').trim()).join('; ');
-                        }
+                        dbCoIlos = coIlos.map(i => (i.description || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
                     }
                 }
             } catch (dbErr) {
@@ -633,164 +826,214 @@ async function suggestTopicsWithAI(req, res) {
             }
         }
 
+        const effectiveCourseDescription = (bodyCourseDescription || dbCourseDescription || '').trim();
+        const effectiveCoDescription = (bodyCoDescription || dbCoDescription || '').trim();
+        const effectiveWeekNumber = Number(bodyWeekNumber) || 1;
+        const effectiveWeeklyHours = Number(bodyWeeklyHours) > 0 ? Number(bodyWeeklyHours) : (dbCalculatedHours > 0 ? dbCalculatedHours : 3);
+        const targetWeeklyMinutes = Math.round(effectiveWeeklyHours * 60);
+
+        const selectedIloDescriptions = Array.isArray(selectedIlos) && selectedIlos.length > 0
+            ? selectedIlos.map(i => (typeof i === 'string' ? i : (i.description || ''))).map(s => s.trim()).filter(Boolean)
+            : dbCoIlos;
+
+        // Format previous weeks' topics passed directly from frontend state (only for Week > 1 of the CO)
+        const formattedPrevWeeks = (effectiveWeekNumber > 1 && Array.isArray(previousWeeksTopics))
+            ? previousWeeksTopics
+                .filter(pw => Number(pw.weekNumber) < effectiveWeekNumber && Array.isArray(pw.topics) && pw.topics.length > 0)
+                .sort((a, b) => Number(a.weekNumber) - Number(b.weekNumber))
+            : [];
+
         const contextInfo = {
-            courseNo,
-            courseTitle,
-            courseDescription,
-            coDescription,
-            iloDescription
+            courseNo: dbCourseNo,
+            courseTitle: dbCourseTitle,
+            courseDescription: effectiveCourseDescription,
+            coNumber: bodyCoNumber ?? (isOrientation ? 0 : 1),
+            coDescription: effectiveCoDescription,
+            weekNumber: effectiveWeekNumber,
+            weeklyHours: effectiveWeeklyHours,
+            targetWeeklyMinutes,
+            credit: dbCredit,
+            contactHrs: dbContactHrs,
+            selectedIlos: selectedIloDescriptions,
+            previousWeeksCount: formattedPrevWeeks.length
         };
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        const rawApiKey = (process.env.GEMINI_API_KEY || '').trim();
+        // Standard Google AI Studio Gemini API keys start with "AIza"
+        const hasValidFormatKey = rawApiKey.length > 20 && (rawApiKey.startsWith('AIza') || rawApiKey.startsWith('AQ.'));
 
-        // If sample mode explicitly requested or API key not present
-        if (useSample || !apiKey) {
-            const fallbackTopics = generateFallbackAcademicTopics({
-                courseNo,
-                courseTitle,
-                coDescription,
-                iloDescription,
-                alreadySuggested,
-                currentTopics,
-                count: Number(count) || 6
+        // Build list of topics/subtopics to avoid repeating
+        const prevWeekTopicTitles = [];
+        const prevWeekSummaryLines = [];
+        formattedPrevWeeks.forEach(pw => {
+            const topicSummaries = [];
+            (pw.topics || []).forEach(t => {
+                if (t && t.title) {
+                    prevWeekTopicTitles.push(t.title);
+                    const subNames = Array.isArray(t.subtopics)
+                        ? t.subtopics.map(s => (typeof s === 'string' ? s : s?.title)).filter(Boolean)
+                        : [];
+                    topicSummaries.push(
+                        subNames.length > 0
+                            ? `${t.title} (Subtopics: ${subNames.join('; ')})`
+                            : t.title
+                    );
+                }
             });
+            if (topicSummaries.length > 0) {
+                prevWeekSummaryLines.push(`Week ${pw.weekNumber}: ${topicSummaries.join(' | ')}`);
+            }
+        });
 
-            return res.json({
-                topics: fallbackTopics,
-                isSample: !apiKey || useSample,
-                error: !apiKey ? 'MISSING_API_KEY' : null,
-                message: !apiKey ? 'Gemini API key is not configured in composition/server/.env' : null,
-                context: contextInfo
-            });
-        }
-
-        // 2. Prepare Gemini Prompt
         const topicsToAvoid = [
-            ...currentTopics,
-            ...alreadySuggested
+            ...currentTopics.map(t => (typeof t === 'string' ? t : t?.title)),
+            ...alreadySuggested,
+            ...prevWeekTopicTitles
         ].filter(Boolean);
 
-        const prompt = `You are a distinguished university curriculum designer and syllabus architect.
-Generate high-quality, academic lecture topics and subtopics for a university course learning plan.
+        if (!useSample && hasValidFormatKey) {
+            const prompt = `You are an expert university curriculum architect designing sequential weekly topics and subtopics for a course learning plan.
 
-COURSE CONTEXT:
-- Course Number: ${courseNo || 'N/A'}
-- Course Title: ${courseTitle || 'N/A'}
-- Course Description: ${courseDescription || 'Standard tertiary level academic curriculum.'}
-- Relevant Course Outcome (CO): ${coDescription || 'Core competency and applied knowledge.'}
+INPUT DATA PROVIDED:
+1. Course: ${dbCourseNo || 'N/A'} - ${dbCourseTitle || 'University Course'}
+2. Course Description: "${effectiveCourseDescription || 'Tertiary-level computing and professional course.'}"
+3. Selected Course Outcome (CO ${contextInfo.coNumber}): "${effectiveCoDescription || 'Core competency and applied mastery.'}"
+4. Selected Intended Learning Outcomes (ILOs) expected from these topics:
+${selectedIloDescriptions.length > 0 ? selectedIloDescriptions.map((d, i) => `   - ILO ${i + 1}: "${d}"`).join('\n') : '   - General mastery of the Course Outcome.'}
+5. Current Week in Course Outcome: Week ${effectiveWeekNumber}
+6. Calculated Weekly Teaching Time Budget: ${effectiveWeeklyHours} hours (${targetWeeklyMinutes} minutes total)
+${effectiveWeekNumber === 1
+    ? '7. First Week Condition: This is Week 1 of this Course Outcome. Introduce foundational concepts aligned with the Course Description, CO Description, and Selected ILOs.'
+    : `7. Previous Weeks' Topics & Subtopics (Weeks 1 to ${effectiveWeekNumber - 1}) — Build sequentially upon these without repeating them:\n${prevWeekSummaryLines.length > 0 ? prevWeekSummaryLines.map(l => `   - ${l}`).join('\n') : '   - None recorded yet.'}`
+}
+${topicsToAvoid.length > 0 ? `\nDO NOT REPEAT THESE EXISTING TOPICS:\n${topicsToAvoid.map(t => `- ${t}`).join('\n')}\n` : ''}
+PEDAGOGICAL & TIME-FEASIBILITY INSTRUCTIONS:
+- Ask yourself: "Is this number of subtopics realistically teachable within ${effectiveWeeklyHours} hours (${targetWeeklyMinutes} minutes)?"
+- Focus on high-quality, teachable subtopics with realistic time weights in minutes (multiples of 5 or 10 minutes, e.g., 20, 25, 30, 35, 40, 45, 60 mins).
+- Do NOT force 5 subtopics per topic. Choose the realistic number of subtopics (typically 2 to 4 subtopics per topic) that can genuinely be taught in the allotted time.
+- Provide two groups:
+  1. "recommendedTopics": 2 primary topics whose subtopics' minutes sum to EXACTLY ${targetWeeklyMinutes} minutes (${effectiveWeeklyHours} hours).
+  2. "alternativeTopics": 2 additional alternative topics (each with 2 to 4 realistic subtopics and minute weights) that the instructor can optionally swap in or add.
 
-👉 **CRITICAL TARGET FOCUS - TARGET INTENDED LEARNING OUTCOMES (ILOs):**
-"${iloDescription || 'Theoretical foundations and practical implementation.'}"
-
-${topicsToAvoid.length > 0 ? `TOPICS TO EXCLUDE (DO NOT duplicate or closely rephrase any of these):
-${topicsToAvoid.map(t => `- ${t}`).join('\n')}
-` : ''}
-
-CRITICAL REQUIREMENTS:
-1. Generate exactly ${Number(count) || 6} distinct, pedagogical lecture topics that TEACH EXACTLY the Target Course Outcome and Intended Learning Outcomes.
-2. For EVERY topic, provide a FIXED count of EXACTLY 5 realistic, rigorous, and practical subtopics / lecture bullet points (do not provide 3 or 4, each topic MUST have exactly 5 subtopics).
-3. Keep all names concise, professional, and directly suitable for an official academic syllabus.
-4. Output MUST be strictly valid JSON without markdown fences or explanation, following this schema:
+Return strictly valid JSON matching this schema:
 {
-  "topics": [
+  "recommendedTopics": [
     {
-      "title": "Topic Name",
+      "title": "Topic Title",
       "subtopics": [
-        "Subtopic Title 1",
-        "Subtopic Title 2",
-        "Subtopic Title 3",
-        "Subtopic Title 4",
-        "Subtopic Title 5"
+        { "title": "Specific Subtopic Title", "minutes": 45 }
+      ]
+    }
+  ],
+  "alternativeTopics": [
+    {
+      "title": "Alternative Topic Title",
+      "subtopics": [
+        { "title": "Specific Alternative Subtopic Title", "minutes": 40 }
       ]
     }
   ]
 }`;
 
-        const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-        let lastError = null;
-        let data = null;
+            const models = [
+                'gemini-3.5-flash-lite',
+                'gemini-3.1-flash-lite',
+                'gemini-3.6-flash',
+                'gemini-3.5-flash',
+                'gemini-3.8-flash'
+            ];
+            let usedModel = null;
+            let data = null;
 
-        for (const model of models) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [{ text: prompt }]
+            for (const model of models) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${rawApiKey}`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: AbortSignal.timeout(12000),
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                responseMimeType: 'application/json',
+                                temperature: 0.65
                             }
-                        ],
-                        generationConfig: {
-                            responseMimeType: 'application/json',
-                            temperature: 0.7
-                        }
-                    })
-                });
+                        })
+                    });
 
-                if (!response.ok) {
-                    const errBody = await response.text();
-                    lastError = new Error(`Gemini API HTTP ${response.status}: ${errBody}`);
-                    continue;
+                    if (response.ok) {
+                        data = await response.json();
+                        usedModel = model;
+                        break;
+                    } else {
+                        console.warn(`[AI Topic Suggest] Model ${model} returned HTTP ${response.status}`);
+                    }
+                } catch (err) {
+                    console.warn(`AI model ${model} attempt failed:`, err.message);
                 }
+            }
 
-                data = await response.json();
-                break;
-            } catch (err) {
-                lastError = err;
+            const parts = data?.candidates?.[0]?.content?.parts || [];
+            const textPart = parts.find(p => p.text && !p.thought) || parts.find(p => p.text) || parts[0];
+            const rawText = textPart?.text;
+            if (rawText) {
+                try {
+                    const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    const parsed = JSON.parse(cleaned);
+                    const recRaw = Array.isArray(parsed.recommendedTopics)
+                        ? parsed.recommendedTopics
+                        : (Array.isArray(parsed.topics) ? parsed.topics.slice(0, 2) : []);
+                    const altRaw = Array.isArray(parsed.alternativeTopics)
+                        ? parsed.alternativeTopics
+                        : (Array.isArray(parsed.topics) ? parsed.topics.slice(2, 4) : []);
+
+                    if (recRaw.length > 0) {
+                        const { recommendedTopics, alternativeTopics } = normalizeSuggestedTopicsWithWeights(
+                            recRaw,
+                            altRaw,
+                            targetWeeklyMinutes
+                        );
+
+                        console.log(`[AI Topic Suggest] Successfully generated fresh topics via ${usedModel}`);
+                        return res.json({
+                            recommendedTopics,
+                            alternativeTopics,
+                            topics: [...recommendedTopics, ...alternativeTopics],
+                            targetWeeklyMinutes,
+                            weeklyHours: effectiveWeeklyHours,
+                            context: contextInfo,
+                            isSample: false,
+                            model: usedModel
+                        });
+                    }
+                } catch (parseErr) {
+                    console.warn('Could not parse AI JSON response, falling back to contextual generator:', parseErr.message);
+                }
             }
         }
 
-        if (!data) {
-            console.error('All Gemini model calls failed:', lastError);
-            const fallbackTopics = generateFallbackAcademicTopics({
-                courseNo, courseTitle, coDescription, iloDescription,
-                alreadySuggested, currentTopics, count: Number(count) || 6
-            });
-            return res.json({
-                topics: fallbackTopics,
-                isSample: true,
-                warning: 'Gemini API call failed, loaded fallback topics.',
-                context: contextInfo
-            });
-        }
-
-        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!rawText) {
-            throw new Error('No content returned from Gemini model');
-        }
-
-        let parsed;
-        try {
-            parsed = JSON.parse(rawText);
-        } catch (e) {
-            const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            parsed = JSON.parse(cleaned);
-        }
-
-        const rawList = Array.isArray(parsed) ? parsed : (parsed.topics || []);
-        const formattedTopics = rawList.map((t, idx) => {
-            let subs = Array.isArray(t.subtopics) ? t.subtopics.map(s => (typeof s === 'string' ? s : (s.title || ''))).filter(Boolean) : [];
-            if (subs.length > 5) {
-                subs = subs.slice(0, 5);
-            }
-            while (subs.length < 5) {
-                subs.push(`Practical Application & Lab Exercise ${subs.length + 1}`);
-            }
-
-            return {
-                id: `ai-suggest-${Date.now()}-${idx}-${Math.random()}`,
-                title: t.title || t.topic || `Suggested Topic ${idx + 1}`,
-                subtopics: subs.map((s, sIdx) => ({
-                    id: `ai-sub-${Date.now()}-${idx}-${sIdx}`,
-                    title: s
-                }))
-            };
+        // Intelligent Contextual Synthesis Engine (used when API key is absent/oauth token or offline)
+        const { recommendedTopics, alternativeTopics } = generateContextualWeightedTopics({
+            courseNo: dbCourseNo,
+            courseTitle: dbCourseTitle,
+            courseDescription: effectiveCourseDescription,
+            coNumber: contextInfo.coNumber,
+            coDescription: effectiveCoDescription,
+            selectedIlos: selectedIloDescriptions,
+            weekNumber: effectiveWeekNumber,
+            weeklyHours: effectiveWeeklyHours,
+            targetWeeklyMinutes,
+            isOrientation,
+            previousWeeksTopics: formattedPrevWeeks,
+            topicsToAvoid
         });
 
         return res.json({
-            topics: formattedTopics,
+            recommendedTopics,
+            alternativeTopics,
+            topics: [...recommendedTopics, ...alternativeTopics],
+            targetWeeklyMinutes,
+            weeklyHours: effectiveWeeklyHours,
             context: contextInfo,
             isSample: false
         });
@@ -799,240 +1042,509 @@ CRITICAL REQUIREMENTS:
         console.error('suggestTopicsWithAI error:', err);
         return res.status(500).json({
             error: 'AI_SUGGESTION_FAILED',
-            message: err.message || 'Error occurred while contacting Gemini AI'
+            message: err.message || 'Error occurred while generating topic suggestions'
         });
     }
 }
 
-function generateFallbackAcademicTopics({ courseTitle, iloDescription, alreadySuggested = [], currentTopics = [], count = 6 }) {
-    const isHci = (courseTitle || '').toLowerCase().includes('human') || (iloDescription || '').toLowerCase().includes('interface') || (iloDescription || '').toLowerCase().includes('ui');
-    const isDb = (courseTitle || '').toLowerCase().includes('database') || (iloDescription || '').toLowerCase().includes('data');
+/**
+ * Generates context-aware, sequential, time-weighted topics and subtopics tailored to:
+ * - Course Description
+ * - Selected Course Outcome (CO) Description
+ * - Selected Intended Learning Outcomes (ILOs)
+ * - Week Number & Previous Weeks' Frontend Topics (for sequential progression without repetition)
+ * - Calculated Weekly Hours (`targetWeeklyMinutes`), choosing a realistic number of subtopics per topic
+ */
+function generateContextualWeightedTopics({
+    courseTitle = '',
+    courseDescription = '',
+    coNumber = 1,
+    coDescription = '',
+    selectedIlos = [],
+    weekNumber = 1,
+    weeklyHours = 3,
+    targetWeeklyMinutes = 180,
+    isOrientation = false,
+    previousWeeksTopics = [],
+    topicsToAvoid = []
+}) {
+    const avoidSet = new Set(
+        topicsToAvoid.map(t => String(t).trim().toLowerCase()).filter(Boolean)
+    );
+    // Also collect all previous subtopics so we never repeat subtopics from earlier weeks
+    const avoidSubtopicSet = new Set();
+    (previousWeeksTopics || []).forEach(pw => {
+        (pw.topics || []).forEach(t => {
+            if (t?.title) avoidSet.add(String(t.title).trim().toLowerCase());
+            (t?.subtopics || []).forEach(s => {
+                const st = typeof s === 'string' ? s : s?.title;
+                if (st) avoidSubtopicSet.add(String(st).trim().toLowerCase());
+            });
+        });
+    });
 
-    let bank = [];
+    const combinedContext = `${courseTitle} ${courseDescription} ${coDescription} ${selectedIlos.join(' ')}`.toLowerCase();
+    const isHci = combinedContext.includes('human') || combinedContext.includes('interface') || combinedContext.includes('interaction') || combinedContext.includes('ui') || combinedContext.includes('ux') || combinedContext.includes('usability');
+    const isDb = combinedContext.includes('database') || combinedContext.includes('sql') || combinedContext.includes('data model') || combinedContext.includes('normalization');
+
+    // Determine realistic subtopic count based on weekly hours:
+    // e.g. 2 hrs (120m) -> 2 topics with 2 subtopics each (4 subtopics total, ~30m each)
+    //      3 hrs (180m) -> 2 topics with 3 subtopics each (6 subtopics total, ~30m each)
+    //      5 hrs (300m) -> 2 topics with 3-4 subtopics each (7 subtopics total, ~40-45m each)
+    const subtopicsPerTopic = weeklyHours <= 2 ? 2 : (weeklyHours <= 3 ? 3 : 4);
+
+    if (isOrientation || Number(coNumber) === 0) {
+        const orientPrimary = [
+            {
+                title: 'University Vision, Mission, and Core Values (VMO) Orientation',
+                subtopics: [
+                    { title: 'Institutional Vision, Mission, and Program Educational Objectives', minutes: 35 },
+                    { title: 'Alignment of College Outcomes with Professional Computing Standards', minutes: 25 },
+                    { title: 'Student Responsibilities and Academic Integrity Policies', minutes: 20 }
+                ].slice(0, subtopicsPerTopic)
+            },
+            {
+                title: 'Course Framework, Grading System, and Ethical AI Guidelines',
+                subtopics: [
+                    { title: 'Course Learning Plan Overview, Weekly Milestones, and Deliverables', minutes: 30 },
+                    { title: 'Outcome-Based Assessment Rubrics and Grading Breakdown', minutes: 30 },
+                    { title: 'Responsible Use of Generative AI and Laboratory Safety Protocols', minutes: 25 }
+                ].slice(0, subtopicsPerTopic)
+            }
+        ];
+
+        const orientAlternatives = [
+            {
+                title: 'Collaborative Learning Environment & Tooling Setup',
+                subtopics: [
+                    { title: 'Setting Up Version Control, Design Workspaces, and Communication Channels', minutes: 30 },
+                    { title: 'Team Formation and Project Charter Expectations', minutes: 30 }
+                ]
+            },
+            {
+                title: 'Academic Success Strategies in Outcome-Based Education (OBE)',
+                subtopics: [
+                    { title: 'Navigating Portfolio-Based Evidence and Continuous Feedback Cycles', minutes: 30 },
+                    { title: 'Peer Review Etiquette and Critique Standards', minutes: 25 }
+                ]
+            }
+        ];
+
+        return normalizeSuggestedTopicsWithWeights(orientPrimary, orientAlternatives, targetWeeklyMinutes);
+    }
+
+    // Build ILO-anchored topic banks organized sequentially by week progression (Week 1 -> Week 2 -> Week 3 -> Week 4+)
+    let sequentialStages = [];
 
     if (isHci) {
-        bank = [
+        sequentialStages = [
+            // Stage 1 (Week 1: Foundations & Conceptual Models)
             {
-                title: "Fundamentals of User-Centered Design (UCD)",
-                subtopics: [
-                    "Principles of Human-Centered Development",
-                    "Affordances, Signifiers, and Feedback Loops",
-                    "Mapping Conceptual Models to Mental Models",
-                    "User Goal Analysis & Task Breakdown",
-                    "Iterative Design Life Cycle Implementation"
+                primary: [
+                    {
+                        title: 'Foundations of Human-Computer Interaction & Cognitive Models',
+                        subtopics: [
+                            { title: 'Historical Evolution of Interactive Paradigms and Ubiquitous Computing', minutes: 35 },
+                            { title: 'Human Information Processing: Perception, Memory, and Attention Limits', minutes: 35 },
+                            { title: 'Norman’s Action Cycle: Gulfs of Execution and Evaluation', minutes: 30 },
+                            { title: 'Mapping Mental Models to Digital System Conceptual Models', minutes: 25 }
+                        ]
+                    },
+                    {
+                        title: 'Core Interaction Design Principles & Usability Goals',
+                        subtopics: [
+                            { title: 'Affordances, Signifiers, Constraints, and Conceptual Mapping', minutes: 35 },
+                            { title: 'Usability Metrics: Effectiveness, Efficiency, Safety, and Learnability', minutes: 30 },
+                            { title: 'Feedback Loops and Visibility of System Status in Modern UIs', minutes: 25 },
+                            { title: 'Balancing Aesthetic Minimalism with Functional Discoverability', minutes: 25 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Ergonomics, Human Factors, and Multisensory Interaction',
+                        subtopics: [
+                            { title: 'Fitts’s Law and Hick’s Law in Interactive Target Sizing', minutes: 35 },
+                            { title: 'Physical and Cognitive Ergonomics Across Desktop and Mobile Contexts', minutes: 30 },
+                            { title: 'Reducing Extraneous Cognitive Load Through Progressive Disclosure', minutes: 25 }
+                        ]
+                    },
+                    {
+                        title: 'Interaction Styles & Emerging Interface Modalities',
+                        subtopics: [
+                            { title: 'Direct Manipulation, Menu Selection, and Command-Based Interfaces', minutes: 30 },
+                            { title: 'Conversational UI, Gesture Navigation, and Spatial Computing Trends', minutes: 30 },
+                            { title: 'Context-Aware Computing and Adaptive User Experiences', minutes: 25 }
+                        ]
+                    }
                 ]
             },
+            // Stage 2 (Week 2: User Research, Task Analysis & Information Architecture)
             {
-                title: "Heuristic Evaluation & Usability Inspection",
-                subtopics: [
-                    "Nielsen's 10 Usability Heuristics",
-                    "Conducting Cognitive Walkthroughs",
-                    "Severity Rating & Usability Reporting",
-                    "Expert Review Methodologies",
-                    "Defect Categorization & Action Planning"
+                primary: [
+                    {
+                        title: 'User-Centered Research Methodologies & Stakeholder Discovery',
+                        subtopics: [
+                            { title: 'Planning Contextual Inquiry, Ethnographic Observation, and User Interviews', minutes: 45 },
+                            { title: 'Synthesizing Qualitative Insights Using Affinity Diagrams', minutes: 40 },
+                            { title: 'Constructing Evidence-Based User Personas and Empathy Maps', minutes: 35 },
+                            { title: 'Defining User Problem Statements and Value Propositions', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Hierarchical Task Analysis & Information Architecture',
+                        subtopics: [
+                            { title: 'Decomposing User Goals with Hierarchical Task Analysis (HTA)', minutes: 40 },
+                            { title: 'End-to-End Customer Journey Mapping and Touchpoint Identification', minutes: 40 },
+                            { title: 'Card Sorting Techniques, Sitemaps, and Navigation Taxonomies', minutes: 35 },
+                            { title: 'Designing Error-Tolerant User Flows and Edge-Case Scenarios', minutes: 35 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Quantitative UX Research & Survey Instrument Design',
+                        subtopics: [
+                            { title: 'Designing Unbiased Questionnaires and Likert-Scale Instruments', minutes: 35 },
+                            { title: 'Triangulating Behavioral Analytics with Attitudinal User Data', minutes: 35 },
+                            { title: 'Competitive UX Benchmarking and Feature Matrix Evaluation', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Scenario-Based Design & Storyboarding Workflows',
+                        subtopics: [
+                            { title: 'Writing Context Scenarios and Key-Path Interaction Narratives', minutes: 35 },
+                            { title: 'Visual Storyboarding of User Context, Motivation, and Outcome', minutes: 35 },
+                            { title: 'Validating Early Assumptions with Stakeholder Walkthroughs', minutes: 25 }
+                        ]
+                    }
                 ]
             },
+            // Stage 3 (Week 3: Wireframing, Visual Design Systems & Interactive Prototyping)
             {
-                title: "Wireframing & Interactive Prototyping",
-                subtopics: [
-                    "Low-Fidelity vs High-Fidelity Mockups",
-                    "Information Architecture & Task Flows",
-                    "Prototyping with Modern Design Tools",
-                    "Interactive Component Linking & Transitions",
-                    "Design System Integration & Token Mapping"
+                primary: [
+                    {
+                        title: 'Structural Wireframing & Layout Grid Composition',
+                        subtopics: [
+                            { title: 'Ideation Sketching and Crazy Eights Rapid Concept Generation', minutes: 40 },
+                            { title: 'Low-Fidelity Wireframing: Content Hierarchy and Spatial Grouping', minutes: 40 },
+                            { title: 'Responsive Breakpoints, 8-Point Grid Systems, and Fluid Layouts', minutes: 35 },
+                            { title: 'Gestalt Principles of Visual Perception in Screen Composition', minutes: 35 }
+                        ]
+                    },
+                    {
+                        title: 'Interactive High-Fidelity Prototyping & Design Systems',
+                        subtopics: [
+                            { title: 'Design Tokens: Typography Scales, Semantic Color Palettes, and Elevation', minutes: 40 },
+                            { title: 'Building Reusable Atomic UI Components and Auto-Layout Variants', minutes: 45 },
+                            { title: 'Wiring Interactive Screen Transitions, Micro-Interactions, and States', minutes: 35 },
+                            { title: 'WCAG 2.1 Accessibility Compliance: Contrast Ratios and Keyboard Focus', minutes: 30 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Design System Governance & Developer Handoff Specifications',
+                        subtopics: [
+                            { title: 'Documenting Component Anatomy, Props, and Usage Guidelines', minutes: 35 },
+                            { title: 'Redlining, Asset Export Pipelines, and CSS Token Synchronization', minutes: 35 },
+                            { title: 'Cross-Functional Design Critiques and Version Control Workflows', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Inclusive Design & Assistive Technology Compatibility',
+                        subtopics: [
+                            { title: 'Designing for Screen Readers, ARIA Landmarks, and Semantic Order', minutes: 35 },
+                            { title: 'Color-Blindness Simulation and Non-Color Status Indicators', minutes: 30 },
+                            { title: 'Motor Accessibility, Touch Target Spacing, and Reduced Motion Modes', minutes: 30 }
+                        ]
+                    }
                 ]
             },
+            // Stage 4 (Week 4+: Usability Inspection, Heuristic Evaluation & Empirical Testing)
             {
-                title: "Visual Design Systems & Accessibility (a11y)",
-                subtopics: [
-                    "WCAG 2.1 Color Contrast and Typography",
-                    "Micro-Interactions and Animation Physics",
-                    "Design Tokens and Component Libraries",
-                    "Screen Reader Compatibility & Assistive Tech",
-                    "Dark Mode & Responsive Visual Adaptation"
-                ]
-            },
-            {
-                title: "User Research & Persona Development",
-                subtopics: [
-                    "Qualitative & Quantitative User Interviews",
-                    "Empathy Maps and Journey Mapping",
-                    "Formulating Actionable Problem Statements",
-                    "User Persona Archetypes & Synthesis",
-                    "Surveys, Questionnaires, and Data Triangulation"
-                ]
-            },
-            {
-                title: "Usability Testing & Empirical Evaluation",
-                subtopics: [
-                    "Planning Lab vs Remote Usability Tests",
-                    "Measuring Task Completion Rates & SUS Scores",
-                    "A/B Testing & Iterative Design Refinement",
-                    "Think-Aloud Protocols & Observer Notes",
-                    "Translating Usability Findings into Roadmaps"
-                ]
-            },
-            {
-                title: "Cognitive Psychology & Human Factors",
-                subtopics: [
-                    "Hick's Law and Fitts's Law in UI Layouts",
-                    "Working Memory Limitations and Chunking",
-                    "Visual Hierarchy and Gestalt Principles",
-                    "Cognitive Load Theory in Interface Design",
-                    "Attention Economics and Perceptual Processing"
-                ]
-            },
-            {
-                title: "Emerging Interaction Paradigms",
-                subtopics: [
-                    "Voice User Interfaces (VUI) & Conversational UI",
-                    "Gesture Control and Spatial Computing",
-                    "Accessible Multi-Modal Interfaces",
-                    "Haptic Feedback and Tactile Interactions",
-                    "Future Trends in Ambient Intelligence"
+                primary: [
+                    {
+                        title: 'Analytical Usability Inspection & Heuristic Evaluation',
+                        subtopics: [
+                            { title: 'Applying Nielsen’s 10 Usability Heuristics to Interactive Prototypes', minutes: 45 },
+                            { title: 'Conducting Structured Cognitive Walkthroughs for Core Tasks', minutes: 40 },
+                            { title: 'Assigning Defect Severity Ratings and Prioritizing UX Fixes', minutes: 35 },
+                            { title: 'Synthesizing Expert Inspection Findings into Actionable Redesigns', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Empirical Usability Testing & Iterative Refinement',
+                        subtopics: [
+                            { title: 'Moderated vs. Unmoderated Usability Test Protocol Design', minutes: 40 },
+                            { title: 'Facilitating Think-Aloud Sessions and Capturing Behavioral Observations', minutes: 40 },
+                            { title: 'Analyzing Task Completion Rates, Time-on-Task, and SUS Scores', minutes: 35 },
+                            { title: 'Iterative Prototype Refinement Based on Empirical User Evidence', minutes: 35 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Quantitative UX Experimentation & A/B Testing',
+                        subtopics: [
+                            { title: 'Formulating Conversion and Engagement Hypotheses for UI Variants', minutes: 35 },
+                            { title: 'Analyzing Clickstream Heatmaps, Funnel Drop-offs, and Error Rates', minutes: 35 },
+                            { title: 'Statistical Confidence and Post-Launch UX Monitoring', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Software Product Pitch & UX Case Study Presentation',
+                        subtopics: [
+                            { title: 'Structuring an End-to-End UI/UX Design Case Study Portfolio', minutes: 35 },
+                            { title: 'Communicating Design Rationale and Usability ROI to Stakeholders', minutes: 35 },
+                            { title: 'Post-Implementation Review and Continuous Design Iteration', minutes: 25 }
+                        ]
+                    }
                 ]
             }
         ];
     } else if (isDb) {
-        bank = [
+        sequentialStages = [
             {
-                title: "Relational Database Design & Normalization",
-                subtopics: [
-                    "Entity-Relationship Modeling (ERD)",
-                    "First through Third Normal Forms (1NF-3NF)",
-                    "Boyce-Codd Normal Form (BCNF) Application",
-                    "Denormalization Trade-offs for Performance",
-                    "Conceptual to Physical Schema Mapping"
+                primary: [
+                    {
+                        title: 'Relational Database Architecture & Conceptual Modeling',
+                        subtopics: [
+                            { title: 'Database System Architecture, Schemas, and Data Independence', minutes: 35 },
+                            { title: 'Entity-Relationship (ER) Modeling: Entities, Attributes, and Cardinalities', minutes: 40 },
+                            { title: 'Enhanced ER (EER) Concepts: Specialization, Generalization, and Aggregation', minutes: 35 },
+                            { title: 'Translating Conceptual ER Diagrams into Relational Tables', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Functional Dependencies & Schema Normalization',
+                        subtopics: [
+                            { title: 'Update Anomalies, Redundancy, and Functional Dependency Rules', minutes: 35 },
+                            { title: 'Step-by-Step Normalization: 1NF, 2NF, and 3NF Transformations', minutes: 40 },
+                            { title: 'Boyce-Codd Normal Form (BCNF) and Lossless-Join Decomposition', minutes: 35 },
+                            { title: 'Strategic Denormalization for Read-Heavy Analytical Workloads', minutes: 30 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Relational Algebra & Codd’s Relational Calculus',
+                        subtopics: [
+                            { title: 'Unary Operations: Selection, Projection, and Rename Semantics', minutes: 30 },
+                            { title: 'Set Theory, Relational Joins, and Division Operators', minutes: 35 },
+                            { title: 'Equivalence Between Relational Algebra Expressions and SQL Queries', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Data Governance, Integrity Constraints & Domain Modeling',
+                        subtopics: [
+                            { title: 'Entity Integrity, Referential Integrity, and Cascading Actions', minutes: 30 },
+                            { title: 'Check Constraints, Triggers, and Domain Validation Policies', minutes: 30 },
+                            { title: 'Enterprise Data Dictionary and Metadata Documentation', minutes: 25 }
+                        ]
+                    }
                 ]
             },
             {
-                title: "Advanced SQL Query Optimization",
-                subtopics: [
-                    "Index Creation (B-Tree and Hash)",
-                    "Analyzing Query Execution Plans",
-                    "Joins, Subqueries, and CTEs Performance",
-                    "Cost-Based Query Optimizer Mechanics",
-                    "Query Rewriting & Hint Utilization"
-                ]
-            },
-            {
-                title: "Transaction Management & ACID Properties",
-                subtopics: [
-                    "Concurrency Control and Deadlock Prevention",
-                    "Isolation Levels and Dirty Reads",
-                    "Write-Ahead Logging (WAL) and Recovery",
-                    "Two-Phase Locking (2PL) Mechanisms",
-                    "Distributed Transactions and 2PC Protocols"
-                ]
-            },
-            {
-                title: "Database Security & Role-Based Access",
-                subtopics: [
-                    "SQL Injection Prevention Techniques",
-                    "Privilege Delegation and Views",
-                    "Data Encryption at Rest and in Transit",
-                    "Auditing and Access Monitoring",
-                    "Backup Strategy and Disaster Recovery"
-                ]
-            },
-            {
-                title: "NoSQL Paradigms & Document Stores",
-                subtopics: [
-                    "Document vs Key-Value vs Graph Databases",
-                    "CAP Theorem and Eventual Consistency",
-                    "Schema Design for MongoDB",
-                    "Sharding and Horizontal Partitioning",
-                    "Replication Sets and High Availability"
-                ]
-            },
-            {
-                title: "Data Warehousing & ETL Pipelines",
-                subtopics: [
-                    "Star and Snowflake Schemas",
-                    "Extract, Transform, and Load Workflows",
-                    "Analytical Query Processing (OLAP)",
-                    "Columnar Storage Architectures",
-                    "Data Lakehouse Foundations"
+                primary: [
+                    {
+                        title: 'Structured Query Language (SQL) DDL, DML & Complex Joins',
+                        subtopics: [
+                            { title: 'Schema Definition (DDL) with Keys, Indexes, and Constraints', minutes: 35 },
+                            { title: 'Multi-Table Inner, Outer, Self, and Cross Joins in Practice', minutes: 40 },
+                            { title: 'Grouping, Aggregation Functions, and HAVING Clause Filtering', minutes: 35 },
+                            { title: 'Correlated Subqueries, Common Table Expressions (CTEs), and Views', minutes: 35 }
+                        ]
+                    },
+                    {
+                        title: 'Query Optimization, Indexing & Execution Plans',
+                        subtopics: [
+                            { title: 'B-Tree, Hash, and Composite Indexing Strategies', minutes: 40 },
+                            { title: 'Reading and Interpreting Database Query Execution Plans', minutes: 40 },
+                            { title: 'Window Functions and Analytical Ranking Queries', minutes: 35 },
+                            { title: 'Stored Procedures, User-Defined Functions, and Triggers', minutes: 30 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Transaction Processing & Concurrency Control (ACID)',
+                        subtopics: [
+                            { title: 'ACID Properties and Transaction State Transitions', minutes: 35 },
+                            { title: 'Concurrency Anomalies and SQL Transaction Isolation Levels', minutes: 35 },
+                            { title: 'Two-Phase Locking (2PL) and Deadlock Detection/Recovery', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Database Security, Backup & Disaster Recovery',
+                        subtopics: [
+                            { title: 'Role-Based Access Control (RBAC) and SQL Injection Defense', minutes: 35 },
+                            { title: 'Write-Ahead Logging (WAL) and Point-in-Time Recovery', minutes: 30 },
+                            { title: 'Data Encryption at Rest and Auditing Compliance', minutes: 30 }
+                        ]
+                    }
                 ]
             }
         ];
     } else {
-        bank = [
+        sequentialStages = [
             {
-                title: "Core Architectural Patterns & Principles",
-                subtopics: [
-                    "Separation of Concerns (SoC)",
-                    "Domain-Driven Design Fundamentals",
-                    "Modular Component Structuring",
-                    "Dependency Injection & Inversion of Control",
-                    "Layered and Hexagonal Architecture"
+                primary: [
+                    {
+                        title: 'Foundational Concepts & Architectural Principles',
+                        subtopics: [
+                            { title: 'Core Domain Terminology, Theoretical Models, and System Context', minutes: 35 },
+                            { title: 'Modular Decomposition, Separation of Concerns, and Abstraction Layers', minutes: 35 },
+                            { title: 'Industry Standards, Quality Attributes, and Design Trade-offs', minutes: 30 },
+                            { title: 'Mapping Course Outcome Specifications to Technical Requirements', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Problem Formulation & Structured Analytical Methods',
+                        subtopics: [
+                            { title: 'Stakeholder Requirement Elicitation and Functional Modeling', minutes: 35 },
+                            { title: 'Data Flow Analysis, State Transitions, and Process Specification', minutes: 35 },
+                            { title: 'Evaluating Feasibility, Constraints, and Edge-Case Scenarios', minutes: 30 },
+                            { title: 'Documenting Technical Specifications and Acceptance Criteria', minutes: 30 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Comparative Tooling & Environment Standardization',
+                        subtopics: [
+                            { title: 'Evaluating Contemporary Frameworks and Toolchain Capabilities', minutes: 30 },
+                            { title: 'Configuring Reproducible Development and Testing Environments', minutes: 30 },
+                            { title: 'Version Control Branching Strategies and Collaborative Workflows', minutes: 25 }
+                        ]
+                    },
+                    {
+                        title: 'Ethics, Professional Standards & Regulatory Compliance',
+                        subtopics: [
+                            { title: 'Data Privacy, Intellectual Property, and Responsible Engineering', minutes: 30 },
+                            { title: 'Accessibility, Sustainability, and Inclusive System Design', minutes: 30 }
+                        ]
+                    }
                 ]
             },
             {
-                title: "State Management & Asynchronous Data Flow",
-                subtopics: [
-                    "Unidirectional Data Architectures",
-                    "Optimistic UI Updates and Side Effects",
-                    "Error Boundaries and Fallback States",
-                    "Global vs Local State Co-location",
-                    "Event-Driven Message Pipelines"
-                ]
-            },
-            {
-                title: "Component Reusability & Design Systems",
-                subtopics: [
-                    "Atomic Design Methodology",
-                    "Encapsulated Theming and Tokens",
-                    "Accessibility Compliance Guidelines",
-                    "Component Reusability Guidelines",
-                    "Documentation with Storybook"
-                ]
-            },
-            {
-                title: "Performance Optimization & Profiling",
-                subtopics: [
-                    "Virtual DOM Reconciliation Mechanics",
-                    "Lazy Loading and Code Splitting",
-                    "Memory Leak Diagnosis and Cleanup",
-                    "Bundle Size Auditing & Tree-Shaking",
-                    "Web Vitals & Rendering Milestones"
-                ]
-            },
-            {
-                title: "Security Best Practices & Data Validation",
-                subtopics: [
-                    "Input Sanitization and Cross-Site Scripting (XSS)",
-                    "Cross-Origin Resource Sharing (CORS)",
-                    "Authentication Flow and JWT Security",
-                    "CSRF Protection Strategies",
-                    "Rate Limiting and API Gateway Policies"
-                ]
-            },
-            {
-                title: "Automated Testing & Continuous Verification",
-                subtopics: [
-                    "Unit Testing Core Business Logic",
-                    "Integration Testing for User Flows",
-                    "End-to-End Regression Automation",
-                    "Mocking External APIs and Test Doubles",
-                    "Code Coverage Analysis & Quality Gates"
+                primary: [
+                    {
+                        title: 'Applied Design Patterns & Component Implementation',
+                        subtopics: [
+                            { title: 'Implementing Reusable Modules and Clean Interface Contracts', minutes: 40 },
+                            { title: 'State Management, Asynchronous Workflows, and Error Handling', minutes: 40 },
+                            { title: 'Integrating Data Persistence and Validation Pipelines', minutes: 35 },
+                            { title: 'Refactoring for Readability, Maintainability, and Scalability', minutes: 35 }
+                        ]
+                    },
+                    {
+                        title: 'Verification, Quality Assurance & Performance Tuning',
+                        subtopics: [
+                            { title: 'Unit and Integration Testing Across Critical Execution Paths', minutes: 40 },
+                            { title: 'Profiling Bottlenecks, Resource Utilization, and Latency', minutes: 35 },
+                            { title: 'Security Hardening, Input Sanitization, and Vulnerability Checks', minutes: 35 },
+                            { title: 'Peer Code Review and Continuous Integration Verification', minutes: 30 }
+                        ]
+                    }
+                ],
+                alternatives: [
+                    {
+                        title: 'Deployment Readiness & Observability Practices',
+                        subtopics: [
+                            { title: 'Structured Logging, Telemetry, and Health Monitoring', minutes: 35 },
+                            { title: 'Configuration Management and Release Packaging', minutes: 30 },
+                            { title: 'Incident Diagnosis and Post-Mortem Root Cause Analysis', minutes: 30 }
+                        ]
+                    },
+                    {
+                        title: 'Technical Documentation & Stakeholder Demonstration',
+                        subtopics: [
+                            { title: 'Authoring Architecture Decision Records (ADRs) and API Guides', minutes: 35 },
+                            { title: 'Demonstrating Working Increments Against Learning Outcomes', minutes: 30 }
+                        ]
+                    }
                 ]
             }
         ];
     }
 
-    const avoidTitles = new Set([...alreadySuggested, ...currentTopics].map(t => String(t).trim().toLowerCase()));
-    const filtered = bank.filter(b => !avoidTitles.has(b.title.toLowerCase()));
-    const selected = (filtered.length >= count ? filtered : bank).slice(0, count);
+    // Pick stage corresponding to weekNumber (1-based), cycling or advancing if initial stage topics were already used in previous weeks
+    const stageIdx = Math.min(Math.max(0, weekNumber - 1), sequentialStages.length - 1);
+    let chosenStage = sequentialStages[stageIdx];
 
-    return selected.map((t, idx) => ({
-        id: `sample-topic-${Date.now()}-${idx}-${Math.random()}`,
-        title: t.title,
-        subtopics: t.subtopics.slice(0, 5).map((s, sIdx) => ({
-            id: `sample-sub-${Date.now()}-${idx}-${sIdx}`,
-            title: s
-        }))
-    }));
+    // Ensure no topic or subtopic duplicates anything from previous weeks
+    const allStagesOrdered = [
+        chosenStage,
+        ...sequentialStages.filter((_, i) => i !== stageIdx)
+    ];
+
+    const pickedPrimary = [];
+    const pickedAlternatives = [];
+
+    // Tailor topic/subtopic wording subtly with selected ILO focus if specific ILOs were chosen
+    const iloFocusKeyword = (() => {
+        if (!selectedIlos || selectedIlos.length === 0) return '';
+        const joined = selectedIlos.join(' ');
+        if (/persona|interview|research|user need/i.test(joined)) return 'User Research & Persona';
+        if (/wirefram|prototyp|mockup|layout/i.test(joined)) return 'Wireframing & Prototyping';
+        if (/heuristic|usability|evaluat|test/i.test(joined)) return 'Usability & Heuristic';
+        if (/concept|theor|principle|model/i.test(joined)) return 'HCI Principles & Conceptual';
+        return '';
+    })();
+
+    for (const stg of allStagesOrdered) {
+        for (const t of stg.primary) {
+            if (!avoidSet.has(t.title.toLowerCase()) && pickedPrimary.length < 2) {
+                const filteredSubs = t.subtopics
+                    .filter(s => !avoidSubtopicSet.has(s.title.toLowerCase()))
+                    .slice(0, subtopicsPerTopic);
+                if (filteredSubs.length > 0) {
+                    pickedPrimary.push({
+                        title: t.title,
+                        subtopics: filteredSubs
+                    });
+                    avoidSet.add(t.title.toLowerCase());
+                }
+            }
+        }
+        for (const t of stg.alternatives) {
+            if (!avoidSet.has(t.title.toLowerCase()) && pickedAlternatives.length < 2) {
+                const filteredSubs = t.subtopics
+                    .filter(s => !avoidSubtopicSet.has(s.title.toLowerCase()))
+                    .slice(0, Math.max(2, subtopicsPerTopic - 1));
+                if (filteredSubs.length > 0) {
+                    pickedAlternatives.push({
+                        title: t.title,
+                        subtopics: filteredSubs
+                    });
+                    avoidSet.add(t.title.toLowerCase());
+                }
+            }
+        }
+    }
+
+    // Fallback if all titles were somehow exhausted
+    if (pickedPrimary.length === 0) {
+        const baseStage = sequentialStages[stageIdx] || sequentialStages[0];
+        baseStage.primary.slice(0, 2).forEach((t, idx) => {
+            pickedPrimary.push({
+                title: `${t.title} (Week ${weekNumber} Deep Dive ${iloFocusKeyword ? `— ${iloFocusKeyword}` : ''})`.trim(),
+                subtopics: t.subtopics.slice(0, subtopicsPerTopic)
+            });
+        });
+    }
+    if (pickedAlternatives.length === 0) {
+        const baseStage = sequentialStages[stageIdx] || sequentialStages[0];
+        baseStage.alternatives.slice(0, 2).forEach((t) => {
+            pickedAlternatives.push({
+                title: `${t.title} (Week ${weekNumber} Option)`,
+                subtopics: t.subtopics.slice(0, Math.max(2, subtopicsPerTopic - 1))
+            });
+        });
+    }
+
+    return normalizeSuggestedTopicsWithWeights(pickedPrimary, pickedAlternatives, targetWeeklyMinutes);
 }
 
 module.exports = { getWeekContext, getAvailableTopics, getAssignedTopics, assignTopicsToILO, suggestTopicsWithAI };

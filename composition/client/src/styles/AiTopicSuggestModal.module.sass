@@ -10,7 +10,7 @@
   display: flex
   align-items: center
   justify-content: center
-  padding: 24px
+  padding: 20px
   animation: fadeIn 0.2s ease-out
 
 @keyframes fadeIn
@@ -22,8 +22,8 @@
 .modalContainer
   background: #FFFFFF
   width: 100%
-  max-width: 960px
-  max-height: 88vh
+  max-width: 980px
+  max-height: 90vh
   border-radius: 16px
   box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.8)
   display: flex
@@ -44,9 +44,10 @@
   display: flex
   align-items: center
   justify-content: space-between
-  padding: 18px 24px
+  padding: 16px 24px
   background: linear-gradient(135deg, #FAF5FF 0%, #EFF6FF 100%)
   border-bottom: 1px solid #E2E8F0
+  flex-shrink: 0
 
 .headerTitleGroup
   display: flex
@@ -63,28 +64,40 @@
   justify-content: center
   color: white
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35)
+  flex-shrink: 0
 
 .modalTitle
   margin: 0
-  font-size: 18px
+  font-size: 17px
   font-weight: 700
   color: #1E293B
   display: flex
   align-items: center
-  gap: 8px
+  gap: 10px
+  flex-wrap: wrap
 
 .sparkleText
-  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%)
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
   -webkit-background-clip: text
   -webkit-text-fill-color: transparent
   font-family: inherit
   font-weight: 800
 
+.headerContextPill
+  font-size: 11px
+  font-weight: 700
+  color: #4F46E5
+  background: #EEF2FF
+  border: 1px solid #C7D2FE
+  padding: 2px 9px
+  border-radius: 999px
+  letter-spacing: 0.02em
+
 .modalSubtitle
-  margin: 2px 0 0 0
+  margin: 3px 0 0 0
   font-size: 12px
   color: #64748B
-  max-width: 650px
+  max-width: 680px
   white-space: nowrap
   overflow: hidden
   text-overflow: ellipsis
@@ -104,34 +117,495 @@
     background: #E2E8F0
     color: #1E293B
 
+// Weekly Time Budget Banner at Top of Results
+.timeBudgetBanner
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 16px
+  padding: 12px 24px
+  border-bottom: 1px solid #E2E8F0
+  transition: all 0.25s ease
+  flex-shrink: 0
+
+.budgetExact
+  background: #ECFDF5
+  border-bottom-color: #A7F3D0
+  .budgetStatusIcon
+    background: #10B981
+    color: #FFFFFF
+  .budgetMainStatus
+    color: #065F46
+  .budgetSubtext
+    color: #047857
+  .metricBoxSelected
+    background: #D1FAE5
+    border-color: #6EE7B7
+  .metricValueHighlight
+    color: #065F46
+
+.budgetUnder
+  background: #FFFBEB
+  border-bottom-color: #FDE68A
+  .budgetStatusIcon
+    background: #F59E0B
+    color: #FFFFFF
+  .budgetMainStatus
+    color: #92400E
+  .budgetSubtext
+    color: #B45309
+  .metricBoxSelected
+    background: #FEF3C7
+    border-color: #FCD34D
+  .metricValueHighlight
+    color: #92400E
+
+.budgetOver
+  background: #FEF2F2
+  border-bottom-color: #FECACA
+  .budgetStatusIcon
+    background: #EF4444
+    color: #FFFFFF
+  .budgetMainStatus
+    color: #991B1B
+  .budgetSubtext
+    color: #B91C1C
+  .metricBoxSelected
+    background: #FEE2E2
+    border-color: #FCA5A5
+  .metricValueHighlight
+    color: #991B1B
+
+.budgetLeft
+  display: flex
+  align-items: center
+  gap: 12px
+  min-width: 0
+  flex: 1
+
+.budgetStatusIcon
+  width: 34px
+  height: 34px
+  border-radius: 8px
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08)
+
+.budgetTextContent
+  min-width: 0
+  flex: 1
+
+.budgetTitleRow
+  display: flex
+  align-items: center
+  gap: 8px
+
+.budgetMainStatus
+  font-size: 13.5px
+  font-weight: 800
+  letter-spacing: 0.01em
+
+.budgetSubtext
+  margin: 2px 0 0 0
+  font-size: 12px
+  font-weight: 500
+  line-height: 1.35
+
+.budgetMetricsRight
+  display: flex
+  align-items: center
+  gap: 10px
+  flex-shrink: 0
+
+.metricBox
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  padding: 5px 12px
+  border-radius: 8px
+  background: rgba(255, 255, 255, 0.75)
+  border: 1px solid rgba(148, 163, 184, 0.3)
+
+.metricBoxSelected
+  border-width: 1.5px
+
+.metricLabel
+  font-size: 10px
+  font-weight: 700
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  color: #64748B
+
+.metricValue
+  font-size: 13.5px
+  font-weight: 800
+  color: #1E293B
+
+.metricValueHighlight
+  font-size: 14px
+  font-weight: 800
+
+.metricDivider
+  width: 1px
+  height: 28px
+  background: rgba(148, 163, 184, 0.35)
+
+.resetBudgetBtn
+  padding: 6px 11px
+  border-radius: 6px
+  border: 1px solid rgba(15, 23, 42, 0.18)
+  background: #FFFFFF
+  color: #1E293B
+  font-size: 11.5px
+  font-weight: 700
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.15s ease
+  &:hover
+    background: #F8FAFC
+    transform: translateY(-1px)
+
 // Body
 .modalBody
   flex: 1
   overflow-y: auto
-  padding: 24px
+  padding: 20px 24px
   background: #F8FAFC
   min-height: 380px
   display: flex
   flex-direction: column
 
-// Material Design 3 Expressive Curved Loading State
+// --- CONFIRMATION VIEW: Previous Week Changed ---
+.confirmChangeContainer
+  flex: 1
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 20px
+
+.confirmChangeCard
+  background: #FFFFFF
+  border: 1.5px solid #FDE68A
+  border-radius: 14px
+  padding: 28px 32px
+  max-width: 620px
+  width: 100%
+  box-shadow: 0 12px 28px -8px rgba(245, 158, 11, 0.15)
+  display: flex
+  flex-direction: column
+  align-items: center
+  text-align: center
+
+.confirmIconCircle
+  width: 52px
+  height: 52px
+  border-radius: 50%
+  background: #FEF3C7
+  color: #D97706
+  display: flex
+  align-items: center
+  justify-content: center
+  margin-bottom: 14px
+  border: 1px solid #FCD34D
+
+.confirmChangeTitle
+  margin: 0 0 8px 0
+  font-size: 17px
+  font-weight: 800
+  color: #1E293B
+
+.confirmChangeDesc
+  margin: 0 0 18px 0
+  font-size: 13px
+  color: #475569
+  line-height: 1.55
+
+.confirmPrevWeeksPreview
+  width: 100%
+  text-align: left
+  background: #F8FAFC
+  border: 1px solid #E2E8F0
+  border-left: 3px solid #F59E0B
+  border-radius: 8px
+  padding: 12px 14px
+  margin-bottom: 22px
+  box-sizing: border-box
+
+.confirmActionsRow
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 12px
+  width: 100%
+  flex-wrap: wrap
+
+.keepExistingBtn
+  padding: 10px 18px
+  border-radius: 8px
+  border: 1px solid #CBD5E1
+  background: #FFFFFF
+  color: #334155
+  font-size: 13px
+  font-weight: 700
+  cursor: pointer
+  transition: all 0.18s ease
+  &:hover
+    background: #F1F5F9
+    border-color: #94A3B8
+
+.confirmRegenerateBtn
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  padding: 10px 20px
+  border-radius: 8px
+  border: none
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
+  color: #FFFFFF
+  font-size: 13px
+  font-weight: 700
+  cursor: pointer
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35)
+  transition: all 0.2s ease
+  &:hover
+    transform: translateY(-1px)
+    box-shadow: 0 6px 18px rgba(139, 92, 246, 0.45)
+
+// --- PHASE 1: ILO Multi-Select & Context Setup ---
+.iloSetupContainer
+  display: flex
+  flex-direction: column
+  gap: 16px
+
+.contextSummaryGrid
+  display: grid
+  grid-template-columns: repeat(2, 1fr)
+  gap: 12px
+
+@media (max-width: 768px)
+  .contextSummaryGrid
+    grid-template-columns: 1fr
+
+.contextInfoCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 10px
+  padding: 12px 14px
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03)
+
+.contextCardHeader
+  display: flex
+  align-items: center
+  gap: 6px
+  font-size: 11px
+  font-weight: 800
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  color: #475569
+  margin-bottom: 6px
+
+.contextIcon
+  color: #6366F1
+
+.contextCardText
+  margin: 0
+  font-size: 12px
+  color: #334155
+  line-height: 1.45
+  display: -webkit-box
+  -webkit-line-clamp: 3
+  -webkit-box-orient: vertical
+  overflow: hidden
+
+.sequentialMetaStrip
+  display: flex
+  align-items: center
+  gap: 10px
+  flex-wrap: wrap
+
+.metaChip
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 6px 12px
+  background: #EFF6FF
+  border: 1px solid #BFDBFE
+  border-radius: 6px
+  font-size: 12px
+  color: #1E40AF
+
+.metaChipSequential
+  background: #F5F3FF
+  border-color: #DDD6FE
+  color: #5B21B6
+
+.prevWeeksBox
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-left: 3px solid #8B5CF6
+  border-radius: 8px
+  padding: 10px 14px
+
+.prevWeeksHeader
+  font-size: 11px
+  font-weight: 700
+  text-transform: uppercase
+  letter-spacing: 0.03em
+  color: #64748B
+  margin-bottom: 6px
+
+.prevWeeksList
+  display: flex
+  flex-direction: column
+  gap: 5px
+
+.prevWeekItem
+  display: flex
+  align-items: baseline
+  gap: 8px
+  font-size: 12px
+
+.prevWeekBadge
+  font-size: 10.5px
+  font-weight: 700
+  color: #6D28D9
+  background: #EDE9FE
+  padding: 1px 7px
+  border-radius: 4px
+  white-space: nowrap
+  flex-shrink: 0
+
+.prevWeekTitles
+  color: #334155
+  font-weight: 500
+  line-height: 1.35
+
+.iloSelectSection
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 12px
+  padding: 16px
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.iloSelectHeader
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  gap: 12px
+
+.iloSelectTitle
+  margin: 0
+  font-size: 14px
+  font-weight: 700
+  color: #1E293B
+
+.iloSelectSubtitle
+  margin: 2px 0 0 0
+  font-size: 12px
+  color: #64748B
+
+.selectAllIlosBtn
+  background: #F5F3FF
+  border: 1px solid #DDD6FE
+  color: #6D28D9
+  font-size: 12px
+  font-weight: 700
+  padding: 5px 11px
+  border-radius: 6px
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.15s
+  &:hover
+    background: #EDE9FE
+
+.iloOptionsList
+  display: flex
+  flex-direction: column
+  gap: 8px
+
+.iloOptionCard
+  display: flex
+  align-items: flex-start
+  gap: 12px
+  padding: 11px 14px
+  border: 1.5px solid #E2E8F0
+  border-radius: 8px
+  background: #F8FAFC
+  cursor: pointer
+  transition: all 0.16s ease
+  &:hover
+    border-color: #CBD5E1
+    background: #F1F5F9
+
+.iloOptionCardSelected
+  border-color: #8B5CF6 !important
+  background: #FAF5FF !important
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1)
+
+.iloOptionBody
+  flex: 1
+  min-width: 0
+
+.iloOptionTop
+  display: flex
+  align-items: center
+  gap: 8px
+  margin-bottom: 4px
+
+.iloCodeTag
+  font-size: 10.5px
+  font-weight: 800
+  padding: 2px 7px
+  border-radius: 4px
+  background: #DBEAFE
+  color: #1E40AF
+  letter-spacing: 0.03em
+
+.iloAssessmentPill
+  font-size: 10.5px
+  font-weight: 600
+  color: #64748B
+  background: #E2E8F0
+  padding: 2px 7px
+  border-radius: 4px
+
+.iloOptionDesc
+  margin: 0
+  font-size: 12.5px
+  font-weight: 500
+  color: #1E293B
+  line-height: 1.45
+
+.emptyIloNotice
+  padding: 16px
+  text-align: center
+  font-size: 12.5px
+  color: #64748B
+  background: #F8FAFC
+  border-radius: 8px
+
+// --- PHASE 2: Step-by-Step Loading State ---
 .loadingContainer
   flex: 1
   display: flex
   flex-direction: column
   align-items: center
   justify-content: center
-  padding: 48px 24px
+  padding: 24px 20px
   text-align: center
 
 .m3LoaderWrapper
   position: relative
-  width: 90px
-  height: 90px
+  width: 76px
+  height: 76px
   display: flex
   align-items: center
   justify-content: center
-  margin-bottom: 24px
+  margin-bottom: 16px
 
 .m3SvgLoader
   width: 100%
@@ -175,107 +649,175 @@
 
 .loadingTitle
   font-size: 16px
-  font-weight: 700
+  font-weight: 800
   color: #1E293B
-  margin: 0 0 6px 0
+  margin: 0 0 4px 0
 
 .loadingDescription
-  font-size: 13px
+  font-size: 12.5px
   color: #64748B
-  max-width: 440px
-  margin: 0 0 16px 0
-  line-height: 1.5
+  max-width: 480px
+  margin: 0 0 18px 0
+  line-height: 1.45
 
-.loadingSteps
-  display: inline-flex
-  align-items: center
+.stepTrackerList
+  width: 100%
+  max-width: 620px
+  display: flex
+  flex-direction: column
   gap: 8px
-  padding: 6px 14px
-  background: #EDE9FE
-  color: #6D28D9
-  border-radius: 20px
-  font-size: 12px
-  font-weight: 600
+  text-align: left
 
-// Setup Banner when API key missing
-.setupCard
-  background: #FFFFFF
+.stepTrackerItem
+  display: flex
+  align-items: flex-start
+  gap: 12px
+  padding: 10px 14px
+  border-radius: 10px
   border: 1px solid #E2E8F0
-  border-radius: 12px
-  padding: 20px
-  margin-bottom: 20px
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04)
+  background: #FFFFFF
+  transition: all 0.22s ease
 
-.setupHeader
+.stepItemActive
+  border-color: #8B5CF6
+  background: #FAF5FF
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12)
+  .stepStatusIndicator
+    background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
+    color: #FFFFFF
+  .stepTitleText
+    color: #4C1D95
+    font-weight: 700
+
+.stepItemDone
+  border-color: #BBF7D0
+  background: #F0FDF4
+  .stepStatusIndicator
+    background: #10B981
+    color: #FFFFFF
+  .stepTitleText
+    color: #065F46
+    font-weight: 700
+
+.stepItemPending
+  opacity: 0.6
+  background: #F8FAFC
+  .stepStatusIndicator
+    background: #E2E8F0
+    color: #64748B
+
+.stepStatusIndicator
+  width: 22px
+  height: 22px
+  border-radius: 50%
   display: flex
   align-items: center
-  gap: 10px
-  margin-bottom: 12px
+  justify-content: center
+  font-size: 11px
+  font-weight: 800
+  flex-shrink: 0
+  margin-top: 1px
 
-.setupTitle
-  font-size: 15px
-  font-weight: 700
-  color: #1E293B
-  margin: 0
+.stepPulseDot
+  width: 8px
+  height: 8px
+  border-radius: 50%
+  background: #FFFFFF
+  animation: pulseDot 0.9s ease-in-out infinite alternate
 
-.setupStepsList
-  font-size: 13px
-  color: #475569
-  padding-left: 20px
-  margin: 8px 0 16px 0
-  line-height: 1.6
-  code
-    background: #F1F5F9
-    padding: 2px 6px
-    border-radius: 4px
-    font-size: 12px
-    color: #0F172A
-    font-weight: 600
+@keyframes pulseDot
+  from
+    transform: scale(0.75)
+    opacity: 0.7
+  to
+    transform: scale(1.2)
+    opacity: 1
 
-.setupActions
+.stepTextGroup
+  flex: 1
+  min-width: 0
+
+.stepTitleText
+  font-size: 12.5px
+  font-weight: 600
+  color: #334155
+
+.stepDetailText
+  font-size: 11.5px
+  color: #64748B
+  margin-top: 2px
+  line-height: 1.35
+
+// --- PHASE 3: Results View ---
+.resultsWrapper
   display: flex
-  gap: 10px
+  flex-direction: column
+  gap: 22px
+
+.sectionBlock
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.alternativeSectionBlock
+  padding-top: 16px
+  border-top: 1px dashed #CBD5E1
+
+.sectionHeaderRow
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
   flex-wrap: wrap
 
-.trySampleBtn
-  display: inline-flex
+.sectionTitleGroup
+  display: flex
   align-items: center
-  gap: 6px
-  padding: 8px 16px
-  border-radius: 6px
-  font-size: 13px
-  font-weight: 600
-  background: #F8FAFC
-  border: 1px solid #CBD5E1
-  color: #334155
-  cursor: pointer
-  transition: all 0.2s
-  &:hover
-    background: #F1F5F9
-    border-color: #94A3B8
+  gap: 10px
 
-.getApiKeyLink
-  display: inline-flex
-  align-items: center
-  gap: 6px
-  padding: 8px 16px
-  border-radius: 6px
-  font-size: 13px
-  font-weight: 600
-  background: #2563EB
-  color: white
-  text-decoration: none
-  cursor: pointer
-  transition: all 0.2s
-  &:hover
-    background: #1D4ED8
+.recommendedPill
+  font-size: 10.5px
+  font-weight: 800
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  padding: 3px 9px
+  border-radius: 999px
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
+  color: #FFFFFF
 
-// Topics Grid (3 rows, 2 per row)
+.alternativePill
+  font-size: 10.5px
+  font-weight: 700
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  padding: 3px 9px
+  border-radius: 999px
+  background: #E2E8F0
+  color: #475569
+
+.sectionHeading
+  margin: 0
+  font-size: 14px
+  font-weight: 800
+  color: #1E293B
+
+.sectionHeadingMuted
+  margin: 0
+  font-size: 13.5px
+  font-weight: 700
+  color: #475569
+
+.sectionHint
+  font-size: 11.5px
+  color: #64748B
+  font-weight: 500
+
+// Topics Grid: 2 columns per row, with align-items: stretch so cards in the same row match the tallest card's height
 .topicsGrid
   display: grid
   grid-template-columns: repeat(2, 1fr)
+  align-items: stretch
   gap: 16px
-  margin-bottom: 24px
 
 @media (max-width: 768px)
   .topicsGrid
@@ -283,26 +825,53 @@
 
 .topicCard
   background: #FFFFFF
-  border: 1px solid #E2E8F0
+  border: 1.5px solid #E2E8F0
   border-radius: 10px
   overflow: hidden
   display: flex
   flex-direction: column
+  height: 100%
+  box-sizing: border-box
   transition: all 0.2s ease
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05)
   &:hover
     border-color: #CBD5E1
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06)
 
-.cardSelected
-  border-color: #A78BFA !important
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.15) !important
+.topicCardPrimary
+  &.cardSelected
+    border-color: #8B5CF6 !important
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.16) !important
+
+.topicCardAlternative
+  background: #F8FAFC
+  border-style: dashed
+  border-color: #CBD5E1
+  opacity: 0.88
+  .topicCardHeader
+    background: #F1F5F9
+  .topicCardBody
+    background: #F8FAFC
+  &:hover
+    opacity: 1
+  &.cardSelected
+    opacity: 1
+    border-style: solid
+    border-color: #8B5CF6 !important
+    background: #FFFFFF
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.15) !important
+    .topicCardBody
+      background: #FFFFFF
+
+.cardUnselected
+  opacity: 0.78
 
 .topicCardHeader
   display: flex
   align-items: center
   justify-content: space-between
-  padding: 12px 14px
+  gap: 10px
+  padding: 11px 14px
   background: #F8FAFC
   border-bottom: 1px solid #E2E8F0
   transition: background 0.2s
@@ -315,7 +884,7 @@
 
 .topicTitleLeft
   display: flex
-  align-items: center
+  align-items: flex-start
   gap: 10px
   flex: 1
   min-width: 0
@@ -332,20 +901,59 @@
   align-items: center
   justify-content: center
   flex-shrink: 0
+  margin-top: 1px
   transition: all 0.2s
 
+.badgeAlternative
+  background: #CBD5E1
+  color: #334155
+
 .badgeSelected
-  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) !important
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%) !important
   color: white !important
+
+.topicTitleTextGroup
+  display: flex
+  flex-direction: column
+  gap: 4px
+  min-width: 0
+  flex: 1
 
 .topicCardTitle
   margin: 0
-  font-size: 14px
-  font-weight: 600
+  font-size: 13.5px
+  font-weight: 700
   color: #1E293B
-  white-space: nowrap
-  overflow: hidden
-  text-overflow: ellipsis
+  line-height: 1.3
+
+.topicMetaSubrow
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-wrap: wrap
+
+.topicDurationBadge
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  font-size: 11px
+  font-weight: 700
+  padding: 1px 7px
+  border-radius: 999px
+
+.topicDurationActive
+  background: #EDE9FE
+  color: #6D28D9
+  border: 1px solid #DDD6FE
+
+.topicDurationMuted
+  background: #E2E8F0
+  color: #475569
+
+.subtopicCountHint
+  font-size: 11px
+  font-weight: 600
+  color: #64748B
 
 // Custom Checkbox
 .checkboxLabel
@@ -355,6 +963,7 @@
   position: relative
   margin: 0
   padding: 0
+  flex-shrink: 0
 
 .checkboxInput
   appearance: none
@@ -399,24 +1008,28 @@
   display: flex
   align-items: center
   justify-content: space-between
-  padding: 6px 10px
+  gap: 10px
+  padding: 7px 10px
   border-radius: 6px
   background: #F8FAFC
-  border: 1px solid #F1F5F9
+  border: 1px solid #E2E8F0
   transition: all 0.15s ease
   cursor: pointer
   user-select: none
   &:hover
     background: #F1F5F9
-    border-color: #E2E8F0
+    border-color: #CBD5E1
 
 .subtopicRowSelected
   background: #FAF5FF !important
-  border-color: #EDE9FE !important
+  border-color: #DDD6FE !important
+
+.subtopicRowUnselected
+  opacity: 0.72
 
 .subtopicTitleLeft
   display: flex
-  align-items: center
+  align-items: flex-start
   gap: 8px
   flex: 1
   min-width: 0
@@ -427,6 +1040,7 @@
   border-radius: 50%
   background: #CBD5E1
   flex-shrink: 0
+  margin-top: 6px
   transition: background 0.15s
 
 .subtopicDotSelected
@@ -435,29 +1049,48 @@
 .subtopicText
   font-size: 12.5px
   color: #475569
-  line-height: 1.4
-  white-space: nowrap
-  overflow: hidden
-  text-overflow: ellipsis
+  line-height: 1.38
 
 .subtopicTextSelected
   color: #1E293B
-  font-weight: 500
+  font-weight: 600
+
+.subtopicRightMeta
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-shrink: 0
+
+.subtopicWeightPill
+  font-size: 11px
+  font-weight: 700
+  padding: 2px 7px
+  border-radius: 4px
+  white-space: nowrap
+
+.subtopicWeightActive
+  background: #EEF2FF
+  color: #4338CA
+  border: 1px solid #C7D2FE
+
+.subtopicWeightMuted
+  background: #E2E8F0
+  color: #64748B
 
 // Load More Section
 .loadMoreWrapper
   display: flex
   justify-content: center
-  padding: 12px 0 8px 0
+  padding: 4px 0
 
 .loadMoreBtn
   display: inline-flex
   align-items: center
   gap: 8px
-  padding: 10px 22px
+  padding: 9px 20px
   border-radius: 30px
-  font-size: 13px
-  font-weight: 600
+  font-size: 12.5px
+  font-weight: 700
   color: #6D28D9
   background: #F5F3FF
   border: 1px solid #DDD6FE
@@ -481,14 +1114,15 @@
   display: flex
   align-items: center
   justify-content: space-between
-  padding: 16px 24px
+  padding: 14px 24px
   background: #FFFFFF
   border-top: 1px solid #E2E8F0
+  flex-shrink: 0
 
 .footerLeft
   display: flex
   align-items: center
-  gap: 16px
+  gap: 14px
 
 .selectionBadge
   font-size: 13px
@@ -496,20 +1130,37 @@
   font-weight: 600
   span
     color: #7C3AED
-    font-weight: 700
+    font-weight: 800
 
 .toggleAllBtn
-  background: transparent
-  border: none
+  background: #F5F3FF
+  border: 1px solid #DDD6FE
   color: #6D28D9
   font-size: 12px
-  font-weight: 600
+  font-weight: 700
   cursor: pointer
-  padding: 4px 8px
-  border-radius: 4px
+  padding: 5px 10px
+  border-radius: 6px
   transition: background 0.15s
   &:hover
-    background: #F5F3FF
+    background: #EDE9FE
+
+.regenerateBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  background: #F5F3FF
+  border: 1px solid #DDD6FE
+  color: #6D28D9
+  font-size: 12px
+  font-weight: 700
+  cursor: pointer
+  padding: 6px 12px
+  border-radius: 6px
+  transition: all 0.15s ease
+  &:hover
+    background: #EDE9FE
+    border-color: #C4B5FD
 
 .footerActions
   display: flex
@@ -536,7 +1187,7 @@
   padding: 9px 20px
   border-radius: 6px
   border: none
-  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%)
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
   color: white
   font-size: 13px
   font-weight: 700

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styles from '../styles/TopicSelector.module.sass';
 import { Search, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock } from 'react-feather';
-import AiTopicSuggestModal, { GeminiStar } from './AiTopicSuggestModal.jsx';
+import { GeminiStar } from './AiTopicSuggestModal.jsx';
+import SpellCheckInput from './SpellCheckInput.jsx';
 
 const TopicSelector = ({
     label,
@@ -10,20 +11,22 @@ const TopicSelector = ({
     onChange,
     error,
     disabled,
-    iloId,
-    courseCode,
     weekNumber = 1,
-    previousWeekTopics = []
+    weekIndexInCo = 0,
+    previousWeekTopics = [],
+    onOpenAiSuggest
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isContinueOpen, setIsContinueOpen] = useState(false);
     const [lastAddedId, setLastAddedId] = useState(null);
-    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const wrapperRef = useRef(null);
     const scrollContainerRef = useRef(null);
 
-    const canContinueTopic = Number(weekNumber) > 1;
+    // Topics can only be continued starting from the 2nd week within the same Course Outcome (weekIndexInCo >= 1).
+    // Instructors cannot continue topics across different Course Outcomes.
+    const canContinueTopic = Number(weekIndexInCo) >= 1 && (previousWeekTopics || []).length > 0;
+    const prevWeekDisplay = Number(weekNumber) > 1 ? Number(weekNumber) - 1 : 1;
     const currentContinuedTopic = useMemo(
         () => value.find(t => Boolean(t.isContinuation)),
         [value]
@@ -149,7 +152,7 @@ const TopicSelector = ({
             ]
         };
 
-        // Allow only ONE continued topic from the previous week: replace any existing continuation or same-title topic
+        // Allow only ONE continued topic from the previous week within the same Course Outcome: replace any existing continuation or same-title topic
         const remainingTopics = value.filter(
             t =>
                 !t.isContinuation &&
@@ -159,15 +162,6 @@ const TopicSelector = ({
         onChange([continuedTopicEntry, ...remainingTopics]);
         setIsContinueOpen(false);
         triggerAnimation(prevTopic.topic_id || tempId);
-    };
-
-    const handleApplyAiTopics = (newAiTopics) => {
-        if (!newAiTopics || newAiTopics.length === 0) return;
-        onChange([...value, ...newAiTopics]);
-        if (newAiTopics[0]) {
-            triggerAnimation(newAiTopics[0]._temp_id || newAiTopics[0].topic_id);
-        }
-        scrollToMainBottom();
     };
 
     const triggerAnimation = (id) => {
@@ -265,7 +259,7 @@ const TopicSelector = ({
                     <div className={styles.headerRow}>
                         <div className={styles.searchBar}>
                             <Search size={16} className={styles.searchIcon} />
-                            <input
+                            <SpellCheckInput
                                 type="text"
                                 placeholder="Search or type to add custom topic..."
                                 value={searchTerm}
@@ -297,7 +291,7 @@ const TopicSelector = ({
                                         setIsContinueOpen(!isContinueOpen);
                                         setIsPickerOpen(false);
                                     }}
-                                    title={`Continue one topic from Week ${weekNumber - 1} with new subtopics for Week ${weekNumber}`}
+                                    title={`Continue one topic from Week ${prevWeekDisplay} with new subtopics for Week ${weekNumber}`}
                                 >
                                     <CornerDownRight size={15} className={styles.btnIcon} />
                                     <span>Continue Previous Topic</span>
@@ -307,7 +301,7 @@ const TopicSelector = ({
                                 {isContinueOpen && (
                                     <div className={styles.continueDropdown}>
                                         <div className={styles.continueDropdownHeader}>
-                                            <span>Select 1 Topic from Week {weekNumber - 1} to Continue</span>
+                                            <span>Select 1 Topic from Week {prevWeekDisplay} to Continue</span>
                                         </div>
                                         <div className={styles.continueOptionsList}>
                                             {previousWeekTopics && previousWeekTopics.length > 0 ? (
@@ -326,7 +320,7 @@ const TopicSelector = ({
                                                             <div className={styles.continueOptText}>
                                                                 <span className={styles.continueOptTitle}>{prevTopic.title}</span>
                                                                 <span className={styles.continueOptMeta}>
-                                                                    {(prevTopic.subtopics || []).length} subtopics in Week {weekNumber - 1}
+                                                                    {(prevTopic.subtopics || []).length} subtopics in Week {prevWeekDisplay}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -334,7 +328,7 @@ const TopicSelector = ({
                                                 })
                                             ) : (
                                                 <div className={styles.noResults}>
-                                                    No topics mapped in Week {weekNumber - 1} yet.
+                                                    No topics mapped in Week {prevWeekDisplay} yet.
                                                 </div>
                                             )}
                                         </div>
@@ -346,17 +340,20 @@ const TopicSelector = ({
                         <button type="button" className={styles.mainAddBtn} onClick={handleAddManualTopic}>
                             <Plus size={16} className={styles.btnIcon} /> <span>Add Topic</span>
                         </button>
-                        <button
-                            type="button"
-                            className={styles.aiSuggestBtn}
-                            onClick={() => setIsAiModalOpen(true)}
-                            title="Generate intelligent course topics with Google Gemini AI"
-                        >
-                            <span className={styles.geminiSparkleIcon}>
-                                <GeminiStar size={15} />
-                            </span>
-                            <span className={styles.aiBtnText}>AI Suggest</span>
-                        </button>
+
+                        {onOpenAiSuggest && (
+                            <button
+                                type="button"
+                                className={styles.aiSuggestBtn}
+                                onClick={onOpenAiSuggest}
+                                title="AI Suggest sequential topics & subtopics aligned to Course Outcomes, ILOs, and weekly hours"
+                            >
+                                <span className={styles.geminiSparkleIcon}>
+                                    <GeminiStar size={16} />
+                                </span>
+                                <span className={styles.aiBtnText}>AI Suggest</span>
+                            </button>
+                        )}
                     </div>
 
                     {isPickerOpen && (
@@ -391,11 +388,12 @@ const TopicSelector = ({
                             const topicKey = getTopicKey(topic);
                             const isNewlyAdded = topicKey === lastAddedId;
                             const isLockedContinuation = Boolean(topic.isContinuation);
+                            const isAiSuggested = Boolean(topic.isAiSuggested);
 
                             return (
                                 <div
                                     key={topicKey}
-                                    className={`${styles.topicCard} ${isNewlyAdded ? styles.newEntry : ''} ${isLockedContinuation ? styles.continuedTopicCard : ''}`}
+                                    className={`${styles.topicCard} ${isNewlyAdded ? styles.newEntry : ''} ${isLockedContinuation ? styles.continuedTopicCard : ''} ${isAiSuggested ? styles.aiSuggestedTopicCard : ''}`}
                                 >
                                     <div className={styles.topicHeaderCard}>
                                         <div className={styles.topicTitleGroup}>
@@ -405,7 +403,7 @@ const TopicSelector = ({
                                                 ) : (
                                                     <Edit2 size={12} className={styles.editIcon} />
                                                 )}
-                                                <input
+                                                <SpellCheckInput
                                                     className={`${styles.topicTitleInput} ${isLockedContinuation ? styles.lockedTitleInput : ''}`}
                                                     value={topic.title}
                                                     readOnly={isLockedContinuation}
@@ -438,7 +436,7 @@ const TopicSelector = ({
                                             return (
                                                 <div key={subKey} className={styles.subtopicRow}>
                                                     <div className={styles.bullet}>•</div>
-                                                    <input
+                                                    <SpellCheckInput
                                                         type="text"
                                                         placeholder="Enter subtopic detail..."
                                                         value={sub.title}
@@ -464,16 +462,6 @@ const TopicSelector = ({
                 </div>
             </div>
             {error && <div className={styles.errorText}>{error}</div>}
-
-            {/* AI Topic Suggestion Modal */}
-            <AiTopicSuggestModal
-                isOpen={isAiModalOpen}
-                onClose={() => setIsAiModalOpen(false)}
-                onApplyTopics={handleApplyAiTopics}
-                iloId={iloId}
-                courseCode={courseCode}
-                currentTopics={value}
-            />
         </div>
     );
 };

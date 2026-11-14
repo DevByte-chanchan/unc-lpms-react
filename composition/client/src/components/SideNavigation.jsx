@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, Folder, GitMerge, Layers, LogOut, Sidebar, Target, UserCheck, Users } from 'react-feather'
+import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, Folder, GitMerge, Grid, Layers, LogOut, Sidebar, Target, UserCheck, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'
@@ -17,6 +17,7 @@ const NAVIGATION_ICON_COMPONENTS = {
     Clipboard,
     FileText,
     Folder,
+    Grid,
     GitMerge,
     Layers,
     Target,
@@ -41,6 +42,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     if (location.pathname.startsWith('/lpsm/instructor')) {
         selected = 'Syllabus';
     }
+
+    if (location.pathname === '/dashboard') selected = 'Dashboard';
 
     // LPSM Program Head pages
     if (location.pathname.startsWith(routes.coaepView())) {
@@ -140,10 +143,16 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             )}
 
             <div className={styles['nav-list']}>
+                {mode === 'instructor' && (
+                    <div onClick={() => navigate('/dashboard')} className={`${styles.list} ${selected === 'Dashboard' ? styles.selected : ''}`} role="link" tabIndex={0} title="Dashboard" aria-label="Dashboard" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/dashboard'))}>
+                        <NavigationIcon label="Dashboard" /> <span className={styles.listText}>Dashboard</span>
+                    </div>
+                )}
+
                 {mode !== 'vpaa' && mode !== 'superuser' && (
                     <div
                         onClick={() => handlePageChange('Syllabus')}
-                        className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
+                        className={`${styles.list} ${selected === 'Syllabus' && location.pathname !== '/dashboard' ? styles.selected : ''}`}
                         role="link"
                         tabIndex={0}
                         title="Learning Plan"

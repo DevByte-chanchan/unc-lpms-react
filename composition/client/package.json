@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "dictionary-en": "^4.0.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
+    "nspell": "^2.1.5",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.10.38",
     "react": "^19.1.1",

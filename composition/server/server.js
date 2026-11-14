@@ -96,6 +96,10 @@ app.use('/api', require('./middleware/auth').restrictSuperuser);
 // Audit trail of every state-changing request (sign-in events are recorded by authController).
 app.use('/api', require('./utils/audit').auditMiddleware);
 
+// Instructor dashboard and the school's academic periods (feature/learning-plan-composition).
+app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/academic-periods', require('./routes/academicPeriods'));
+
 const assignmentRoutes = require('./routes/assignments');
 app.use('/api/assignments', assignmentRoutes);
 

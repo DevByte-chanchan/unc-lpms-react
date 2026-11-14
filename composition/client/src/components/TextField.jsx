@@ -1,6 +1,7 @@
 import styles from '../styles/Fields.module.sass'
+import SpellCheckInput from './SpellCheckInput.jsx'
 
-const TextField = ({ label, disabled, value, initialValue, onChange, error, placeholder, style }) => {
+const TextField = ({ label, disabled, value, initialValue, onChange, error, placeholder, style, spellCheckEnabled = true }) => {
 
     // LOGIC: Use 'value' if controlled (forms), otherwise use 'initialValue' (read-only views)
     const actualValue = value !== undefined ? value : initialValue;
@@ -13,14 +14,14 @@ const TextField = ({ label, disabled, value, initialValue, onChange, error, plac
 
             {/* Wrapper holds the border */}
             <div className={`${styles.textfield} ${error ? styles.error : ''}`}>
-                <input
+                <SpellCheckInput
                     className={`${disabled ? styles['disabled-style'] : ''}`}
                     disabled={disabled}
-                    // Use the calculated actualValue here
                     value={actualValue || ''}
                     onChange={(e) => onChange && onChange(e.target.value)}
                     type="text"
                     placeholder={placeholder}
+                    spellCheckEnabled={spellCheckEnabled}
                 />
             </div>
 

@@ -42,6 +42,30 @@ const withWorkflowLock = async (assignmentKey, task) => {
     }
 };
 
+// The offerings of one term: the school year and semester written on the offering; only an offering with no school
+// year falls back to the assignment date. year is the start year (2026), semester '1st Sem' / '2nd Sem' / 'Summer'.
+// null when the term is not given or not understood. Shared with the instructor dashboard (dashboardController).
+const termOfferingIds = async (year, semester) => {
+    const startYear = parseInt(year, 10);
+    const SEMESTER_OF = { '1st Sem': '1st', '2nd Sem': '2nd', Summer: 'Summer' };
+    const termSemester = SEMESTER_OF[semester];
+    if (!Number.isSafeInteger(startYear) || !termSemester) return null;
+    const RANGES = {
+        '1st': [`${startYear}-06-01T00:00:00.000Z`, `${startYear}-11-25T23:59:59.999Z`],
+        '2nd': [`${startYear}-12-09T00:00:00.000Z`, `${startYear + 1}-04-27T23:59:59.999Z`],
+        Summer: [`${startYear + 1}-04-28T00:00:00.000Z`, `${startYear + 1}-05-31T23:59:59.999Z`]
+    };
+    const [from, to] = RANGES[termSemester];
+    const rows = await sequelize.query(
+        `SELECT DISTINCT pco.pc_offering_id AS id
+         FROM ProgramCourseOfferings pco
+             LEFT JOIN CourseOfferingAssignments coa ON coa.pc_offering_id = pco.pc_offering_id
+         WHERE (pco.school_year = ? AND pco.semester = ?)
+            OR (pco.school_year IS NULL AND coa.date_assigned BETWEEN ? AND ?);`,
+        { replacements: [`${startYear}-${startYear + 1}`, termSemester, new Date(from), new Date(to)], type: sequelize.QueryTypes.SELECT });
+    return rows.map(row => row.id);
+};
+
 const listAssignments = async (req, res, next) => {
     try {
         const { page = 1, limit = 25, programId, courseId, stakeholder, year, semester } = req.query;
@@ -59,32 +83,11 @@ const listAssignments = async (req, res, next) => {
         // A plan belongs to the school year and semester written on its offering, not to the day it was assigned (a
         // plan for next year is often assigned this year). Only an offering with no school year falls back to the
         // assignment date.
-        let termOfferingIds = null;
-        if (year && semester) {
-            const startYear = parseInt(year, 10);
-            const SEMESTER_OF = { '1st Sem': '1st', '2nd Sem': '2nd', Summer: 'Summer' };
-            const termSemester = SEMESTER_OF[semester];
-            if (Number.isSafeInteger(startYear) && termSemester) {
-                const RANGES = {
-                    '1st': [`${startYear}-06-01T00:00:00.000Z`, `${startYear}-11-25T23:59:59.999Z`],
-                    '2nd': [`${startYear}-12-09T00:00:00.000Z`, `${startYear + 1}-04-27T23:59:59.999Z`],
-                    Summer: [`${startYear + 1}-04-28T00:00:00.000Z`, `${startYear + 1}-05-31T23:59:59.999Z`]
-                };
-                const [from, to] = RANGES[termSemester];
-                const rows = await sequelize.query(
-                    `SELECT DISTINCT pco.pc_offering_id AS id
-                     FROM ProgramCourseOfferings pco
-                         LEFT JOIN CourseOfferingAssignments coa ON coa.pc_offering_id = pco.pc_offering_id
-                     WHERE (pco.school_year = ? AND pco.semester = ?)
-                        OR (pco.school_year IS NULL AND coa.date_assigned BETWEEN ? AND ?);`,
-                    { replacements: [`${startYear}-${startYear + 1}`, termSemester, new Date(from), new Date(to)], type: sequelize.QueryTypes.SELECT });
-                termOfferingIds = rows.map(row => row.id);
-            }
-        }
+        const termIds = year && semester ? await termOfferingIds(year, semester) : null;
 
 
         const whereOffering = {};
-        if (termOfferingIds) whereOffering.pc_offering_id = { [Op.in]: termOfferingIds.length ? termOfferingIds : [0] };
+        if (termIds) whereOffering.pc_offering_id = { [Op.in]: termIds.length ? termIds : [0] };
         if (programId) whereOffering.program_id = programId;
         if (courseId) whereOffering.course_id = courseId;
         if (req.user?.role === 'industry-consultant') {
@@ -363,6 +366,7 @@ const recordWorkflowAction = async (req, res, next) => {
 };
 
 module.exports = {
+    termOfferingIds,
     listAssignments,
     getAssignmentById,
     getWorkflowByOffering,

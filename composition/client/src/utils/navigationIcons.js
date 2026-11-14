@@ -1,4 +1,5 @@
 const NAVIGATION_ICON_NAMES = Object.freeze({
+  Dashboard: 'Grid',
   'Learning Plan': 'FileText',
   'CO & PO Alignment': 'GitMerge',
   'PO & PEO Alignment': 'Target',

@@ -45,6 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     Course.associate = function(models) {
         Course.hasMany(models.Prerequisite, { foreignKey: 'course_id' });
         Course.hasMany(models.ProgramCourseOffering, { foreignKey: 'course_id' });
+        Course.hasMany(models.Reference, { foreignKey: 'course_id', as: 'references' });
     };
 
     return Course;

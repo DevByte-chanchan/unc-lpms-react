@@ -360,151 +360,448 @@ section
     color: #19282C
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1)
 
-// Grid View specific styles
+// ───── Academic Syllabus Planner (Course Coverage / ILO Roadmap) ─────
+.roadmapContainer
+  position: relative
+  display: flex
+  flex-direction: column
+  gap: 20px
+  width: 100%
+  padding-left: 38px
+  padding-top: 4px
+  padding-bottom: 8px
+
+  &::before
+    content: ''
+    position: absolute
+    left: 13px
+    top: 22px
+    bottom: 22px
+    width: 2px
+    background: #E2E8F0
+    z-index: 1
+
+.roadmapStep
+  position: relative
+  width: 100%
+
+.roadmapStepMilestone
+  margin: 4px 0
+
+.stepNode
+  position: absolute
+  left: -38px
+  top: 14px
+  width: 28px
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 2
+
+.stepNodeExam
+  position: absolute
+  left: -38px
+  top: 50%
+  transform: translateY(-50%)
+  width: 28px
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 2
+
+// Timeline Markers
+.nodeStart
+  width: 20px
+  height: 20px
+  border-radius: 50%
+  background: #FFFFFF
+  border: 2px solid #0F172A
+  display: flex
+  align-items: center
+  justify-content: center
+  box-shadow: 0 0 0 3px #F1F5F9
+
+.nodeStartDot
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  background: #0F172A
+
+.nodeCO
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  padding: 2px 6px
+  min-width: 28px
+  height: 22px
+  border-radius: 9999px
+  background: #FFFFFF
+  border: 1.5px solid #CBD5E1
+  color: #0F172A
+  font-size: 10.5px
+  font-weight: 700
+  letter-spacing: 0.02em
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06)
+
+.nodeExam
+  width: 22px
+  height: 22px
+  border-radius: 6px
+  background: #EEF2FF
+  border: 1.5px solid #C7D2FE
+  color: #4F46E5
+  display: flex
+  align-items: center
+  justify-content: center
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.1)
+
+// 1. Course Orientation Kickoff Card
+.orientationKickoffCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-left: 4px solid #4F46E5
+  border-radius: 12px
+  padding: 16px 20px
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03)
+  transition: border-color 0.2s ease, box-shadow 0.2s ease
+
+  &:hover
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.05)
+    border-color: #CBD5E1
+    border-left-color: #4F46E5
+
+.kickoffMain
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 20px
+
+  @media (max-width: 768px)
+    flex-direction: column
+    align-items: flex-start
+    gap: 14px
+
+.kickoffHeader
+  display: flex
+  flex-direction: column
+  gap: 6px
+  flex: 1
+  min-width: 0
+
+.kickoffTitleRow
+  display: flex
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.kickoffTitle
+  font-size: 15px
+  font-weight: 700
+  color: #0F172A
+  letter-spacing: -0.01em
+
+.kickoffDesc
+  font-size: 13.5px
+  color: #475569
+  line-height: 1.5
+  margin: 0
+
+.kickoffAction
+  flex-shrink: 0
+  display: flex
+  align-items: center
+
+// Shared Week/Hour Badge
+.weekHourBadge
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 3px 10px
+  border-radius: 9999px
+  background: #F8FAFC
+  border: 1px solid #E2E8F0
+  color: #475569
+  font-size: 12px
+  font-weight: 600
+
+.badgeClockIcon
+  color: #64748B
+  flex-shrink: 0
+
+// 2. Structured 3-Zone Course Outcome Card (CO1–CO4)
+.coCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 12px
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03)
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  transition: border-color 0.2s ease, box-shadow 0.2s ease
+
+  &:hover
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05)
+    border-color: #CBD5E1
+
+// Zone 1 — Header Strip
+.coZoneHeader
+  background: rgba(248, 250, 252, 0.85)
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85)
+  padding: 12px 20px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  flex-wrap: wrap
+
+.coTitleGroup
+  display: flex
+  align-items: center
+  gap: 10px
+
+.coTitle
+  font-size: 15px
+  font-weight: 700
+  color: #0F172A
+  letter-spacing: -0.01em
+
+// Zone 2 — Outcome Reference Body
+.coZoneBody
+  padding: 18px 20px
+  display: flex
+  flex-direction: column
+  gap: 12px
+  background: #FFFFFF
+
+.coDescription
+  font-size: 13.5px
+  color: #334155
+  line-height: 1.6
+  margin: 0
+
+.iloSectionHeader
+  display: flex
+  align-items: center
+  gap: 8px
+  margin-top: 4px
+  margin-bottom: 2px
+
+.iloSectionLabel
+  font-size: 11px
+  font-weight: 700
+  color: #64748B
+  letter-spacing: 0.05em
+  text-transform: uppercase
+
+// Inner Read-Only ILO Reference Cards
+.iloGridRow
+  display: flex
+  flex-direction: row
+  flex-wrap: wrap
+  gap: 14px
+  width: 100%
+
+  @media (max-width: 900px)
+    flex-direction: column
+
+.iloRefCard
+  flex: 1
+  min-width: 220px
+  background: rgba(248, 250, 252, 0.9)
+  border: 1px solid rgba(226, 232, 240, 0.75)
+  border-radius: 8px
+  padding: 14px 16px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  box-shadow: none
+
+.iloRefHeader
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 6px
+
+// The IED level and the "Edit ILO" link beside the ILO badge.
+.iloGridBox_Meta
+  font-size: 11px
+  font-weight: 500
+  color: var(--ink-soft)
+  background: var(--surface-sunken)
+  padding: 2px 10px
+  border-radius: 999px
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  text-decoration: none
+
+.iloBadge
+  display: inline-flex
+  align-items: center
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  color: #334155
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 8px
+  border-radius: 6px
+  letter-spacing: 0.02em
+
+.iloRefDesc
+  font-size: 13px
+  color: #334155
+  line-height: 1.55
+  margin: 0
+
+// Zone 3 — Action Footer Bar
+.coZoneFooter
+  background: rgba(248, 250, 252, 0.55)
+  border-top: 1px solid rgba(226, 232, 240, 0.85)
+  padding: 12px 20px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 14px
+  flex-wrap: wrap
+
+.coFooterPrompt
+  font-size: 12.5px
+  font-weight: 500
+  color: #64748B
+
+// 3. Exam Milestone Dividers
+.milestoneDividerRow
+  display: flex
+  align-items: center
+  width: 100%
+  gap: 16px
+  padding: 6px 0
+
+.milestoneHairline
+  flex: 1
+  height: 1px
+  background: #E2E8F0
+
+.milestonePill
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  padding: 5px 16px
+  border-radius: 9999px
+  background: rgba(238, 242, 255, 0.85)
+  border: 1px solid rgba(199, 210, 254, 0.8)
+  color: #1E1B4B
+  font-size: 12.5px
+  font-weight: 600
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03)
+  flex-shrink: 0
+
+.milestoneFlagIcon
+  color: #4F46E5
+  flex-shrink: 0
+
+.milestoneTitle
+  font-weight: 700
+  color: #1E1B4B
+
+.milestoneSep
+  color: #A5B4FC
+  font-weight: 300
+  margin: 0 2px
+
+.milestoneMetaText
+  color: #4338CA
+  font-size: 12px
+  font-weight: 500
+
+// 4. Map Weekly Content Buttons
+.mapContentsBtnPrimary
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 6px 16px
+  border-radius: 20px
+  background: #dee7fc
+  border: 1px solid #cad6f3
+  color: #191f26 !important
+  font-size: 12.5px
+  font-weight: 500
+  text-decoration: none
+  cursor: pointer
+  transition: all 0.2s ease
+  flex-shrink: 0
+
+  &:hover
+    background: #c9d7fa
+    border-color: #bdcef6
+    //color: #FFFFFF !important
+    transform: translateY(-1px)
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12)
+
+.mapContentsBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  background: #F1F5F9
+  border: 1px solid #E2E8F0
+  padding: 6px 16px
+  border-radius: 20px
+  font-size: 12.5px
+  font-weight: 500
+  color: #334155 !important
+  text-decoration: none
+  cursor: pointer
+  transition: all 0.2s ease
+
+  &:hover
+    background: #E2E8F0
+    border-color: #CBD5E1
+    color: #0F172A !important
+
+// Backwards-compatible aliases
 .gridContainer
   display: flex
   flex-direction: column
-  padding: 0 // Padding is now handled by parent wrapper
+  padding: 0
   gap: 16px
   width: 100%
-  background: transparent // Leverages parent background
+  background: transparent
 
 .coBlock
   display: flex
   flex-direction: column
   background: white
   border: 1px solid #e5e7eb
-  border-radius: 8px
+  border-radius: 12px
   padding: 20px
   gap: 16px
   box-shadow: 0 1px 3px rgba(0,0,0,0.03)
 
-.coHeader
-  display: flex
-  flex-direction: column
-  gap: 8px
-  font-weight: 500
-  font-size: 15px
-  color: #111827
-  border-bottom: 1px solid #f3f4f6
-  padding-bottom: 12px
+@media (max-width: 640px)
+  .roadmapContainer
+    padding-left: 28px
 
-.coHeaderTop
-  display: flex
-  justify-content: space-between
-  align-items: center
-  width: 100%
+    &::before
+      left: 10px
 
-.coTitle
-  font-weight: 600
-  font-size: 15px
-  color: #111827
+  .stepNode,
+  .stepNodeExam
+    left: -28px
+    width: 22px
 
-.coDescription
-  font-size: 13.5px
-  font-weight: 400
-  color: #334155
-  line-height: 1.6
+  .nodeStart
+    width: 16px
+    height: 16px
 
-.coFooter
-  display: flex
-  justify-content: flex-end
-  align-items: center
-  margin-top: 4px
+  .nodeCO
+    font-size: 9.5px
+    min-width: 24px
+    height: 18px
+    padding: 1px 4px
 
-.iloGridRow
-  display: flex
-  flex-direction: row
-  flex-wrap: wrap
-  gap: 16px
-  width: 100%
-  @media (max-width: 900px)
-    flex-direction: column
-
-.iloGridBox
-  display: flex
-  flex-direction: column
-  flex: 1
-  min-width: 250px /* Ensure they stack nicely if screen gets too small but still > 900px */
-  background: #ffffff
-  border: 1px solid #e5e7eb
-  border-radius: 6px
-  padding: 16px
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02)
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease
-  &:hover
-    transform: translateY(-2px)
-    box-shadow: 0 6px 12px rgba(0,0,0,0.05)
-    border-color: #d1d5db
-
-.iloGridBox_Header
-  display: flex
-  justify-content: space-between
-  align-items: center
-  margin-bottom: 10px
-
-.iloGridBox_Title
-  font-weight: 600
-  font-size: 14px
-  color: #111827 // Changed matching standard black
-
-.iloGridBox_Meta
-  font-size: 12px
-  font-weight: 500
-  color: #4b5563
-  background: #f3f4f6
-  padding: 4px 18px // ADDED MORE PADDING LEFT AND RIGHT
-  border-radius: 12px
-  display: flex
-  gap: 6px
-
-.iloGridBox_Desc
-  flex-grow: 1
-  font-size: 13.5px
-  color: #334155
-  line-height: 1.6
-  margin-bottom: 0
-
-.iloGridBox_Footer
-  display: flex
-  justify-content: flex-end
-  align-items: center
-  margin-top: auto
-
-.courseOrientationBox
-  background: #ffffff // Changed from light-blue tint to plain white for consistency
-  border: 1px solid #cbd5e1
-  border-radius: 8px
-  padding: 20px
-  margin-bottom: 0px
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04)
-
-  .iloGridBox_Header
-    border-bottom: 1px solid #e2e8f0
-    padding-bottom: 12px
-    margin-bottom: 12px
-
-  .iloGridBox_Desc
-    margin-bottom: 16px
-
-.mapContentsBtn
-  display: inline-flex
-  align-items: center
-  gap: 6px
-  background: #e9ecef // Changed to previous hover color as default
-  border: 1px solid #ced4da // Made border darker to be visible
-  padding: 6px 14px 6px 18px
-  border-radius: 20px // Fully pill-shaped matching Compose grid mode!
-  font-size: 13px
-  font-weight: 400
-  color: #444 !important
-  text-decoration: none
-  cursor: pointer
-  transition: all 0.2s ease
-  &:hover
-    background: #dee2e6 // Made slightly darker on hover
-    border-color: #adb5bd
-    color: #000 !important
+  .nodeExam
+    width: 18px
+    height: 18px
 
 // Rest of original overlay logic
 .scheduleOverlay
@@ -829,3 +1126,4 @@ section
   .plan-with-comments
     flex-direction: column
     overflow: auto
+

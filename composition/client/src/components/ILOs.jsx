@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Inbox, Search, Edit2 } from "react-feather";
+import { ChevronRight, Inbox, Search, Edit2, Clock, Flag } from "react-feather";
 import { offeringKey, revisionOf } from '../utils/offeringKey.js'
 
 const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
@@ -9,7 +9,6 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
     const [error, setError] = useState(null);
     const [commentCounts, setCommentCounts] = useState({});
 
-    const [_layoutMode] = useState('grid'); // Fixed to grid view
     const [searchTerm, setSearchTerm] = useState('');
 
     // 1. Fetch main ILO Data layer
@@ -153,12 +152,37 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
         return matchLabel || matchDesc || matchCoDesc;
     });
 
+    // Helper for rendering exam milestones along the roadmap
+    const renderExamMilestone = (key, title, meta) => (
+        <div key={key} className={`${styles.roadmapStep} ${styles.roadmapStepMilestone}`}>
+            <div className={styles.stepNodeExam}>
+                <span className={styles.nodeExam} title={title}>
+                    <Flag size={11} />
+                </span>
+            </div>
+            <div className={styles.milestoneDividerRow}>
+                <div className={styles.milestoneHairline} />
+                <div className={styles.milestonePill}>
+                    <Flag size={12} className={styles.milestoneFlagIcon} />
+                    <span className={styles.milestoneTitle}>{title}</span>
+                    {meta && (
+                        <>
+                            <span className={styles.milestoneSep}>|</span>
+                            <span className={styles.milestoneMetaText}>{meta}</span>
+                        </>
+                    )}
+                </div>
+                <div className={styles.milestoneHairline} />
+            </div>
+        </div>
+    );
+
     return (
         <section style={{ display: 'flex', flexDirection: 'column' }}>
 
             <div className={styles.iloHeader}>
                 <div className={styles.iloSearchContainer}>
-                    <Search color="#A4A9AF" size={18} />
+                    <Search color="#94A3B8" size={17} />
                     <input
                         type="text"
                         placeholder="Search ILO number, CO number, or description..."
@@ -169,291 +193,193 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
             </div>
 
             <div className={styles['ilo-container']}>
-                {/* List View Mode (Commented out as view mode is fixed to Grid)
-                {layoutMode === 'list' ? (
-                    <table style={{ minWidth: '100%', width: '100%' }}>
-                        <tbody>
-                        {filteredIlos.length > 0 ? (
-                            filteredIlos.map((ilo, index, array) => {
-                                let examsToRender = [];
-                                const nextIlo = array[index + 1];
-
-                                if (ilo.coNumber === 1 && (!nextIlo || nextIlo.coNumber === 2) && !searchTerm) {
-                                    examsToRender.push(
-                                        <tr key='prelim-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
-                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
-                                                Prelim
-                                            </td>
-                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
-                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
-                                            </td>
-                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
-                                        </tr>
-                                    );
-                                }
-                                if (ilo.coNumber === 2 && (!nextIlo || nextIlo.coNumber === 3) && !searchTerm) {
-                                    examsToRender.push(
-                                        <tr key='midterm-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
-                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
-                                                Midterm
-                                            </td>
-                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
-                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
-                                                Week 9 • 5 Hr
-                                            </td>
-                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
-                                        </tr>
-                                    );
-                                }
-                                if (ilo.coNumber === 3 && (!nextIlo || nextIlo.coNumber === 4) && !searchTerm) {
-                                    examsToRender.push(
-                                        <tr key='semifinal-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
-                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
-                                                Semifinal
-                                            </td>
-                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
-                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
-                                            </td>
-                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
-                                        </tr>
-                                    );
-                                }
-                                if (ilo.coNumber === 4 && (!nextIlo || nextIlo.coNumber > 4) && !searchTerm) {
-                                    examsToRender.push(
-                                        <tr key='finals-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
-                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
-                                                Final
-                                            </td>
-                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
-                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
-                                                Week 18 • 5 Hr
-                                            </td>
-                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
-                                        </tr>
-                                    );
-                                }
-                                return (
-                                    <React.Fragment key={'frag-'+ilo.id}>
-                                    <tr key={ilo.id} style={{ flexWrap: 'nowrap' }}>
-                                        <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0 }}>
-                                            {ilo.entryLabel}
-                                        </td>
-                                        <td style={{ 
-                                            flex: 1, 
-                                            lineHeight: '1.5', 
-                                            whiteSpace: 'normal', 
-                                            wordBreak: 'break-word', 
-                                            paddingRight: '20px', 
-                                            minWidth: '200px' 
-                                        }}>
-                                            {ilo.description}
-                                        </td>
-                                        <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0 }}>
-                                            {ilo.formattedWeekStr} &bull; {ilo.hours} Hr
-                                        </td>
-                                        <td className={styles.fill} style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}>
-                                            <Link className={styles.mapContentsBtn} to={`/topics/form/${ilo.id}/${status}`}>
-                                                Map Contents
-                                                {totalBadges > 0 && (
-                                                    <span className={styles['comment-badge']}>{totalBadges}</span>
-                                                )}
-                                                <ChevronRight size={16} />
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                    {examsToRender}
-                                    </React.Fragment>
-                                );
-                            })
-                        ) : (
-                            <tr className={styles.emptyRow}>
-                                <td colSpan={3}>
-                                    <div className={styles.emptyStateContainer} style={{ padding: '40px' }}>
-                                        <Inbox size={40} strokeWidth={1} />
-                                        <span>No matching results found.</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        )}
-                        </tbody>
-                    </table>
-                ) : (
-                */}
-                <div className={styles.gridContainer}>
-                    {(() => {
-                        if (filteredIlos.length === 0) {
-                            return (
-                                <div className={styles.emptyStateContainer} style={{ padding: '40px' }}>
-                                    <Inbox size={40} strokeWidth={1} />
-                                    <span>No matching results found.</span>
-                                </div>
-                            );
-                        }
-
-                        // 1. Process COs and extract Course Orientation via mapped sequence cache
-                        const courseOrientation = filteredIlos.find(i => i.isOrientation);
-                        const coListForGrid = [];
-
-                        iloData.courseOutcomes.forEach((co) => {
-                            // Extract standard ILOs mapping to this CO that are currently rendered by search mask
-                            const currentIlos = filteredIlos.filter(i => i.co_id === co.co_id && !i.isOrientation);
-
-                            // Only render the CO Container Rectangles if it survives the search check
-                            if (currentIlos.length > 0) {
-                                coListForGrid.push({
-                                    ...co,
-                                    coNumber: co.coNumber || currentIlos[0].coNumber,
-                                    gridIlos: currentIlos
-                                });
-                            }
-                        });
-
+                {(() => {
+                    if (filteredIlos.length === 0) {
                         return (
-                            <>
-                                {/* Render Course Orientation Block */}
-                                {courseOrientation && (() => {
-                                    const orientationWeekId = iloData.courseOutcomes[0]?.weeks?.[0]?.week_id || courseOrientation.id;
-                                    const totalBadges = getTotalBadgeCount(courseOrientation.id);
-                                    return (
-                                        <div className={`${styles.coBlock} ${styles.courseOrientationBox}`}>
-                                            <div className={styles.iloGridBox_Header}>
-                                                <span className={styles.iloGridBox_Title}>Course Orientation</span>
-                                                <span className={styles.iloGridBox_Meta}>
-                                                    {courseOrientation.formattedWeekStr} &bull; {courseOrientation.hours} Hrs
-                                                </span>
-                                            </div>
-                                            <div className={styles.iloGridBox_Desc}>
-                                                {courseOrientation.description}
-                                            </div>
-                                            <div className={styles.iloGridBox_Footer}>
-                                                <Link className={styles.mapContentsBtn} to={`/topics/form/${orientationWeekId}/${status}?orientation=true&${offeringQuery}`}>
-                                                    Map Weekly Content
-                                                    {totalBadges > 0 && (
-                                                        <span className={styles['comment-badge']}>{totalBadges}</span>
+                            <div className={styles.emptyStateContainer} style={{ padding: '40px' }}>
+                                <Inbox size={40} strokeWidth={1} />
+                                <span>No matching results found.</span>
+                            </div>
+                        );
+                    }
+
+                    // 1. Process COs and extract Course Orientation via mapped sequence cache
+                    const courseOrientation = filteredIlos.find(i => i.isOrientation);
+                    const coListForGrid = [];
+
+                    iloData.courseOutcomes.forEach((co) => {
+                        // Extract standard ILOs mapping to this CO that are currently rendered by search mask
+                        const currentIlos = filteredIlos.filter(i => i.co_id === co.co_id && !i.isOrientation);
+
+                        // Only render the CO Container Rectangles if it survives the search check
+                        if (currentIlos.length > 0) {
+                            coListForGrid.push({
+                                ...co,
+                                coNumber: co.coNumber || currentIlos[0].coNumber,
+                                gridIlos: currentIlos
+                            });
+                        }
+                    });
+
+                    return (
+                        <div className={styles.roadmapContainer}>
+                            {/* Course Orientation Kickoff Card */}
+                            {courseOrientation && (() => {
+                                const orientationWeekId = iloData.courseOutcomes[0]?.weeks?.[0]?.week_id || courseOrientation.id;
+                                const totalBadges = getTotalBadgeCount(courseOrientation.id);
+                                return (
+                                    <div key="course-orientation" className={styles.roadmapStep}>
+                                        <div className={styles.stepNode}>
+                                            <span className={styles.nodeStart} title="Course Orientation Start">
+                                                <span className={styles.nodeStartDot} />
+                                            </span>
+                                        </div>
+                                        <div className={styles.orientationKickoffCard}>
+                                            <div className={styles.kickoffMain}>
+                                                <div className={styles.kickoffHeader}>
+                                                    <div className={styles.kickoffTitleRow}>
+                                                        <span className={styles.kickoffTitle}>Course Orientation</span>
+                                                        <span className={styles.weekHourBadge}>
+                                                            <Clock size={12} className={styles.badgeClockIcon} />
+                                                            <span>{courseOrientation.formattedWeekStr} &bull; {courseOrientation.hours} Hrs</span>
+                                                        </span>
+                                                    </div>
+                                                    {courseOrientation.description && (
+                                                        <div className={styles.kickoffDesc}>
+                                                            {courseOrientation.description}
+                                                        </div>
                                                     )}
-                                                    <ChevronRight size={16} />
-                                                </Link>
+                                                </div>
+                                                <div className={styles.kickoffAction}>
+                                                    <Link
+                                                        className={styles.mapContentsBtnPrimary}
+                                                        to={`/topics/form/${orientationWeekId}/${status}?orientation=true&${offeringQuery}`}
+                                                    >
+                                                        <span>Map Weekly Content</span>
+                                                        {totalBadges > 0 && (
+                                                            <span className={styles['comment-badge']}>{totalBadges}</span>
+                                                        )}
+                                                        <ChevronRight size={15} />
+                                                    </Link>
+                                                </div>
                                             </div>
                                         </div>
-                                    );
-                                })()}
+                                    </div>
+                                );
+                            })()}
 
-                                {/* Render the surviving CO Blocks */}
-                                {coListForGrid.map((co, coIndex, array) => {
-                                    const gridExams = [];
-                                    const nextCo = array[coIndex + 1];
+                            {/* Structured 3-Zone Course Outcome Cards & Milestones */}
+                            {coListForGrid.map((co, coIndex, array) => {
+                                const gridExams = [];
+                                const nextCo = array[coIndex + 1];
 
-                                    if (co.coNumber === 1 && (!nextCo || nextCo.coNumber === 2) && !searchTerm) {
-                                        gridExams.push(
-                                            <div key='grid-prelim' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                                    <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Prelim</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                    if (co.coNumber === 2 && (!nextCo || nextCo.coNumber === 3) && !searchTerm) {
-                                        gridExams.push(
-                                            <div key='grid-midterm' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                                    <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Midterm</span>
-                                                    <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>Week 9 • 5 Hr</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                    if (co.coNumber === 3 && (!nextCo || nextCo.coNumber === 4) && !searchTerm) {
-                                        gridExams.push(
-                                            <div key='grid-semifinal' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                                    <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Semifinal</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                    if (co.coNumber === 4 && (!nextCo || nextCo.coNumber > 4) && !searchTerm) {
-                                        gridExams.push(
-                                            <div key='grid-finals' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                                    <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Final</span>
-                                                    <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>Week 18 • 5 Hr</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    }
+                                if (co.coNumber === 1 && (!nextCo || nextCo.coNumber === 2) && !searchTerm) {
+                                    gridExams.push(renderExamMilestone('grid-prelim', 'Prelim', null));
+                                }
+                                if (co.coNumber === 2 && (!nextCo || nextCo.coNumber === 3) && !searchTerm) {
+                                    gridExams.push(renderExamMilestone('grid-midterm', 'Midterm', 'Week 9 • 5 Hr'));
+                                }
+                                if (co.coNumber === 3 && (!nextCo || nextCo.coNumber === 4) && !searchTerm) {
+                                    gridExams.push(renderExamMilestone('grid-semifinal', 'Semifinal', null));
+                                }
+                                if (co.coNumber === 4 && (!nextCo || nextCo.coNumber > 4) && !searchTerm) {
+                                    gridExams.push(renderExamMilestone('grid-finals', 'Final', 'Week 18 • 5 Hr'));
+                                }
 
-                                    const coTotalBadges = (co.weeks || []).reduce(
-                                        (sum, w) => sum + getTotalBadgeCount(w.week_id),
-                                        0
-                                    );
-                                    const targetWeekId = co.weeks?.[0]?.week_id || co.gridIlos[0]?.id || co.co_id;
+                                const coTotalBadges = (co.weeks || []).reduce(
+                                    (sum, w) => sum + getTotalBadgeCount(w.week_id),
+                                    0
+                                );
+                                const targetWeekId = co.weeks?.[0]?.week_id || co.gridIlos[0]?.id || co.co_id;
 
-                                    return (
-                                        <React.Fragment key={'grid-frag-' + co.co_id}>
-                                            <div key={co.co_id} className={styles.coBlock}>
-                                                <div className={styles.coHeader}>
-                                                    <div className={styles.coHeaderTop}>
+                                return (
+                                    <React.Fragment key={'grid-frag-' + co.co_id}>
+                                        <div key={co.co_id} className={styles.roadmapStep}>
+                                            <div className={styles.stepNode}>
+                                                <span className={styles.nodeCO}>
+                                                    CO{co.coNumber}
+                                                </span>
+                                            </div>
+                                            <div className={styles.coCard}>
+                                                {/* Zone 1 — Header Strip */}
+                                                <div className={styles.coZoneHeader}>
+                                                    <div className={styles.coTitleGroup}>
                                                         <span className={styles.coTitle}>
                                                             Course Outcome {co.coNumber}
                                                         </span>
-                                                        <span className={styles.iloGridBox_Meta}>
-                                                            {co.formattedWeekStr} &bull; {co.hours} Hrs
-                                                        </span>
                                                     </div>
+                                                    <div className={styles.weekHourBadge}>
+                                                        <Clock size={12} className={styles.badgeClockIcon} />
+                                                        <span>{co.formattedWeekStr} &bull; {co.hours} Hrs</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Zone 2 — Outcome Reference Body */}
+                                                <div className={styles.coZoneBody}>
                                                     {co.description && (
                                                         <div className={styles.coDescription}>
                                                             {co.description}
                                                         </div>
                                                     )}
-                                                </div>
 
-                                                <div className={styles.iloGridRow}>
-                                                    {co.gridIlos.map((ilo) => (
-                                                        <div key={ilo.id} className={styles.iloGridBox}>
-                                                            <div className={styles.iloGridBox_Header}>
-                                                                <span className={styles.iloGridBox_Title}>
-                                                                    ILO {ilo.iloNumber}
-                                                                </span>
-                                                                {ilo.ied_level && (
-                                                                    <span className={styles.iloGridBox_Meta} title={IED_NAME[ilo.ied_level]}>
-                                                                        {IED_NAME[ilo.ied_level] || ilo.ied_level}
+                                                    <div className={styles.iloSectionHeader}>
+                                                        <span className={styles.iloSectionLabel}>
+                                                            TARGET INTENDED LEARNING OUTCOMES
+                                                        </span>
+                                                    </div>
+
+                                                    <div className={styles.iloGridRow}>
+                                                        {co.gridIlos.map((ilo) => (
+                                                            <div key={ilo.id} className={styles.iloRefCard}>
+                                                                <div className={styles.iloRefHeader}>
+                                                                    <span className={styles.iloBadge}>
+                                                                        ILO {ilo.iloNumber}
                                                                     </span>
-                                                                )}
-                                                                {status !== 'approved' && (
-                                                                    <Link
-                                                                        className={styles.iloGridBox_Meta}
-                                                                        to={`/ilos/form/${encodeURIComponent(iloData.course?.course_no || 'course')}/${ilo.id}?${offeringQuery}`}
-                                                                        title="Edit this ILO: text, IED level and performance target"
-                                                                    >
-                                                                        <Edit2 size={12} /> Edit ILO
-                                                                    </Link>
-                                                                )}
+                                                                    {ilo.ied_level && (
+                                                                        <span className={styles.iloGridBox_Meta} title={IED_NAME[ilo.ied_level]}>
+                                                                            {IED_NAME[ilo.ied_level] || ilo.ied_level}
+                                                                        </span>
+                                                                    )}
+                                                                    {status !== 'approved' && (
+                                                                        <Link
+                                                                            className={styles.iloGridBox_Meta}
+                                                                            to={`/ilos/form/${encodeURIComponent(iloData.course?.course_no || 'course')}/${ilo.id}?${offeringQuery}`}
+                                                                            title="Edit this ILO: text, IED level and performance target"
+                                                                        >
+                                                                            <Edit2 size={12} /> Edit ILO
+                                                                        </Link>
+                                                                    )}
+                                                                </div>
+                                                                <div className={styles.iloRefDesc}>
+                                                                    {ilo.description}
+                                                                </div>
                                                             </div>
-                                                            <div className={styles.iloGridBox_Desc}>
-                                                                {ilo.description}
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                        ))}
+                                                    </div>
                                                 </div>
 
-                                                <div className={styles.coFooter}>
-                                                    <Link className={styles.mapContentsBtn} to={`/topics/form/${targetWeekId}/${status}?${offeringQuery}`}>
-                                                        Map Weekly Content
+                                                {/* Zone 3 — Action Footer Bar */}
+                                                <div className={styles.coZoneFooter}>
+                                                    <span className={styles.coFooterPrompt}>
+                                                        Configure weekly topics, TLAs, and references
+                                                    </span>
+                                                    <Link className={styles.mapContentsBtnPrimary} to={`/topics/form/${targetWeekId}/${status}?${offeringQuery}`}>
+                                                        <span>Map Weekly Content</span>
                                                         {coTotalBadges > 0 && (
                                                             <span className={styles['comment-badge']}>{coTotalBadges}</span>
                                                         )}
-                                                        <ChevronRight size={16} />
+                                                        <ChevronRight size={15} />
                                                     </Link>
                                                 </div>
                                             </div>
-                                            {gridExams}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </>
-                        );
-                    })()}
-                </div>
+                                        </div>
+                                        {gridExams}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
             </div>
         </section>
     );

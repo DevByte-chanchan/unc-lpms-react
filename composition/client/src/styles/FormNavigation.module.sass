@@ -423,6 +423,64 @@
   line-height: 1
   box-shadow: 0 1px 2px rgba(220, 38, 38, 0.25)
 
+// AI Suggest Button in FormNavigation Bar
+.aiSuggestNavBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 6px
+  height: 30px
+  padding: 0 13px
+  margin-left: 4px
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
+  background-size: 200% 200%
+  color: #ffffff
+  border: none
+  border-radius: 6px
+  font-size: 12.5px
+  font-weight: 700
+  letter-spacing: 0.25px
+  cursor: pointer
+  white-space: nowrap
+  flex-shrink: 0
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35)
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1)
+  animation: magicalGlowNav 6s ease infinite alternate
+
+  &:hover
+    transform: translateY(-1px)
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.55), 0 0 10px rgba(236, 72, 153, 0.35)
+    filter: brightness(1.06)
+
+  &:active
+    transform: translateY(0)
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4)
+
+@keyframes magicalGlowNav
+  0%
+    background-position: 0% 50%
+  100%
+    background-position: 100% 50%
+
+.geminiSparkleIcon
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  color: #FFFFFF
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9))
+  animation: sparkleTwinkleNav 2.5s ease-in-out infinite alternate
+
+@keyframes sparkleTwinkleNav
+  0%
+    transform: scale(0.9) rotate(-6deg)
+  100%
+    transform: scale(1.15) rotate(14deg)
+
+.aiBtnText
+  font-weight: 700
+  letter-spacing: 0.2px
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18)
+
 // Smooth CSS Grid Collapse/Expand Wrapper for Course Outcome & ILO Details
 .expandableCollapseWrapper
   display: grid
