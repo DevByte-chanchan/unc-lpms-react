@@ -3,12 +3,12 @@
 .backdrop
   position: fixed
   inset: 0
-  z-index: 1300
-  background: rgba(15, 23, 42, 0.45)
+  z-index: 2999
+  background: var(--backdrop)
 
 .window
   position: fixed
-  z-index: 1301
+  z-index: 3000
   top: 50%
   left: 50%
   display: flex
@@ -16,9 +16,9 @@
   width: min(1180px, calc(100vw - 32px))
   height: min(820px, calc(100vh - 32px))
   transform: translate(-50%, -50%)
-  border-radius: 12px
+  border-radius: 8px
   background: #fff
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
   overflow: hidden
 
 .titleIcon
@@ -29,7 +29,7 @@
   height: 28px
   margin-right: 10px
   border-radius: 8px
-  background: #19282c
+  background: var(--primary)
   color: #fff
   vertical-align: middle
 

@@ -6,7 +6,7 @@ const TYPE_TONE = {
   'suggest-topic': { background: '#e0f2fe', color: '#0369a1' },
   'suggest-tla': { background: '#ede9fe', color: '#6d28d9' },
   'suggest-ai-tool': { background: 'var(--good-soft)', color: 'var(--good)' },
-  'note': { background: '#f1f5f9', color: '#475569' }
+  'note': { background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }
 }
 
 /**
@@ -41,12 +41,12 @@ const CommentMessage = ({ message, className }) => {
       {text && <p className={className} style={{ margin: 0 }}>{text}</p>}
       {suggestions.length > 0 && (
         <div style={{
-          padding: '6px 10px', background: 'var(--warn-soft)', border: '1px solid #fde68a',
+          padding: '6px 10px', background: 'var(--warn-soft)', border: '1px solid var(--warn-line)',
           borderRadius: 4, fontSize: '0.78rem', marginTop: 6,
         }}>
           <div style={{ fontWeight: 600, color: 'var(--warn)', marginBottom: 2 }}>Suggested References:</div>
           {suggestions.map((s, i) => (
-            <div key={i} style={{ color: '#78350f' }}>{s}</div>
+            <div key={i} style={{ color: 'var(--warn)' }}>{s}</div>
           ))}
         </div>
       )}

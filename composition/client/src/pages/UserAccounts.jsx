@@ -11,6 +11,7 @@ import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { getSession } from '../utils/session.js'
+import { confirmDialog } from '../utils/appDialog.jsx'
 
 // User Accounts (feature/course-assignment), for the VPAA and the superuser: every account with its roles and
 // invitation, create an account, change name / email / roles, enable or disable, and send a set-password
@@ -111,12 +112,12 @@ export const UserAccountsPanel = () => {
     }
   }
 
-  const sendLink = (account, kind) => {
+  const sendLink = async (account, kind) => {
     const invite = kind === 'invitation'
     const question = invite
       ? `E-mail ${account.name} a link to set their password? It works for 7 days, and any earlier link stops working.`
       : `E-mail ${account.name} a link to choose a new password? It works for 1 hour.`
-    if (!window.confirm(question)) return
+    if (!(await confirmDialog(question, { title: invite ? 'Send invitation' : 'Send reset link', confirmLabel: 'Send' }))) return
     act(account, async () => {
       const result = await fetchJson(`/api/user-accounts/${account.id}/${invite ? 'send-invitation' : 'send-password-reset'}`, json('POST'))
       if (result.link) setShown({ title: invite ? 'Invitation link' : 'Password reset link', label: result.message, value: result.link })
@@ -124,14 +125,14 @@ export const UserAccountsPanel = () => {
     })
   }
 
-  const resetToTemporary = (account) => {
-    if (!window.confirm(`Issue a new temporary password for ${account.name}? Their current password stops working and they are signed out.`)) return
+  const resetToTemporary = async (account) => {
+    if (!(await confirmDialog(`Their current password stops working and they are signed out.`, { title: `New temporary password for ${account.name}?`, confirmLabel: 'Issue', danger: true }))) return
     act(account, async () => showDelivery(await fetchJson(`/api/user-accounts/${account.id}/reset-password`, json('POST')), account))
   }
 
-  const toggleActive = (account) => {
+  const toggleActive = async (account) => {
     const enable = account.status !== 'Active'
-    if (!enable && !window.confirm(`Disable ${account.name}? They are signed out and cannot sign in until enabled.`)) return
+    if (!enable && !(await confirmDialog('They are signed out and cannot sign in until enabled.', { title: `Disable ${account.name}?`, confirmLabel: 'Disable', danger: true }))) return
     act(account, async () => {
       await fetchJson(`/api/user-accounts/${account.id}`, json('PATCH', { status: enable ? 'Active' : 'Disabled' }))
       setNotice(`${account.name} was ${enable ? 'enabled' : 'disabled'}.`)

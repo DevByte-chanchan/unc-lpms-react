@@ -3,6 +3,7 @@ import { Trash2, Upload } from 'react-feather'
 import { API_BASE, fetchJson, apiErrorMessage } from '../utils/api.js'
 import { actingRole } from '../utils/session.js'
 import { cleanSignatureFile } from '../utils/signatureCleanup.js'
+import { confirmDialog } from '../utils/appDialog.jsx'
 import styles from '../styles/SettingsModal.module.sass'
 
 // Settings > Signature: the e-signature printed on the learning plans this person prepared or approved
@@ -90,7 +91,7 @@ const SignatureTab = () => {
   }
 
   const remove = async () => {
-    if (!window.confirm('Remove your signature? Exports will show only your name again.')) return
+    if (!(await confirmDialog('Exports will show only your name again.', { title: 'Remove your signature?', confirmLabel: 'Remove', danger: true }))) return
     setBusy(true); setError('')
     try {
       await fetchJson('/api/profile/signature', { method: 'DELETE' })

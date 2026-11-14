@@ -26,10 +26,12 @@ test('sign-out lives in the left bar only and opens the shared confirmation inst
 
 test('the shared confirmation is an accessible modal with explicit confirm and cancel actions', () => {
   const source = read('components/SignOutDialog.jsx')
-  assert.match(source, /role="dialog"/)
-  assert.match(source, /aria-modal="true"/)
-  assert.match(source, /aria-labelledby=/)
-  assert.match(source, /event\.key === 'Escape'/)
-  assert.match(source, />Cancel</)
-  assert.match(source, />Sign out</)
+  assert.match(source, /<AppDialog/)
+  assert.match(source, /cancelLabel="Cancel"/)
+  assert.match(source, /confirmLabel="Sign out"/)
+  const dialog = read('components/AppDialog.jsx')
+  assert.match(dialog, /role="alertdialog"/)
+  assert.match(dialog, /aria-modal="true"/)
+  assert.match(dialog, /aria-label=\{title\}/)
+  assert.match(dialog, /event\.key === 'Escape'/)
 })

@@ -16,7 +16,7 @@ import styles from '../styles/DueDateDialog.module.sass';
 //        onClose(), onImported(result)  — result is the server's import response
 const STATUS = {
   invalid: { label: 'Invalid', color: 'var(--danger)', bg: 'rgba(220, 38, 38, 0.08)' },
-  duplicate: { label: 'Already in library', color: '#4B5563', bg: '#F3F4F6' },
+  duplicate: { label: 'Already in library', color: 'var(--ink-soft)', bg: 'var(--surface-sunken)' },
 };
 
 const ImportPreviewModal = ({ source, onClose, onImported }) => {
@@ -57,8 +57,8 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
 
   const shown = result || preview;
   const problems = (shown?.rows || []).filter(row => STATUS[row.status]);
-  const th = { padding: '8px 10px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', background: '#F9FAFB', borderBottom: '1px solid var(--line, #e5e7eb)' };
-  const td = { padding: '8px 10px', textAlign: 'left', fontSize: 13, verticalAlign: 'top', borderBottom: '1px solid var(--line, #e5e7eb)' };
+  const th = { padding: '8px 10px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', background: 'var(--surface-muted)', borderBottom: '1px solid var(--line)' };
+  const td = { padding: '8px 10px', textAlign: 'left', fontSize: 13, verticalAlign: 'top', borderBottom: '1px solid var(--line)' };
   const sub = result
     ? `${result.created} of ${result.total} row${result.total === 1 ? '' : 's'} imported.`
     : preview ? 'Checked against the library. Nothing is saved until you import.' : `Checking ${source.rows.length} row${source.rows.length === 1 ? '' : 's'}…`;
@@ -83,12 +83,12 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
               {result ? (
                 <>
                   <Stat label="Imported" value={result.created} color="var(--good)" />
-                  <Stat label="Skipped" value={result.total - result.created} color="#B45309" />
+                  <Stat label="Skipped" value={result.total - result.created} color="var(--warn)" />
                 </>
               ) : (
                 <>
                   <Stat label="Ready to import" value={preview.valid} color="var(--good)" />
-                  <Stat label="Already in library" value={preview.duplicates} color="#4B5563" />
+                  <Stat label="Already in library" value={preview.duplicates} color="var(--ink-soft)" />
                   <Stat label="Invalid" value={preview.invalid} color="var(--danger)" />
                 </>
               )}
@@ -97,7 +97,7 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
           )}
 
           {problems.length > 0 && (
-            <div style={{ border: '1px solid var(--line, #e5e7eb)', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr><th style={{ ...th, width: 56 }}>Row</th><th style={{ ...th, width: 150 }}>Result</th><th style={th}>Why</th></tr></thead>
                 <tbody>
@@ -135,7 +135,7 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
 };
 
 const Stat = ({ label, value, color }) => (
-  <div style={{ border: '1px solid var(--line, #e5e7eb)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+  <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
     <div style={{ fontSize: 24, fontWeight: 700, color, lineHeight: 1.2 }}>{value}</div>
     <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginTop: 2 }}>{label}</div>
   </div>

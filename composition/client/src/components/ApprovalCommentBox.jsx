@@ -301,13 +301,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       case 'Textbook': return { background: 'var(--good-soft)', color: 'var(--good)' }
       case 'Open Educational Resources': return { background: '#e0f2fe', color: '#0284c7' }
       case 'Online Resources': return { background: '#f3e8ff', color: '#7c3aed' }
-      default: return { background: '#f3f4f6', color: '#374151' }
+      default: return { background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }
     }
   }
 
   const renderRefBrowser = () => (
-    <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
-      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#111827' }}>Suggest References from Library</div>
+    <div style={{ border: '1px solid var(--line)', borderRadius: 6, padding: 16, background: 'var(--surface-muted)', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
+      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--ink)' }}>Suggest References from Library</div>
       <Select
         value={refTypeFilter}
         onChange={(e) => setRefTypeFilter(e.target.value)}
@@ -332,27 +332,27 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           const deprecated = isDeprecated(ref)
           const isSelected = selectedRefs.some(r => r.id === ref.id)
           return (
-            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 6, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid #1e3a5f' : '1px solid #e5e7eb', transition: 'all 0.15s ease' }}>
+            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 6, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid var(--primary)' : '1px solid var(--line)', transition: 'all 0.15s ease' }}>
               <input
                 type="checkbox"
                 checked={isSelected}
                 onChange={() => toggleRefSelection(ref)}
-                style={{ accentColor: '#1e3a5f', width: 18, height: 18, marginTop: 3, flexShrink: 0 }}
+                style={{ accentColor: 'var(--primary)', width: 18, height: 18, marginTop: 3, flexShrink: 0 }}
               />
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, ...badgeStyle, whiteSpace: 'nowrap' }}>{ref.type}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{ref.title}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{ref.title}</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#6b7280' }}>{ref.authors} &middot; {ref.year || 'N/A'}</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-muted)' }}>{ref.authors} &middot; {ref.year || 'N/A'}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {deprecated && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'var(--warn-soft)', color: '#b45309' }}>Deprecated</span>}
+                  {deprecated && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'var(--warn-soft)', color: 'var(--warn)' }}>Deprecated</span>}
                 </div>
               </div>
             </label>
           )
         }) : (
-          <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
+          <div style={{ padding: 30, textAlign: 'center', color: 'var(--ink-faint)', fontSize: 14 }}>
             {searchTerm ? 'No matching references found.' : 'No references in library yet. Add references first in the Reference Library page.'}
           </div>
         )}
@@ -467,12 +467,12 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             previousComments.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {previousComments.map(c => (
-                  <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
+                  <div key={c.id} style={{ padding: '10px 12px', background: 'var(--surface-muted)', borderRadius: 6, border: '1px solid var(--line)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{c.courseCode || ''}</span>
-                      <span style={{ fontSize: 11, color: '#9ca3af' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-muted)' }}>{c.courseCode || ''}</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{c.text || c.comment || ''}</p>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)', whiteSpace: 'pre-wrap' }}>{c.text || c.comment || ''}</p>
                   </div>
                 ))}
               </div>
@@ -489,11 +489,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 <div className={styles.directorWorkspace}>
               <div className={styles.directorPlan}>
               {syllabusReferences.length > 0 && (
-                <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#111827' }}>Learning Plan References</div>
+                <div style={{ border: '1px solid var(--line)', borderRadius: 6, padding: 16, background: 'var(--surface-muted)', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--ink)' }}>Learning Plan References</div>
                   <div style={{ overflow: 'auto', flex: 1, minHeight: 0, paddingRight: 18 }}>
                   {comments.map((c, idx) => (
-                    <div key={c.id} style={{ marginBottom: idx < comments.length - 1 ? 12 : 0, paddingBottom: idx < comments.length - 1 ? 12 : 0, borderBottom: idx < comments.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                    <div key={c.id} style={{ marginBottom: idx < comments.length - 1 ? 12 : 0, paddingBottom: idx < comments.length - 1 ? 12 : 0, borderBottom: idx < comments.length - 1 ? '1px solid var(--line)' : 'none' }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                         <Select
                           value={c.commentedRefId}
@@ -568,18 +568,18 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             <div style={{
                               display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center',
                               marginBottom: 14, padding: '8px 12px',
-                              background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8
+                              background: 'var(--surface-muted)', border: '1px solid var(--line)', borderRadius: 8
                             }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                 Commenting on
                               </span>
                               {c.courseOutcome && (
-                                <span style={{ ...chipBase, background: '#f1f5f9', color: '#475569' }}>
+                                <span style={{ ...chipBase, background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }}>
                                   [CO: {c.courseOutcome}]
                                 </span>
                               )}
                               {c.ilo && (
-                                <span style={{ ...chipBase, background: '#f1f5f9', color: '#475569' }}>
+                                <span style={{ ...chipBase, background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }}>
                                   [{iloLabel(c.ilo)}]
                                 </span>
                               )}
@@ -665,7 +665,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               <option key={t.key} value={t.key}>{t.label}</option>
                             ))}
                           </Select>
-                          <span style={{ fontSize: 11, color: '#94a3b8' }}>{commentTypeMeta(c.commentType).hint}</span>
+                          <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{commentTypeMeta(c.commentType).hint}</span>
                         </div>
 
                         <div className={styles.field}>
@@ -716,8 +716,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       {showDiscardConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }} onClick={cancelDiscard}>
           <div style={{ background: 'white', borderRadius: 16, width: 380, maxWidth: '90vw', padding: 28, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 18, fontWeight: 600, color: '#1f2937', marginBottom: 8 }}>Discard unsaved changes?</div>
-            <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>You have unsaved comments that will be lost.</div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>Discard unsaved changes?</div>
+            <div style={{ fontSize: 14, color: 'var(--ink-muted)', marginBottom: 24 }}>You have unsaved comments that will be lost.</div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <button onClick={cancelDiscard} className="btn btn-secondary">Cancel</button>
               <button onClick={confirmDiscard} className="btn btn-danger">Discard</button>

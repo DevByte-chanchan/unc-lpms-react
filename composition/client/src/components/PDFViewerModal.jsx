@@ -267,7 +267,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
   return (
     <>
       {!isFullscreen && (
-        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100 + layer }} />
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--backdrop)', zIndex: 100 + layer }} />
       )}
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={`${kind || 'Document'} preview: ${title}`} className={styles.modal} style={modalStyle}>
         {/* Header */}
