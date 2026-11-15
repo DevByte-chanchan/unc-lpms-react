@@ -336,7 +336,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 0;
+  // 10px, not 14px: with long names now wrapping, the rail fits a 864px-tall screen without its own scrollbar.
+  padding: 10px 0;
   border-top: 1px solid #d9e0e2;
 }
 
@@ -357,8 +358,11 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  height: 36px;
-  padding: 0 8px;
+  // At least 36px; a long name ("School of Computer and Information Sciences") wraps to a second line instead of
+  // being cut off in a 190px column.
+  min-height: 36px;
+  padding: 5px 8px;
+  box-sizing: border-box;
   border: 0;
   border-radius: var(--control-radius);
   background: transparent;
@@ -370,9 +374,8 @@
 
 .facetOption > span:first-child {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .facetOption:hover {
@@ -432,6 +435,9 @@
 
 .previewPane {
   min-width: 0;
+  // No taller than its column: past it the grid clipped the card and cut Edit / Archive off at the bottom.
+  max-height: 100%;
+  box-sizing: border-box;
   padding: 14px 16px;
   overflow-y: auto;
   align-self: start;
@@ -747,9 +753,10 @@ button.previewClose.previewClose {
   }
 
   /* Title, author(s), type, year: the record ID is not shown (it is in the preview header). */
-  th:nth-child(1), td:nth-child(1) { width: 46%; }
+  // Type gets room for its longest badge ("Online Resource"); Title keeps the most and shows the rest on hover.
+  th:nth-child(1), td:nth-child(1) { width: 43%; }
   th:nth-child(2), td:nth-child(2) { width: 25%; }
-  th:nth-child(3), td:nth-child(3) { width: 17%; }
+  th:nth-child(3), td:nth-child(3) { width: 20%; }
   th:nth-child(4), td:nth-child(4) {
     width: 12%;
     padding-right: 8px;

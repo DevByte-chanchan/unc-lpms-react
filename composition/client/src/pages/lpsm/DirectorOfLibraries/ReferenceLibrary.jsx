@@ -64,6 +64,9 @@ const YEAR_LABELS = {
 // The References / Courses switch: an icon and its word, so it does not read as a list / grid toggle of the same items.
 const SWITCH_BTN = { gap: 6, padding: '6px 10px', fontSize: 13, fontWeight: 500 };
 
+// The badge in a narrow column: the abbreviation when the name ends in one, "Open Educational Resource (OER)" -> "OER".
+const shortTypeLabel = type => { const label = typeLabel(type); return label.match(/\(([^)]+)\)\s*$/)?.[1] || label; };
+
 const ReferenceLibrary = () => {
   const [references, setReferencesState] = useState([]);
   const [loadState, setLoadState] = useState({ loading: true, error: '' });
@@ -250,11 +253,28 @@ const ReferenceLibrary = () => {
     return () => window.removeEventListener('keydown', closePanels);
   }, []);
 
+  // A page holds as many rows as the table has room for. With a fixed 15 the table body scrolled inside itself above
+  // the pager (about 8 rows showed, the last cut in half), so there were two ways to move through the list. The body's
+  // height comes from the layout, not from its rows, so measuring it cannot feed back into itself.
+  const [tbodyEl, setTbodyEl] = useState(null); // a callback ref: the observer follows the body the table actually renders
   useEffect(() => {
-    const updatePageSize = () => setPageSize(referencePageSizeForWidth(window.innerWidth));
-    window.addEventListener('resize', updatePageSize);
-    return () => window.removeEventListener('resize', updatePageSize);
-  }, []);
+    const fit = () => {
+      const body = tbodyEl;
+      const row = body?.rows?.[0];
+      const scrolls = body && /auto|scroll/.test(getComputedStyle(body).overflowY);
+      if (!scrolls || !row || !row.offsetHeight) return setPageSize(referencePageSizeForWidth(window.innerWidth));
+      // Rows sit rowGap apart and the body keeps its bottom padding, so both come off the space before dividing.
+      const style = getComputedStyle(body);
+      const gap = parseFloat(style.rowGap) || 0;
+      const room = body.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
+      setPageSize(Math.max(5, Math.floor((room + gap) / (row.offsetHeight + gap))));
+    };
+    fit();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+    if (observer && tbodyEl) observer.observe(tbodyEl);
+    window.addEventListener('resize', fit);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', fit); };
+  }, [tbodyEl, sortedReferences.length > 0]); // re-measure once there is a row to measure
 
   useEffect(() => {
     setPage(1);
@@ -576,7 +596,7 @@ const ReferenceLibrary = () => {
           <TableScrollRegion label="Reference Library" minWidth={520} className={`${styles.tableWrapper} app-table`}>
             <table>
               <thead><tr>{REFERENCE_LIBRARY_COLUMNS.map(column => <SortableTh key={column.key} col={column} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={handleSort} fill />)}</tr></thead>
-              <tbody>
+              <tbody ref={setTbodyEl}>
                 {pageResult.items.length > 0 ? pageResult.items.map(ref => (
                   <tr
                     key={ref.id}
@@ -588,7 +608,7 @@ const ReferenceLibrary = () => {
                   >
                     <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle} title={ref.title}>{ref.title}</span>{unavailableReason(ref) && <span className={styles.issueBadge} title="Cannot be attached to a new plan">{unavailableReason(ref) === 'no copies left' ? 'No copies' : unavailableReason(ref).charAt(0).toUpperCase() + unavailableReason(ref).slice(1)}</span>}</div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
                     <td><span className={styles.cellEllipsis} title={ref.authors || undefined}>{ref.authors || '—'}</span></td>
-                    <td className={styles.cellNowrap}><span className={styles.typeBadge} title={typeLabel(ref.type)}>{typeLabel(ref.type)}</span></td>
+                    <td className={styles.cellNowrap}><span className={styles.typeBadge} title={typeLabel(ref.type)}>{shortTypeLabel(ref.type)}</span></td>
                     <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR, rules.recencyYears) && <span className={styles.deprecatedMarker} role="img" title={`May need review — published ${rules.recencyYears} or more years ago`} aria-label={`May need review — published ${rules.recencyYears} or more years ago`} />}</td>
                   </tr>
                 )) : loadState.loading ? (
