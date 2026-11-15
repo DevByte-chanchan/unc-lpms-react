@@ -315,10 +315,12 @@ export const canAcceptOnStage = (roleKey, workflow = {}) =>
 
 // The syllabus may be exported once the Director of Libraries and the Program Head have both
 // accepted, even before the Dean. Until the Dean accepts, the export is marked
-// "Pending Dean approval".
+// "Pending Dean approval". A returned plan is back with its instructor, not waiting for the Dean, so it cannot be
+// exported as one until it is resubmitted (earlier approvals on it no longer stand).
 export const exportEligibility = (workflow = {}) => {
     const approved = workflow.currentStage === 'approved' || workflow.dean?.status === 'done'
-    const reviewersDone = workflow.parallelReview?.library_director?.status === 'done'
+    const reviewersDone = workflow.currentStage !== 'returned'
+        && workflow.parallelReview?.library_director?.status === 'done'
         && workflow.parallelReview?.program_head?.status === 'done'
     return { allowed: approved || reviewersDone, approved, pendingDean: !approved && reviewersDone }
 }

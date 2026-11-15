@@ -206,4 +206,10 @@ test('the syllabus can be exported once the Director of Libraries and Program He
   eq(approved.approved, true, 'approved');
 });
 
+test('a returned plan cannot be exported as pending the Dean, even if both reviewers had accepted it', () => {
+  const returned = exportEligibility({ ...READY_FOR_DEAN, currentStage: 'returned' });
+  eq(returned.allowed, false, 'returned to the instructor');
+  eq(returned.pendingDean, false, 'not waiting on the Dean');
+});
+
 console.log('\nAll review gate checks passed.');
