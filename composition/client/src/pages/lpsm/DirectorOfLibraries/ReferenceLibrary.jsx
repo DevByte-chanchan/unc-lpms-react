@@ -431,9 +431,11 @@ const ReferenceLibrary = () => {
               <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={15} /> Bulk Upload
               </button>
-              <button className="btn btn-secondary" type="button" onClick={() => setRulesOpen(true)}
-                title={`Recent = last ${rules.recencyYears} years. Change the rules for everyone`}>
-                <Sliders size={15} /> Rules
+              {/* A once-in-a-while setting: an icon button, so the row reads as Add and Bulk Upload. A menu holding only
+                  this would cost an extra click for nothing. */}
+              <button className="app-icon-btn" type="button" onClick={() => setRulesOpen(true)}
+                aria-label="Reference rules" title={`Reference rules: recent = last ${rules.recencyYears} years. Change them for everyone`}>
+                <Sliders size={16} />
               </button>
             </div>
             <CatalogRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)}
@@ -538,18 +540,19 @@ const ReferenceLibrary = () => {
 
           <div className={styles.facetGroup}>
             <h3 className={styles.facetGroupTitle}>Reference type</h3>
-            {facets.types.map(item => <button key={item.value} className={`${styles.facetOption} ${filterType === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterType === item.value} onClick={() => setFilterType(current => current === item.value ? '' : item.value)}><span>{typeLabel(item.value)}</span><span className={styles.facetCount}>{item.count}</span></button>)}
+            {facets.types.filter(item => item.count > 0 || filterType === item.value).map(item => <button key={item.value} className={`${styles.facetOption} ${filterType === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterType === item.value} onClick={() => setFilterType(current => current === item.value ? '' : item.value)}><span>{typeLabel(item.value)}</span><span className={styles.facetCount}>{item.count}</span></button>)}
           </div>
 
           <div className={styles.facetGroup}>
             <h3 className={styles.facetGroupTitle}>Publication year</h3>
-            {facets.years.map(item => <button key={item.value} className={`${styles.facetOption} ${filterYear === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterYear === item.value} onClick={() => setFilterYear(current => current === item.value ? '' : item.value)}><span>{YEAR_LABELS[item.value]}</span><span className={styles.facetCount}>{item.count}</span></button>)}
+            {/* An option with nothing under it narrows nothing: hidden unless it is the one selected. */}
+            {facets.years.filter(item => item.count > 0 || filterYear === item.value).map(item => <button key={item.value} className={`${styles.facetOption} ${filterYear === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterYear === item.value} onClick={() => setFilterYear(current => current === item.value ? '' : item.value)}><span>{YEAR_LABELS[item.value]}</span><span className={styles.facetCount}>{item.count}</span></button>)}
           </div>
 
           <div className={styles.facetGroup}>
             <h3 className={styles.facetGroupTitle}>Record status</h3>
             <button className={`${styles.facetOption} ${tab === 'active' ? styles.facetOptionActive : ''}`} type="button" aria-pressed={tab === 'active'} onClick={() => { setTab('active'); setRecentOnly(false); }}><span>Active</span><span className={styles.facetCount}>{activeRefs.length}</span></button>
-            <button className={`${styles.facetOption} ${tab === 'archived' ? styles.facetOptionActive : ''}`} type="button" aria-pressed={tab === 'archived'} onClick={() => { setTab('archived'); setRecentOnly(false); }}><span>Archived</span><span className={styles.facetCount}>{archivedRefs.length}</span></button>
+            {(archivedRefs.length > 0 || tab === 'archived') && <button className={`${styles.facetOption} ${tab === 'archived' ? styles.facetOptionActive : ''}`} type="button" aria-pressed={tab === 'archived'} onClick={() => { setTab('archived'); setRecentOnly(false); }}><span>Archived</span><span className={styles.facetCount}>{archivedRefs.length}</span></button>}
           </div>
         </aside>
 
@@ -656,31 +659,57 @@ const ReferenceLibrary = () => {
             <>
               <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
               {isReferenceDeprecated(previewReference, CURRENT_YEAR, rules.recencyYears) && <div className={styles.warningBanner}>{`This reference is ${rules.recencyYears} years old or older and may need review.`}</div>}
-              <dl className={styles.previewMetadata}>
-                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Filed under</dt><dd>
-                  <div className={styles.courseLinks}>
-                    {previewCourses === null ? 'Loading…' : previewCourses.length === 0 ? 'No course yet' : previewCourses.map(c => (
-                      <span key={c.course_id} className={styles.courseChecking} title={c.course_title}>
-                        {c.course_no}{' '}
-                        <button type="button" className="app-icon-close" style={{ width: 18, height: 18, minHeight: 18, padding: 0 }} disabled={filing}
-                          onClick={() => fileUnderCourse(c.course_id, true)} aria-label={`Remove from ${c.course_no}`}><X size={11} /></button>
-                      </span>
-                    ))}
-                  </div>
-                  {!previewReference.archived && (
-                    // The panel's value column is narrow: the course picker takes the whole row, Add goes under it.
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                      <div style={{ flex: '1 1 100%', minWidth: 0 }}>
-                        <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="Course…" aria-label="Course to file this reference under">
-                          {allCourses.filter(c => !(previewCourses || []).some(f => f.course_id === c.id)).map(c => <option key={c.id} value={String(c.id)}>{`${c.code} — ${c.title}`}</option>)}
-                        </Select>
-                      </div>
-                      <button type="button" className="btn btn-secondary btn-sm" disabled={!courseToAdd || filing} onClick={() => fileUnderCourse(Number(courseToAdd))}>Add</button>
-                    </div>
+              {(() => {
+                // Only the fields that hold something. Half the rows used to read "Not provided" / "Not recorded",
+                // which is noise; one link says what is missing and opens Edit to fill it in.
+                const r = previewReference;
+                const status = r.status || 'available';
+                const fields = [
+                  ['Author(s)', r.authors], ['Type', typeLabel(r.type)], ['ISBN', r.isbn], ['Year', r.year],
+                  ['Publisher', r.publisher], ['Status', status.charAt(0).toUpperCase() + status.slice(1)],
+                  ['Copies', r.copies], ['Category', r.category], ['Date received', r.received],
+                ];
+                const shown = fields.filter(([, v]) => v != null && String(v).trim() !== '');
+                const missing = fields.filter(([, v]) => v == null || String(v).trim() === '').map(([k]) => k);
+                return (<>
+                  <dl className={styles.previewMetadata}>
+                    {shown.map(([k, v]) => <React.Fragment key={k}><dt>{k}</dt><dd>{v}</dd></React.Fragment>)}
+                    {sanitizeUrl(r.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(r.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
+                  </dl>
+                  {missing.length > 0 && (
+                    <button type="button" className={styles.missingLink} title={`Not recorded: ${missing.join(', ')}`}
+                      onClick={() => { setEditRef(r); setAddRefOpen(true); }}>
+                      {`Add missing details (${missing.length})`}
+                    </button>
                   )}
-                </dd><dt>Used in plans</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No plan uses it yet'}</dd>
-                {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
-              </dl>
+                </>);
+              })()}
+              {/* Everything about courses in one block: where it is filed, filing it somewhere else, and which plans use it. */}
+              <section className={styles.previewCourses} aria-label="Courses">
+                <h3 className={styles.previewSectionTitle}>Courses</h3>
+                <div className={styles.courseLinks}>
+                  {previewCourses === null ? 'Loading…' : previewCourses.length === 0 ? <span className={styles.previewMuted}>Not filed under a course yet</span> : previewCourses.map(c => (
+                    <span key={c.course_id} className={styles.courseChecking} title={c.course_title}>
+                      {c.course_no}{' '}
+                      <button type="button" className="app-icon-close" style={{ width: 18, height: 18, minHeight: 18, padding: 0 }} disabled={filing}
+                        onClick={() => fileUnderCourse(c.course_id, true)} aria-label={`Remove from ${c.course_no}`}><X size={11} /></button>
+                    </span>
+                  ))}
+                </div>
+                {!previewReference.archived && (
+                  <div className={styles.fileRow}>
+                    <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                      <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="Course…" aria-label="Course to file this reference under">
+                        {allCourses.filter(c => !(previewCourses || []).some(f => f.course_id === c.id)).map(c => <option key={c.id} value={String(c.id)}>{`${c.code} — ${c.title}`}</option>)}
+                      </Select>
+                    </div>
+                    <button type="button" className="btn btn-secondary" disabled={!courseToAdd || filing} onClick={() => fileUnderCourse(Number(courseToAdd))}>Add</button>
+                  </div>
+                )}
+                <p className={styles.previewMuted}>
+                  Used in plans: {(previewReference.usedInCourses || []).length ? <span className={styles.courseLinks} style={{ display: 'inline-flex' }}>{previewReference.usedInCourses.map(renderUsedInCourse)}</span> : 'none yet'}
+                </p>
+              </section>
               <div className={styles.previewActions}>
                 <button className="btn btn-primary" type="button" onClick={() => { setEditRef(previewReference); setAddRefOpen(true); }}><Edit2 size={13} /> Edit</button>
                 {previewReference.archived ? (
