@@ -682,7 +682,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // Said on the page, not only in a toast after a click: why this approver cannot act on the plan yet.
   const isApprover = ['director-of-libraries', 'program-head', 'dean'].includes(roleKey)
-  const waitingNotice = (isApprover && effectiveStatus !== 'approved' && reviewRecordAvailable && !isRoleActive() && !hasRoleApproved())
+  // A returned plan blocks Approve for everyone (canAcceptOnStage), even an approver whose turn it otherwise is,
+  // so the reason is shown then too, not only when it is someone else's turn.
+  const blockedStage = workflowState.currentStage === 'returned'
+  const waitingNotice = (isApprover && effectiveStatus !== 'approved' && reviewRecordAvailable && (!isRoleActive() || blockedStage) && !hasRoleApproved())
     ? (roleKey === 'dean' && !['returned', 'draft', 'with_program_head'].includes(workflowState.currentStage)
       ? 'Your review opens once the Director of Libraries and the Program Head have approved this plan.'
       // The strip above already says "Returned by … — with the instructor"; the notice adds only what to expect next.
@@ -1021,11 +1024,13 @@ ${suggestionLine}` : text,
               // of the comment panel; the ⋮ menu reopens them (Suggestions) for editing.
               const blocked = !reviewRecordAvailable || !canComment
               return (<>
-                <button type="button" className={`btn btn-primary ${blocked ? styles['disabled-btn'] : ''}`} aria-disabled={blocked} onClick={() => {
+                {/* Once signed it reopens their own review: a plain button with a plain name ("Signed · Suggestions" read as a
+                    status, not an action). The signed state itself is on the approval strip. */}
+                <button type="button" className={`btn ${mySignoff ? 'btn-secondary' : 'btn-primary'} ${blocked ? styles['disabled-btn'] : ''}`} aria-disabled={blocked} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
                   if (blocked) { showToastMsg('Suggest & Sign opens once the Dean approves this learning plan.', 'warning'); return }
                   setReviewOpen(true)
-                }}><PenTool size={16} /> {mySignoff ? 'Signed · Suggestions' : 'Suggest & Sign'}</button>
+                }}><PenTool size={16} /> {mySignoff ? 'View my review' : 'Suggest & Sign'}</button>
                 {effectiveStatus === 'approved' && exportMenu(true)}
               </>)
             }
