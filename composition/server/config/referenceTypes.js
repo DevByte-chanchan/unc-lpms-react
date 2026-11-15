@@ -39,7 +39,7 @@ const REFERENCE_TYPES = Object.freeze({
         label: 'Textbook',
         group: 'Textbook',
         required: ['title', 'authors', 'isbn', 'year'],
-        optional: ['publisher', 'link', 'copies', 'status', 'category', 'received']
+        optional: ['publisher', 'copies', 'status', 'category', 'received']
     },
     OER: {
         label: 'Open Educational Resource (OER)',
@@ -73,6 +73,8 @@ const describeTypes = () => TYPE_KEYS.map(key => {
         label: (type.labels && type.labels[fieldKey]) || FIELDS[fieldKey].label,
         kind: FIELDS[fieldKey].kind,
         required,
+        // `max` lets the form stop typing at the limit instead of refusing it on save.
+        ...(FIELDS[fieldKey].max ? { max: FIELDS[fieldKey].max } : {}),
         ...(FIELDS[fieldKey].options ? { options: FIELDS[fieldKey].options, default: FIELDS[fieldKey].default } : {})
     });
     return { key, label: type.label, group: type.group, fields: [...type.required.map(f => field(f, true)), ...type.optional.map(f => field(f, false))] };

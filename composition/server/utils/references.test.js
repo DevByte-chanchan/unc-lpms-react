@@ -99,10 +99,12 @@ test('field rules: ISBN, year, link, lengths; fields a type does not use are dro
     assert.match(textbook({ year: '1850' }).errors.year, /between 1900/);
     assert.match(textbook({ year: String(new Date().getFullYear() + 5) }).errors.year, /between 1900/);
     assert.match(textbook({ title: 'x'.repeat(201) }).errors.title, /at most 200/);
-    assert.equal(textbook({ link: 'https://example.org/book' }).ok, true, 'optional link is allowed on a textbook');
-    assert.match(textbook({ link: 'javascript:alert(1)' }).errors.link, /http\(s\)/);
-    assert.match(textbook({ link: 'ftp://example.org/x' }).errors.link, /http\(s\)/);
-    assert.match(textbook({ link: 'not a url' }).errors.link, /http\(s\)/);
+    // A textbook has no link (the plan form drops it and the syllabus never prints it): anything sent is ignored.
+    assert.equal(textbook({ link: 'https://example.org/book' }).values.link, null);
+    const oer = (patch) => validateReference({ ...GOOD.OER, ...patch });
+    assert.match(oer({ link: 'javascript:alert(1)' }).errors.link, /http\(s\)/);
+    assert.match(oer({ link: 'ftp://example.org/x' }).errors.link, /http\(s\)/);
+    assert.match(oer({ link: 'not a url' }).errors.link, /http\(s\)/);
 
     // A subscription has no ISBN: anything sent for it is ignored.
     const subscription = validateReference({ ...GOOD['Online Subscription'], isbn: '978-1-119-80036-1' });
@@ -201,13 +203,13 @@ test('edit: validated, changes only what changed, audited with the changed field
     assert.equal(same.status, 200);
     assert.equal((await auditFor('REFERENCE_UPDATED', ref.reference_id)).length, 0, 'no change, no audit entry');
 
-    const edited = await call(DIRECTOR, 'PUT', `/${ref.reference_id}`, { ...body, title: ref.title + ' 2nd ed.', year: '2024', link: 'https://example.org/b' });
+    const edited = await call(DIRECTOR, 'PUT', `/${ref.reference_id}`, { ...body, title: ref.title + ' 2nd ed.', year: '2024', publisher: 'Pearson' });
     assert.equal(edited.status, 200);
     const stored = await Reference.findByPk(ref.reference_id);
     assert.equal(stored.title, ref.title + ' 2nd ed.');
     const [entry] = await auditFor('REFERENCE_UPDATED', ref.reference_id);
-    assert.deepEqual(JSON.parse(entry.details), { reference_id: ref.reference_id, changed: ['title', 'year', 'link'] });
-    assert.ok(!entry.details.includes('2nd ed.') && !entry.details.includes('example.org'));
+    assert.deepEqual(JSON.parse(entry.details), { reference_id: ref.reference_id, changed: ['title', 'year', 'publisher'] });
+    assert.ok(!entry.details.includes('2nd ed.') && !entry.details.includes('Pearson'));
 
     // Changing the type re-validates against the new type's fields.
     const toSub = await call(DIRECTOR, 'PUT', `/${ref.reference_id}`, { type: 'Online Subscription', title: ref.title });
