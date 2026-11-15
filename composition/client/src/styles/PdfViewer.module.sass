@@ -82,6 +82,7 @@
 
 // centred by margins, so a page zoomed wider than the viewer still scrolls to its left edge
 .page
+  position: relative
   flex-shrink: 0
   margin: 0 auto
   background: #fff
@@ -89,6 +90,35 @@
 
   canvas
     display: block
+
+// The stand-in page while the PDF loads: letter-shaped, with grey lines where the text will be.
+.sheet
+  display: flex
+  flex-direction: column
+  gap: 10px
+  width: min(560px, 100%)
+  aspect-ratio: 8.5 / 11
+  padding: 8% 9%
+  box-sizing: border-box
+
+// The same lines over a page whose canvas is still drawing.
+.sheetOverlay
+  position: absolute
+  inset: 0
+  display: flex
+  flex-direction: column
+  gap: 10px
+  padding: 8% 9%
+  background: #fff
+
+.sheetGap
+  height: 14px
+
+.sheetLabel
+  margin: 12px 0 0
+  text-align: center
+  color: var(--ink-muted)
+  font-size: 13px
 
 .note
   padding: 24px

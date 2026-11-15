@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Columns, Download, File, Maximize, Minimize2, Printer, ZoomIn, ZoomOut } from 'react-feather'
 import styles from '../styles/PdfViewer.module.sass'
+import { Bone, Loading } from './LoadingSkeleton.jsx'
 
 // The app's own PDF viewer, laid out like the export preview (PDFViewerModal) without its close button: the title on
 // the left; zoom out / % / zoom in / fit width or page; previous / page X / Y / next; print, Download PDF, full screen.
@@ -154,7 +155,14 @@ const PdfViewer = ({ bytes, fileName = 'document.pdf', kind = 'PDF', title, deta
 
       <div ref={scroller} className={styles.pages}>
         {error && <div role="alert" className={styles.note}>{error}</div>}
-        {!doc && !error && <div className={styles.note}>Loading…</div>}
+        {/* A blank page the size of the one that is coming, so the wait reads as "the document is being drawn"
+            rather than a stray word in an empty grey box, and the page does not jump when it arrives. */}
+        {!doc && !error && (
+          <Loading label="Loading the document…">
+            <SheetLines className={`${styles.page} ${styles.sheet}`} />
+            <p className={styles.sheetLabel}>Loading the document…</p>
+          </Loading>
+        )}
         {doc && scale > 0 && Array.from({ length: pages }, (_, i) => (
           <PdfPage key={i} doc={doc} number={i + 1} scale={scale} ref={el => { pageRefs.current[i] = el }} />
         ))}
@@ -163,13 +171,27 @@ const PdfViewer = ({ bytes, fileName = 'document.pdf', kind = 'PDF', title, deta
   )
 }
 
+// Grey placeholder lines laid out like a page of text: a heading, then two paragraphs.
+const SheetLines = ({ className }) => (
+  <div className={className} aria-hidden="true">
+    <Bone w="45%" h={18} />
+    <Bone w="70%" h={12} />
+    <span className={styles.sheetGap} />
+    {['100%', '96%', '100%', '88%', '100%', '92%', '60%'].map((w, i) => <Bone key={i} w={w} h={10} />)}
+    <span className={styles.sheetGap} />
+    {['100%', '94%', '100%', '72%'].map((w, i) => <Bone key={`b${i}`} w={w} h={10} />)}
+  </div>
+)
+
 // One page drawn on a canvas at the screen's pixel density, re-drawn when the zoom changes.
 const PdfPage = ({ doc, number, scale, ref }) => {
   const canvas = useRef(null)
   const [size, setSize] = useState(null)
+  const [drawn, setDrawn] = useState(false)
   useEffect(() => {
     let task = null
     let cancelled = false
+    // drawn stays true after the first draw: a zoom re-draw keeps the old picture rather than flashing the lines
     doc.getPage(number).then(page => {
       if (cancelled) return
       const ratio = window.devicePixelRatio || 1
@@ -180,13 +202,15 @@ const PdfPage = ({ doc, number, scale, ref }) => {
       c.height = Math.floor(viewport.height)
       setSize({ w: viewport.width / ratio, h: viewport.height / ratio })
       task = page.render({ canvasContext: c.getContext('2d'), viewport })
-      task.promise.catch(() => {})
+      task.promise.then(() => { if (!cancelled) setDrawn(true) }).catch(() => {})
     })
     return () => { cancelled = true; if (task) task.cancel() }
   }, [doc, number, scale])
   return (
     <div ref={ref} className={styles.page} style={size ? { width: size.w, height: size.h } : { minHeight: 400 }}>
       <canvas ref={canvas} style={size ? { width: size.w, height: size.h } : undefined} aria-label={`Page ${number}`} />
+      {/* Until the page is drawn it would be a blank white sheet: grey lines say it is still coming. */}
+      {!drawn && <SheetLines className={styles.sheetOverlay} />}
     </div>
   )
 }
