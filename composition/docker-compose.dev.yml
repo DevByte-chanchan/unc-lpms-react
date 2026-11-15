@@ -2,7 +2,7 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 #
-# Same host ports as the default stack (frontend on 5174, backend on 5001), so
+# Same host ports as the default stack (frontend on 5199, backend on 5001), so
 # this replaces the `client` service rather than running beside it. Everything
 # else — the server, the network, the database volume — is inherited unchanged.
 #

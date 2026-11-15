@@ -11,7 +11,7 @@ as the Portfolio and Watch Party stacks:
 | | host | container |
 | --- | --- | --- |
 | API | http://localhost:5001 | 5000 |
-| Frontend | http://localhost:5174 | 5173 |
+| Frontend | http://localhost:5199 | 5173 |
 
 ```sh
 # Production build of the frontend, served by `vite preview`.
