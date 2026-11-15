@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'react-feather'
 import useDialogFocus from '../utils/useDialogFocus.js'
+import Select from './Select.jsx'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { refreshCatalogSettings, settingsFromApi, setCatalogSettings } from '../utils/referenceCatalog.js'
 import styles from '../styles/DueDateDialog.module.sass'
@@ -61,9 +62,12 @@ const CatalogRulesDialog = ({ open, onClose, onSaved }) => {
           {!form ? <p>Loading…</p> : (
             <>
               <div className={styles.field}>
-                <label className={styles.label} htmlFor="rules-years">Books older than … years are outdated (1 to 30)</label>
-                <input id="rules-years" className={styles.control} type="number" min="1" max="30" value={form.recencyYears}
-                  onChange={(e) => setForm({ ...form, recencyYears: e.target.value })} />
+                <div className={styles.label} id="rules-years-label">Books older than this are outdated</div>
+                {/* A list of 1 to 30, not a number box: 0, 99, "e" or an empty box cannot be chosen. */}
+                <Select block aria-label="Books older than this are outdated" value={String(form.recencyYears)}
+                  onChange={(e) => setForm({ ...form, recencyYears: e.target.value })}>
+                  {Array.from({ length: 30 }, (_, i) => String(i + 1)).map(n => <option key={n} value={n}>{n === '1' ? '1 year' : `${n} years`}</option>)}
+                </Select>
               </div>
               <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <input type="checkbox" checked={form.enforceRecency} onChange={(e) => setForm({ ...form, enforceRecency: e.target.checked })} />

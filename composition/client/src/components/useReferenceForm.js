@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../utils/api.js';
-import { missingRequired } from '../utils/referenceTypes.js';
+import { formErrors, fieldError, fieldsFor } from '../utils/referenceTypes.js';
 import { createReference, updateReference, loadReferenceTypes } from '../utils/referenceStore.js';
 
 // Shared by the Add / Edit page and the Add / Edit dialog: form state from a library record, an
@@ -55,9 +55,16 @@ export const useReferenceForm = (record, active = true) => {
     setErrors(prev => (prev[field] ? { ...prev, [field]: null } : prev));
   }, []);
 
+  // Leaving a field checks it, so a wrong year or link is flagged there and then, not after Save.
+  const check = useCallback((fieldKey) => {
+    const field = fieldsFor(values.type).find(f => f.key === fieldKey);
+    if (!field) return;
+    setErrors(prev => ({ ...prev, [fieldKey]: fieldError(field, values[fieldKey]) }));
+  }, [values]);
+
   // Resolves { ok: true } or { ok: false, message } (field errors are set on the form).
   const save = useCallback(async () => {
-    const missing = missingRequired(values.type, values);
+    const missing = formErrors(values.type, values);
     if (Object.keys(missing).length > 0) {
       setErrors(missing);
       return { ok: false, message: 'Please fix the errors in the form before saving.' };
@@ -79,5 +86,5 @@ export const useReferenceForm = (record, active = true) => {
     }
   }, [values, record]);
 
-  return { values, errors, change, save, saving, typesReady, typesError };
+  return { values, errors, change, check, save, saving, typesReady, typesError };
 };

@@ -122,3 +122,28 @@ test('the old localStorage reference store is gone from the code base', () => {
   walk(root)
   assert.deepEqual(offenders, [])
 })
+
+test('each field kind is checked as it is left, with the server rules', async () => {
+  const { fieldError, formErrors, completeLink } = await import('./referenceTypes.js')
+  const now = new Date('2026-11-15T00:00:00Z')
+  const year = { key: 'year', label: 'Publication year', kind: 'year', required: true }
+  assert.match(fieldError(year, '2005A', now), /4-digit year/)
+  assert.match(fieldError(year, '1850', now), /between 1900 and 2027/)
+  assert.equal(fieldError(year, '2005', now), null)
+  assert.match(fieldError(year, '', now), /required/)
+  const isbn = { key: 'isbn', label: 'ISBN', kind: 'isbn', required: false }
+  assert.equal(fieldError(isbn, '', now), null, 'optional and empty is fine')
+  assert.match(fieldError(isbn, '12345', now), /10 or 13 digits/)
+  assert.equal(fieldError(isbn, '978-0-13-468599-1', now), null)
+  const link = { key: 'link', label: 'Link', kind: 'url', required: true }
+  assert.match(fieldError(link, 'not a link', now), /valid http/)
+  assert.equal(completeLink('example.com/book'), 'https://example.com/book')
+  assert.equal(completeLink('https://example.com'), 'https://example.com')
+  const copies = { key: 'copies', label: 'Copies', kind: 'count', max: 9999 }
+  assert.match(fieldError(copies, '12a', now), /whole number/)
+  const received = { key: 'received', label: 'Date received', kind: 'date' }
+  assert.match(fieldError(received, '2030-01-01', now), /future/)
+  const title = { key: 'title', label: 'Title', kind: 'text', max: 5 }
+  assert.match(fieldError(title, 'Too long', now), /at most 5/)
+  assert.deepEqual(formErrors('No such type', {}), { type: 'Please select a reference type.' })
+})

@@ -72,7 +72,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
         <div className={styles.body}>
           {form.typesError && <div role="alert" style={{ color: '#b91c1c' }}>{form.typesError}</div>}
           {form.typesReady && (
-            <ReferenceFields value={form.values} errors={form.errors} onChange={form.change} gap={16} />
+            <ReferenceFields value={form.values} errors={form.errors} onChange={form.change} onBlur={form.check} gap={16} />
           )}
         </div>
 

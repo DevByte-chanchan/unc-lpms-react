@@ -29,6 +29,7 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
   const [pos, setPos] = useState({ left: 0, top: 0, width: 0, up: false })
   const trigger = useRef(null)
   const list = useRef(null)
+  const typeahead = useRef({ text: '', at: 0 })
   const listId = useId()
 
   const show = () => {
@@ -92,8 +93,15 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
     else if (event.key === 'End') { event.preventDefault(); setActive(step(options.length, -1)) }
     else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (options[active]) pick(options[active]) }
     else if (event.key.length === 1) {
-      const hit = options.findIndex((option, index) => index > active && !option.disabled && option.label.toLowerCase().startsWith(event.key.toLowerCase()))
-      const wrap = hit >= 0 ? hit : options.findIndex(option => !option.disabled && option.label.toLowerCase().startsWith(event.key.toLowerCase()))
+      // Keys typed in quick succession build one search, so "2005" lands on 2005 and "Te" on Textbook; a single key
+      // after a pause still steps through the options that start with it.
+      const now = Date.now()
+      const typed = (now - typeahead.current.at < 700 ? typeahead.current.text : '') + event.key.toLowerCase()
+      typeahead.current = { text: typed, at: now }
+      const starts = (option, text) => !option.disabled && option.label.toLowerCase().startsWith(text)
+      const exact = typed.length > 1 ? options.findIndex(option => starts(option, typed)) : -1
+      const hit = exact >= 0 ? exact : options.findIndex((option, index) => index > active && starts(option, event.key.toLowerCase()))
+      const wrap = hit >= 0 ? hit : options.findIndex(option => starts(option, event.key.toLowerCase()))
       if (wrap >= 0) setActive(wrap)
     } else if (event.key === 'Tab') setOpen(false)
   }

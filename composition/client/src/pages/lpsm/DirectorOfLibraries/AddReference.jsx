@@ -60,7 +60,7 @@ const AddReference = () => {
         {(loadError || form.typesError) && <div role="alert" style={{ color: 'var(--danger)', marginBottom: 12 }}>{loadError || form.typesError}</div>}
         {saveError && <div role="alert" style={{ color: 'var(--danger)', marginBottom: 12 }}>{saveError}</div>}
         {loaded && form.typesReady && !loadError && (
-          <ReferenceFields value={form.values} errors={form.errors} onChange={form.change} />
+          <ReferenceFields value={form.values} errors={form.errors} onChange={form.change} onBlur={form.check} />
         )}
       </div>
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Select from './Select.jsx';
 import SpellCheckArea from './SpellCheckArea.jsx';
 import styles from '../styles/ReferenceFields.module.sass';
-import { getReferenceTypes, fieldsFor, referenceTypeLabel } from '../utils/referenceTypes.js';
+import { getReferenceTypes, fieldsFor, referenceTypeLabel, YEAR_MIN, yearMax, completeLink } from '../utils/referenceTypes.js';
 import { fetchJson, apiErrorMessage } from '../utils/api.js';
 
 // The reference form, drawn from the server's type definitions: the type dropdown, then exactly the
@@ -17,8 +17,23 @@ const PLACEHOLDERS = { year: 'YYYY', link: 'https://...', copies: 'Leave empty i
 // dictionary words, and a checker that underlines every name is one people learn to ignore.
 const CHECKED_FIELDS = ['title', 'publisher', 'category'];
 
-// One labelled control: a themed dropdown (`options`), a checked one-line text box (`checked`), or a text input.
-const Field = ({ label, error, value, onChange, options, placeholder, checked = false }) => (
+// What each kind of field lets through as it is typed: letters never reach a year, an ISBN, or a count. The rest of
+// the rule (length, range, the link's shape) is checked when the field is left (utils/referenceTypes.js fieldError).
+const KEEP = {
+  isbn: (v) => v.replace(/[^0-9Xx -]/g, ''),
+  count: (v) => v.replace(/[^0-9]/g, ''),
+};
+const INPUT_PROPS = {
+  isbn: { inputMode: 'numeric', maxLength: 17, autoComplete: 'off' },
+  count: { inputMode: 'numeric', maxLength: 4 },
+  url: { type: 'url', inputMode: 'url', autoComplete: 'off' },
+};
+// Newest first: most references are recent, so the year wanted is near the top. Typing "19" or "2005" jumps to it.
+const yearOptions = () => Array.from({ length: yearMax() - YEAR_MIN + 1 }, (_, i) => String(yearMax() - i));
+
+// One labelled control: a themed dropdown (`options`), a year list, a date picker, a checked one-line text box
+// (`checked`), or a text input shaped by its kind.
+const Field = ({ label, error, value, onChange, onBlur, options, placeholder, checked = false, kind, max }) => (
   <div className={styles.field}>
     <div className={styles.label}>{label}</div>
     {options ? (
@@ -26,13 +41,23 @@ const Field = ({ label, error, value, onChange, options, placeholder, checked = 
         <option value="">Select an option</option>
         {options.map(option => <option key={option} value={option}>{option}</option>)}
       </Select>
+    ) : kind === 'year' ? (
+      <Select block value={value} placeholder="Year" aria-label={label} onChange={(event) => { onChange(event.target.value); onBlur?.() }}>
+        {!String(value || '').length ? null : <option value="">No year</option>}
+        {yearOptions().map(year => <option key={year} value={year}>{year}</option>)}
+      </Select>
+    ) : kind === 'date' ? (
+      <input className={`app-input ${error ? styles.invalid : ''}`} type="date" value={value} max={new Date().toISOString().slice(0, 10)}
+        aria-label={label} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />
     ) : checked ? (
       // One line: a pasted line break becomes a space.
       <SpellCheckArea singleLine checkCapitals showButton={false} value={value} rows={1} minHeight={36} padding="6px 12px" placeholder={placeholder} aria-label={label}
-        className={error ? styles.invalid : ''} onChange={(next) => onChange(next.replace(/\s*[\r\n]+\s*/g, ' '))} />
+        maxLength={max} className={error ? styles.invalid : ''} onBlur={onBlur} onChange={(next) => onChange(next.replace(/\s*[\r\n]+\s*/g, ' '))} />
     ) : (
       <input className={`app-input ${error ? styles.invalid : ''}`} type="text" value={value} placeholder={placeholder}
-        aria-label={label} onChange={(event) => onChange(event.target.value)} />
+        maxLength={max} aria-label={label} {...(INPUT_PROPS[kind] || {})}
+        onChange={(event) => onChange(KEEP[kind] ? KEEP[kind](event.target.value) : event.target.value)}
+        onBlur={(event) => { if (kind === 'url' && completeLink(event.target.value) !== event.target.value) onChange(completeLink(event.target.value)); onBlur?.() }} />
     )}
     {error && <div className={styles.error} role="alert">{error}</div>}
   </div>
@@ -71,7 +96,7 @@ const IsbnLookup = ({ value, fields, onChange }) => {
 // Short values (a year, an ISBN, a status, a count, a date) share a row; titles, names and links get the full width.
 const HALF = new Set(['year', 'isbn', 'status', 'copies', 'received', 'category']);
 
-const ReferenceFields = ({ value, errors = {}, onChange, gap = 16 }) => {
+const ReferenceFields = ({ value, errors = {}, onChange, onBlur, gap = 16 }) => {
   const types = getReferenceTypes();
   const fields = fieldsFor(value.type);
   const renderField = (field) => (
@@ -87,8 +112,12 @@ const ReferenceFields = ({ value, errors = {}, onChange, gap = 16 }) => {
       ) : (
         <Field
           label={field.label}
+          kind={field.kind}
+          max={field.max}
           value={value[field.key] || ''}
           onChange={(next) => onChange(field.key, next)}
+          // The year list checks on pick; it has no blur of its own worth waiting for.
+          onBlur={() => onBlur?.(field.key)}
           error={errors[field.key]}
           placeholder={PLACEHOLDERS[field.key]}
           checked={CHECKED_FIELDS.includes(field.key)}
