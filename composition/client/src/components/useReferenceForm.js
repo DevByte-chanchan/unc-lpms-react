@@ -56,10 +56,11 @@ export const useReferenceForm = (record, active = true) => {
   }, []);
 
   // Leaving a field checks it, so a wrong year or link is flagged there and then, not after Save.
-  const check = useCallback((fieldKey) => {
+  // `value` is passed when the field has just changed it (a completed link), so the check sees the new value.
+  const check = useCallback((fieldKey, value) => {
     const field = fieldsFor(values.type).find(f => f.key === fieldKey);
     if (!field) return;
-    setErrors(prev => ({ ...prev, [fieldKey]: fieldError(field, values[fieldKey]) }));
+    setErrors(prev => ({ ...prev, [fieldKey]: fieldError(field, value !== undefined ? value : values[fieldKey]) }));
   }, [values]);
 
   // Resolves { ok: true } or { ok: false, message } (field errors are set on the form).

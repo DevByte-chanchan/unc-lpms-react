@@ -42,22 +42,27 @@ const Field = ({ label, error, value, onChange, onBlur, options, placeholder, ch
         {options.map(option => <option key={option} value={option}>{option}</option>)}
       </Select>
     ) : kind === 'year' ? (
-      <Select block value={value} placeholder="Year" aria-label={label} onChange={(event) => { onChange(event.target.value); onBlur?.() }}>
+      <Select block value={value} placeholder="Year" aria-label={label} onChange={(event) => { onChange(event.target.value); onBlur?.(event.target.value) }}>
         {!String(value || '').length ? null : <option value="">No year</option>}
         {yearOptions().map(year => <option key={year} value={year}>{year}</option>)}
       </Select>
     ) : kind === 'date' ? (
       <input className={`app-input ${error ? styles.invalid : ''}`} type="date" value={value} max={new Date().toISOString().slice(0, 10)}
-        aria-label={label} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />
+        aria-label={label} onChange={(event) => onChange(event.target.value)} onBlur={() => onBlur?.()} />
     ) : checked ? (
       // One line: a pasted line break becomes a space.
       <SpellCheckArea singleLine checkCapitals showButton={false} value={value} rows={1} minHeight={36} padding="6px 12px" placeholder={placeholder} aria-label={label}
-        maxLength={max} className={error ? styles.invalid : ''} onBlur={onBlur} onChange={(next) => onChange(next.replace(/\s*[\r\n]+\s*/g, ' '))} />
+        maxLength={max} className={error ? styles.invalid : ''} onBlur={() => onBlur?.()} onChange={(next) => onChange(next.replace(/\s*[\r\n]+\s*/g, ' '))} />
     ) : (
       <input className={`app-input ${error ? styles.invalid : ''}`} type="text" value={value} placeholder={placeholder}
         maxLength={max} aria-label={label} {...(INPUT_PROPS[kind] || {})}
         onChange={(event) => onChange(KEEP[kind] ? KEEP[kind](event.target.value) : event.target.value)}
-        onBlur={(event) => { if (kind === 'url' && completeLink(event.target.value) !== event.target.value) onChange(completeLink(event.target.value)); onBlur?.() }} />
+        onBlur={(event) => {
+          // The completed link is what gets checked: checking the typed one would flag a value already fixed.
+          const next = kind === 'url' ? completeLink(event.target.value) : event.target.value
+          if (next !== event.target.value) onChange(next)
+          onBlur?.(next)
+        }} />
     )}
     {error && <div className={styles.error} role="alert">{error}</div>}
   </div>
@@ -117,7 +122,7 @@ const ReferenceFields = ({ value, errors = {}, onChange, onBlur, gap = 16 }) => 
           value={value[field.key] || ''}
           onChange={(next) => onChange(field.key, next)}
           // The year list checks on pick; it has no blur of its own worth waiting for.
-          onBlur={() => onBlur?.(field.key)}
+          onBlur={(next) => onBlur?.(field.key, next)}
           error={errors[field.key]}
           placeholder={PLACEHOLDERS[field.key]}
           checked={CHECKED_FIELDS.includes(field.key)}
