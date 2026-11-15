@@ -28,7 +28,7 @@ const Field = ({ label, error, value, onChange, options, placeholder, checked = 
       </Select>
     ) : checked ? (
       // One line: a pasted line break becomes a space.
-      <SpellCheckArea singleLine checkCapitals showButton={false} value={value} rows={1} minHeight={36} padding="7px 12px" placeholder={placeholder} aria-label={label}
+      <SpellCheckArea singleLine checkCapitals showButton={false} value={value} rows={1} minHeight={36} padding="6px 12px" placeholder={placeholder} aria-label={label}
         className={error ? styles.invalid : ''} onChange={(next) => onChange(next.replace(/\s*[\r\n]+\s*/g, ' '))} />
     ) : (
       <input className={`app-input ${error ? styles.invalid : ''}`} type="text" value={value} placeholder={placeholder}
@@ -68,45 +68,57 @@ const IsbnLookup = ({ value, fields, onChange }) => {
   );
 };
 
-const ReferenceFields = ({ value, errors = {}, onChange, gap = 0 }) => {
-  const types = getReferenceTypes();
-  const spacer = gap ? <div style={{ height: gap }} /> : null;
+// Short values (a year, an ISBN, a status, a count, a date) share a row; titles, names and links get the full width.
+const HALF = new Set(['year', 'isbn', 'status', 'copies', 'received', 'category']);
 
+const ReferenceFields = ({ value, errors = {}, onChange, gap = 16 }) => {
+  const types = getReferenceTypes();
+  const fields = fieldsFor(value.type);
+  const renderField = (field) => (
+    <div key={field.key} className={HALF.has(field.key) ? styles.half : styles.full}>
+      {field.kind === 'choice' ? (
+        <Field
+          options={field.options.map(optionLabel)}
+          label={field.label}
+          value={optionLabel(value[field.key] || field.default || field.options[0])}
+          onChange={(label) => onChange(field.key, label.toLowerCase())}
+          error={errors[field.key]}
+        />
+      ) : (
+        <Field
+          label={field.label}
+          value={value[field.key] || ''}
+          onChange={(next) => onChange(field.key, next)}
+          error={errors[field.key]}
+          placeholder={PLACEHOLDERS[field.key]}
+          checked={CHECKED_FIELDS.includes(field.key)}
+        />
+      )}
+      {field.key === 'isbn' && <IsbnLookup value={value} fields={fields} onChange={onChange} />}
+    </div>
+  );
+  // Wide fields first, then the short ones, so the short ones land side by side.
+  const byWidth = (list) => [...list.filter(f => !HALF.has(f.key)), ...list.filter(f => HALF.has(f.key))];
+  const required = byWidth(fields.filter(field => field.required));
+  const optional = byWidth(fields.filter(field => !field.required));
+
+  // Chunked: what the type needs, then a labelled "Optional details" group, so nobody has to guess which of eight
+  // boxes must be filled before Save works.
   return (
-    <>
-      <Field
-        options={types.map(type => type.label)}
-        label="Reference Type"
-        value={referenceTypeLabel(value.type)}
-        onChange={(label) => onChange('type', types.find(type => type.label === label)?.key || '')}
-        error={errors.type}
-      />
-      {spacer}
-      {fieldsFor(value.type).map(field => (
-        <React.Fragment key={field.key}>
-          {field.kind === 'choice' ? (
-            <Field
-              options={field.options.map(optionLabel)}
-              label={field.label}
-              value={optionLabel(value[field.key] || field.default || field.options[0])}
-              onChange={(label) => onChange(field.key, label.toLowerCase())}
-              error={errors[field.key]}
-            />
-          ) : (
-          <Field
-            label={field.label}
-            value={value[field.key] || ''}
-            onChange={(next) => onChange(field.key, next)}
-            error={errors[field.key]}
-            placeholder={PLACEHOLDERS[field.key]}
-            checked={CHECKED_FIELDS.includes(field.key)}
-          />
-          )}
-          {field.key === 'isbn' && <IsbnLookup value={value} fields={fieldsFor(value.type)} onChange={onChange} />}
-          {spacer}
-        </React.Fragment>
-      ))}
-    </>
+    <div className={styles.grid} style={{ rowGap: gap }}>
+      <div className={styles.full}>
+        <Field
+          options={types.map(type => type.label)}
+          label="Type"
+          value={referenceTypeLabel(value.type)}
+          onChange={(label) => onChange('type', types.find(type => type.label === label)?.key || '')}
+          error={errors.type}
+        />
+      </div>
+      {required.map(renderField)}
+      {optional.length > 0 && <div className={`${styles.full} ${styles.groupTitle}`}>Optional details</div>}
+      {optional.map(renderField)}
+    </div>
   );
 };
 

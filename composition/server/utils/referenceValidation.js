@@ -32,9 +32,9 @@ const checkers = {
         return normalizeIsbn(digits) ? null : 'This ISBN is not valid: its check digit does not match. Check the digits.';
     },
     year: (value) => {
-        if (!/^\d{4}$/.test(value)) return 'Publication Year must be a 4-digit year (e.g., 2023).';
+        if (!/^\d{4}$/.test(value)) return 'Publication year must be a 4-digit year (e.g., 2023).';
         const year = Number(value);
-        return year >= 1900 && year <= THIS_YEAR() + 1 ? null : `Publication Year must be between 1900 and ${THIS_YEAR() + 1}.`;
+        return year >= 1900 && year <= THIS_YEAR() + 1 ? null : `Publication year must be between 1900 and ${THIS_YEAR() + 1}.`;
     },
     url: (value, def) => {
         if (value.length > def.max) return `${def.label} must be at most ${def.max} characters.`;

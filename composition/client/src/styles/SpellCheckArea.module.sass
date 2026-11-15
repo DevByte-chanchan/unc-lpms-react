@@ -100,6 +100,10 @@
   margin-top: var(--sp-2)
   flex-wrap: wrap
 
+  // With nothing in it (no button, no count yet) the bar takes no room, so a one-line field lines up with plain inputs.
+  &:empty
+    display: none
+
 .count
   display: inline-flex
   align-items: center

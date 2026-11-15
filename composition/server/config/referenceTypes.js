@@ -15,10 +15,10 @@ const THIS_YEAR = () => new Date().getFullYear();
 
 // field key -> label, input kind, References column. Keys are what the API and the form use.
 const FIELDS = Object.freeze({
-    title: { label: 'Reference Title', kind: 'text', column: 'title', max: 200 },
+    title: { label: 'Title', kind: 'text', column: 'title', max: 200 },
     authors: { label: 'Author(s)', kind: 'text', column: 'author', max: 200 },
     isbn: { label: 'ISBN', kind: 'isbn', column: 'isbn', max: 100 },
-    year: { label: 'Publication Year', kind: 'year', column: 'publication_year' },
+    year: { label: 'Publication year', kind: 'year', column: 'publication_year' },
     link: { label: 'Link', kind: 'url', column: 'link', max: 500 },
     publisher: { label: 'Publisher', kind: 'text', column: 'publisher', max: 200 },
     // What the library holds (the Director of Libraries keeps these up to date).
