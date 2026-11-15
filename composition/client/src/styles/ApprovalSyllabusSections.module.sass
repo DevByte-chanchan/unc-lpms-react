@@ -1353,12 +1353,13 @@
   justify-content: center
   gap: 3px
 
+// 24px hit area, the WCAG 2.2 minimum target size; the visible dot stays 8px.
 .nav-dot
   display: inline-flex
   align-items: center
   justify-content: center
-  width: 22px
-  height: 22px
+  width: 24px
+  height: 24px
   padding: 0
   border: none
   background: transparent
@@ -1413,11 +1414,9 @@
   .nav-dots
     gap: 0
 
-  .nav-dot
-    width: 18px
-
+  // Still 24px wide on a phone: five dots and the active bar fit in 128px.
   .nav-dot-active
-    width: 26px
+    width: 32px
 
     span
       width: 16px

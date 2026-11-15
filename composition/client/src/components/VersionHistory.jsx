@@ -28,7 +28,7 @@ const VersionHistory = ({ pcId }) => {
           <div style={{ fontSize: 13, fontWeight: 600 }}>
             {version.revision ? `Revision ${version.revision}` : 'Working version'} · {version.schoolYear} · {version.semester} semester
             {version.current && <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}> (this one)</span>}
-            {version.approvedAt && <span style={{ color: 'var(--good-solid)', fontWeight: 400 }}> · approved {when(version.approvedAt)}</span>}
+            {version.approvedAt && <span style={{ color: 'var(--good)', fontWeight: 400 }}> · approved {when(version.approvedAt)}</span>}
             {version.carriedFrom && <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}> · carried over from an earlier term</span>}
           </div>
           {version.events.length === 0 ? (

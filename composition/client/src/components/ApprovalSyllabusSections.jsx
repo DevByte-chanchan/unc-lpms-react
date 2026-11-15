@@ -676,7 +676,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const signedLine = signoffs.length > 0 && (
     <div role="note" style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
       <PenTool size={14} aria-hidden="true" />
-      Reviewed and signed by {signoffs.map(s => `${s.name} (${new Date(s.signedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })})`).join(', ')}
+      Industry Consultant review signed by {signoffs.map(s => `${s.name} (${new Date(s.signedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })})`).join(', ')}
     </div>
   )
 
@@ -1091,7 +1091,8 @@ ${suggestionLine}` : text,
           and the Dean's date approved [53:22]. It stays compact at the top of
           the screen so the step in front of the approver keeps the space; the
           full version, with the live chip, is on the Decision step. */}
-      {!embedded && roleKey !== 'vpaa' && (
+      {/* The VPAA sees it too: an approved plan should say who approved it and when, not only who signed the consultant review. */}
+      {!embedded && (
         <div className={styles['chain-strip']}>
           <ApprovalChainStatus
             workflow={workflowState}

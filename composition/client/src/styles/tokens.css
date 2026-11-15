@@ -83,8 +83,10 @@
   /* --- text ------------------------------------------------------------ */
   --ink: #0f172a;
   --ink-soft: #1f2937;
-  --ink-muted: #64748b;
-  --ink-faint: #94a3b8;
+  /* Both pass WCAG AA (4.5:1) for small text. #64748b / #94a3b8 measured 4.34:1 on --surface-sunken and 2.56:1 on
+     white, so tab labels, chip names, hints and dates were too faint to read comfortably. */
+  --ink-muted: #5b6b80;
+  --ink-faint: #64748b;
 
   /* --- brand / intent -------------------------------------------------
      --primary is the dark the Approve and Submit buttons already use; it
