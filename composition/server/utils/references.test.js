@@ -22,8 +22,7 @@ const uniq = (label) => `${label} ${++counter} ${stamp}`;
 const GOOD = {
     Textbook: { type: 'Textbook', title: 'Operating Systems', authors: 'Silberschatz', isbn: '978-1-119-80036-1', year: '2023' },
     OER: { type: 'OER', title: 'Open Algorithms', authors: 'Erickson', year: '2019', link: 'https://example.org/algorithms' },
-    'Online Resource': { type: 'Online Resource', title: 'MDN Web Docs', authors: 'Mozilla', link: 'https://developer.mozilla.org/' },
-    'Online Subscription': { type: 'Online Subscription', title: 'O’Reilly Learning', publisher: 'O’Reilly Media', link: 'https://learning.oreilly.com/' }
+    'Online Resource': { type: 'Online Resource', title: 'MDN Web Docs', authors: 'Mozilla', link: 'https://developer.mozilla.org/' }
 };
 // A reference cannot repeat another one's title and authors or its ISBN, and these tests leave their rows
 // in the test database, so every reference they create gets a title and (when the type has one) an ISBN of its own.
@@ -33,15 +32,14 @@ const withTitle = (type, extra = {}) => ({ ...GOOD[type], title: uniq(GOOD[type]
 
 // ----------------------------------------------------------------------- config
 
-test('the type config: four types, each with consistent required / optional fields', () => {
-    assert.deepEqual(TYPE_KEYS, ['Textbook', 'OER', 'Online Resource', 'Online Subscription']);
+test('the type config: three types, each with consistent required / optional fields', () => {
+    assert.deepEqual(TYPE_KEYS, ['Textbook', 'OER', 'Online Resource']);
     for (const [key, type] of Object.entries(REFERENCE_TYPES)) {
         assert.ok(type.label, key);
         assert.ok(type.required.includes('title'), `${key} requires a title`);
         for (const field of [...type.required, ...type.optional]) assert.ok(FIELDS[field], `${key}: unknown field ${field}`);
         assert.equal(new Set([...type.required, ...type.optional]).size, type.required.length + type.optional.length, `${key}: a field is listed twice`);
     }
-    assert.ok(REFERENCE_TYPES['Online Subscription'].required.includes('publisher'), 'a subscription needs its provider');
     assert.equal(isReferenceType('Textbook'), true);
     for (const bad of ['textbook', 'TEXTBOOK', 'Online Resources', 'constructor', '__proto__', '', null, undefined, 7]) assert.equal(isReferenceType(bad), false, String(bad));
 });
@@ -49,10 +47,9 @@ test('the type config: four types, each with consistent required / optional fiel
 test('describeTypes gives the client everything it needs, required fields first', () => {
     const described = describeTypes();
     assert.deepEqual(described.map(t => t.key), TYPE_KEYS);
-    const subscription = described.find(t => t.key === 'Online Subscription');
-    assert.deepEqual(subscription.fields.map(f => [f.key, f.required]), [['title', true], ['publisher', true], ['link', true], ['authors', false], ['year', false], ['status', false], ['category', false]]);
-    assert.equal(subscription.fields.find(f => f.key === 'publisher').label, 'Provider / platform');
-    assert.equal(subscription.fields.find(f => f.key === 'title').kind, 'text');
+    const online = described.find(t => t.key === 'Online Resource');
+    assert.deepEqual(online.fields.map(f => [f.key, f.required]), [['title', true], ['authors', true], ['link', true], ['year', false], ['publisher', false], ['status', false], ['category', false]]);
+    assert.equal(online.fields.find(f => f.key === 'title').kind, 'text');
 });
 
 test('legacy type values map by exact match only', () => {
@@ -60,7 +57,7 @@ test('legacy type values map by exact match only', () => {
     assert.equal(legacyTypeKey(' Online Resources '), 'Online Resource');
     assert.equal(legacyTypeKey('ONLINE'), 'Online Resource');
     assert.equal(legacyTypeKey('Open Educational Resources'), 'OER');
-    assert.equal(legacyTypeKey('subscription'), 'Online Subscription');
+    assert.equal(legacyTypeKey('subscription'), 'Online Resource', 'Online Subscription was folded into Online Resource');
     for (const unknown of ['Textbooks and more', 'open', 'oer-ish', 'Book', '', null]) assert.equal(legacyTypeKey(unknown), null, String(unknown));
 });
 
@@ -106,10 +103,11 @@ test('field rules: ISBN, year, link, lengths; fields a type does not use are dro
     assert.match(oer({ link: 'ftp://example.org/x' }).errors.link, /http\(s\)/);
     assert.match(oer({ link: 'not a url' }).errors.link, /http\(s\)/);
 
-    // A subscription has no ISBN: anything sent for it is ignored.
-    const subscription = validateReference({ ...GOOD['Online Subscription'], isbn: '978-1-119-80036-1' });
-    assert.equal(subscription.ok, true);
-    assert.equal(subscription.values.isbn, null);
+    // An online resource has no ISBN: anything sent for it is ignored.
+    const online = validateReference({ ...GOOD['Online Resource'], isbn: '978-1-119-80036-1' });
+    assert.equal(online.ok, true);
+    assert.equal(online.values.isbn, null);
+    assert.equal(validateReference({ ...GOOD['Online Resource'], type: 'Online Subscription' }).errors.type, 'Unknown reference type.');
 
     // Control characters and runs of whitespace are cleaned; the year becomes a UTC date.
     const cleaned = textbook({ title: '  Operating\u0000   Systems\n' });
@@ -212,9 +210,9 @@ test('edit: validated, changes only what changed, audited with the changed field
     assert.ok(!entry.details.includes('2nd ed.') && !entry.details.includes('Pearson'));
 
     // Changing the type re-validates against the new type's fields.
-    const toSub = await call(DIRECTOR, 'PUT', `/${ref.reference_id}`, { type: 'Online Subscription', title: ref.title });
-    assert.equal(toSub.status, 400);
-    assert.deepEqual(Object.keys((await toSub.json()).errors).sort(), ['link', 'publisher']);
+    const toOnline = await call(DIRECTOR, 'PUT', `/${ref.reference_id}`, { type: 'Online Resource', title: ref.title });
+    assert.equal(toOnline.status, 400);
+    assert.deepEqual(Object.keys((await toOnline.json()).errors).sort(), ['authors', 'link']);
 
     assert.equal((await call(DIRECTOR, 'PUT', `/${ref.reference_id}`, { ...body, type: 'Journal' })).status, 400);
     assert.equal((await call(DIRECTOR, 'PUT', '/999999', body)).status, 404);
@@ -300,7 +298,7 @@ test('an archived reference stays on plans that use it but cannot be linked anew
     assert.equal((await linked(iloId)).length, 2);
 });
 
-test('the plan reference summary groups by exact type, including online subscriptions', async () => {
+test('the plan reference summary groups by exact type', async () => {
     const iloId = await planWithIlo();
     const made = {};
     for (const type of TYPE_KEYS) made[type] = await create(type);
@@ -308,15 +306,13 @@ test('the plan reference summary groups by exact type, including online subscrip
 
     const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
     await getReferenceSummary({ params: { pcId: String(planWithIlo.lastOffering) } }, res, err => { throw err; });
-    assert.deepEqual(Object.keys(res.body).sort(), ['Online Resources', 'Online Subscriptions', 'Open Educational Resources', 'references', 'Textbook'].sort());
-    // The plan also carries the references copied from the seeded plan; look at the four just added.
+    assert.deepEqual(Object.keys(res.body).sort(), ['Online Resources', 'Open Educational Resources', 'references', 'Textbook'].sort());
+    // The plan also carries the references copied from the seeded plan; look at the three just added.
     const mine = (group) => res.body[group].filter(r => Object.values(made).some(m => m.title === r.title));
     assert.deepEqual(mine('Textbook').map(r => r.title), [made.Textbook.title]);
     assert.deepEqual(mine('Open Educational Resources').map(r => r.title), [made.OER.title]);
     assert.deepEqual(mine('Online Resources').map(r => r.title), [made['Online Resource'].title]);
-    assert.deepEqual(mine('Online Subscriptions').map(r => [r.title, r.publisher]), [[made['Online Subscription'].title, 'O’Reilly Media']]);
-    assert.ok(res.body.references.length >= 4);
-    assert.equal(res.body['Online Subscriptions'][0].type, 'Online Subscriptions');
+    assert.ok(res.body.references.length >= 3);
 });
 
 // ------------------------------------------------------------------------ import
@@ -328,7 +324,7 @@ test('import: dry run previews every row, commit creates the valid ones, duplica
         { ...withTitle('OER'), link: 'not a link' },
         { type: 'Journal', title: 'Whatever' },
         { ...good },
-        { ...withTitle('Online Subscription') },
+        { ...withTitle('Online Resource') },
         { ...GOOD.Textbook, title: (await create('Textbook')).title, authors: 'Silberschatz' }
     ];
     // Row 6 duplicates a reference that already exists (case and spacing do not matter).
@@ -384,7 +380,7 @@ test('migration: adds the columns, maps legacy types exactly, leaves unknown one
     try { await migration.up(qi); await migration.up(qi); } finally { console.warn = warn; }
 
     const [rows] = await db.query('SELECT title, type FROM `References` ORDER BY reference_id');
-    assert.deepEqual(rows.map(r => r.type), ['Textbook', 'Online Resource', 'OER', 'Online Resource', 'OER', 'Textbook', 'Mystery Medium', 'Textbook', 'Online Subscription']);
+    assert.deepEqual(rows.map(r => r.type), ['Textbook', 'Online Resource', 'OER', 'Online Resource', 'OER', 'Textbook', 'Mystery Medium', 'Textbook', 'Online Resource']);
     const [columns] = await db.query('PRAGMA table_info(`References`)');
     for (const name of ['archived', 'created_by', 'publisher']) assert.ok(columns.some(c => c.name === name), name);
     const [[archived]] = await db.query('SELECT archived FROM `References` LIMIT 1');

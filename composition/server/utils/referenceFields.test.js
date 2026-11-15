@@ -19,9 +19,9 @@ test('only a Textbook has copies and a received date; every type has a status an
     const fieldsOf = (key) => describeTypes().find(t => t.key === key).fields.map(f => f.key);
     for (const key of ['copies', 'received']) {
         assert.ok(fieldsOf('Textbook').includes(key));
-        for (const other of ['OER', 'Online Resource', 'Online Subscription']) assert.ok(!fieldsOf(other).includes(key), `${other} has no ${key}`);
+        for (const other of ['OER', 'Online Resource']) assert.ok(!fieldsOf(other).includes(key), `${other} has no ${key}`);
     }
-    for (const type of ['Textbook', 'OER', 'Online Resource', 'Online Subscription']) {
+    for (const type of ['Textbook', 'OER', 'Online Resource']) {
         assert.ok(fieldsOf(type).includes('status') && fieldsOf(type).includes('category'), type);
     }
 });

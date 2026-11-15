@@ -15,7 +15,7 @@ export const referenceTypeOf = (key) => registry.find(type => type.key === key) 
 export const hasReferenceType = (key) => referenceTypeOf(key) !== null
 export const referenceTypeLabel = (key) => referenceTypeOf(key)?.label || ''
 
-// "Online Subscription (e.g., O'Reilly)" -> "Online Subscription": the part before any bracket,
+// "Open Educational Resource (OER)" -> "Open Educational Resource": the part before any bracket,
 // for tabs and badges where the full label is too long.
 export const shortTypeLabel = (key) => referenceTypeLabel(key).replace(/\s*\(.*\)\s*$/, '') || String(key || '')
 

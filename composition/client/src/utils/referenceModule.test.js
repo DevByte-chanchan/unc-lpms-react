@@ -20,8 +20,7 @@ const field = (key, label, required, kind = 'text') => ({ key, label, kind, requ
 const TYPES = [
   { key: 'Textbook', label: 'Textbook', group: 'Textbook', fields: [field('title', 'Reference Title', true), field('authors', 'Author(s)', true), field('isbn', 'ISBN', true, 'isbn'), field('year', 'Publication Year', true, 'year'), field('publisher', 'Publisher', false)] },
   { key: 'OER', label: 'Open Educational Resource (OER)', group: 'Open Educational Resources', fields: [field('title', 'Reference Title', true), field('link', 'Link', true, 'url')] },
-  { key: 'Online Resource', label: 'Online Resource', group: 'Online Resources', fields: [field('title', 'Reference Title', true), field('link', 'Link', true, 'url')] },
-  { key: 'Online Subscription', label: 'Online Subscription (e.g., O’Reilly)', group: 'Online Subscriptions', fields: [field('title', 'Reference Title', true), field('publisher', 'Provider / platform', true), field('link', 'Subscription link', true, 'url')] }
+  { key: 'Online Resource', label: 'Online Resource', group: 'Online Resources', fields: [field('title', 'Reference Title', true), field('link', 'Link', true, 'url')] }
 ]
 setReferenceTypes(TYPES)
 
@@ -29,8 +28,9 @@ test('the registry matches type keys exactly and builds the form from the server
   assert.equal(hasReferenceType('Textbook'), true)
   for (const guess of ['textbook', 'TEXTBOOK', 'Online Resources', 'online', '', null, undefined]) assert.equal(hasReferenceType(guess), false, String(guess))
   assert.equal(referenceTypeLabel('OER'), 'Open Educational Resource (OER)')
-  assert.equal(shortTypeLabel('Online Subscription'), 'Online Subscription')
-  assert.deepEqual(fieldsFor('Online Subscription').map(f => f.key), ['title', 'publisher', 'link'])
+  assert.equal(shortTypeLabel('OER'), 'Open Educational Resource')
+  assert.deepEqual(fieldsFor('Online Resource').map(f => f.key), ['title', 'link'])
+  assert.equal(hasReferenceType('Online Subscription'), false, 'Online Subscription is no longer a type')
   assert.deepEqual(fieldsFor('Journal'), [])
 })
 
@@ -38,7 +38,7 @@ test('missingRequired names exactly the required fields still empty, with the ty
   assert.deepEqual(missingRequired('', {}), { type: 'Please select a reference type.' })
   assert.deepEqual(Object.keys(missingRequired('Textbook', { title: 'T' })).sort(), ['authors', 'isbn', 'year'])
   assert.deepEqual(missingRequired('Textbook', { title: 'T', authors: 'A', isbn: '1', year: '2020' }), {})
-  assert.equal(missingRequired('Online Subscription', { title: 'T' }).publisher, 'Provider / platform is required.')
+  assert.equal(missingRequired('Online Resource', { title: 'T' }).link, 'Link is required.')
   assert.equal(missingRequired('Textbook', { title: '   ', authors: 'A', isbn: '1', year: '2020' }).title, 'Reference Title is required.')
 })
 
@@ -50,7 +50,7 @@ test('CSV records map by column name and type name; unknown types pass through f
   assert.equal(csvRecordToRow({ Type: 'Open Educational Resources' }).type, 'OER')
   assert.equal(csvRecordToRow({ Type: 'open educational resource (oer)' }).type, 'OER', 'by label')
   assert.equal(csvRecordToRow({ Type: 'oer' }).type, 'OER', 'by key, any case')
-  assert.equal(csvRecordToRow({ Type: 'Online Subscription', Provider: "O'Reilly" }).publisher, "O'Reilly")
+  assert.equal(csvRecordToRow({ Type: 'Online Resource', Provider: "O'Reilly" }).publisher, "O'Reilly")
   assert.equal(csvRecordToRow({ Type: 'Journal' }).type, 'Journal')
   assert.equal(csvRecordToRow({ Type: '' }).type, '')
   assert.deepEqual(Object.keys(csvRecordToRow({ Type: 'Textbook', Department: 'SCIS', Program: 'BSIT' })), ['type'], 'columns the library does not store are ignored')

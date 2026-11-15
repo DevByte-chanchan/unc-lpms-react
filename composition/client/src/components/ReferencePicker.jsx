@@ -79,7 +79,7 @@ const ReferencePicker = ({
     const getIcon = (type) => {
         if (type === 'Textbook') return <Book size={16} />;
         if (type === 'OER') return <Unlock size={16} />;
-        if (type === 'Online Resource' || type === 'Online Subscription') return <Globe size={16} />;
+        if (type === 'Online Resource') return <Globe size={16} />;
         return <FileText size={16} />;
     };
 

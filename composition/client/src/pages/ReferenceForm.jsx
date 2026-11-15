@@ -547,7 +547,7 @@ const ReferenceForm = forwardRef(({
                         />
                     </>
                 )}
-                {(type === 'Online Resource' || type === 'Online Subscription') && (
+                {type === 'Online Resource' && (
                     <>
                         <TextField
                             label="Link"

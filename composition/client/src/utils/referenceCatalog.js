@@ -280,8 +280,8 @@ export const relevanceScore = (ref, { courseTitle = '', topics = [] } = {}) => {
 
 // --------------------------------------------------------------- type keys ---
 
-// A reference's type is one of the keys the server defines (Textbook, OER, Online Resource,
-// Online Subscription) and is matched EXACTLY: no case folding, no substrings. Anything else is
+// A reference's type is one of the keys the server defines (Textbook, OER, Online Resource)
+// and is matched EXACTLY: no case folding, no substrings. Anything else is
 // unclassified. The keys and labels come from utils/referenceTypes.js (loaded from the server).
 export const normalizeTypeKey = (type) => (hasReferenceType(type) ? type : '')
 

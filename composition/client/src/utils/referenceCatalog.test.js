@@ -14,8 +14,7 @@ const { setReferenceTypes } = await import('./referenceTypes.js');
 setReferenceTypes([
   { key: 'Textbook', label: 'Textbook', group: 'Textbook', fields: [] },
   { key: 'OER', label: 'Open Educational Resource (OER)', group: 'Open Educational Resources', fields: [] },
-  { key: 'Online Resource', label: 'Online Resource', group: 'Online Resources', fields: [] },
-  { key: 'Online Subscription', label: 'Online Subscription (e.g., O’Reilly)', group: 'Online Subscriptions', fields: [] }
+  { key: 'Online Resource', label: 'Online Resource', group: 'Online Resources', fields: [] }
 ]);
 
 const {
@@ -166,23 +165,22 @@ test('type keys are matched exactly: no case folding, no substrings', () => {
   eq(typeLabel('Textbook'), 'Textbook', 'textbook');
   eq(typeLabel('OER'), 'Open Educational Resource (OER)', 'oer');
   eq(typeLabel('Online Resource'), 'Online Resource', 'online resource');
-  eq(typeLabel('Online Subscription'), 'Online Subscription (e.g., O’Reilly)', 'subscription');
   // The old matcher treated anything containing "or" as an online resource and anything with "open" as OER.
   for (const guess of ['TEXTBOOK', 'textbook', 'ONLINE', 'online', 'Online Resources', 'Open Educational Resources', 'Corporate Report', 'Opening Remarks', 'oer']) {
     eq(normalizeTypeKey(guess), '', `"${guess}" is not a type key`);
     eq(isUnclassifiedType(guess), true, `"${guess}" is unclassified`);
   }
-  eq(normalizeTypeKey('Online Subscription'), 'Online Subscription', 'a subscription is its own type, not an online resource');
+  eq(normalizeTypeKey('Online Subscription'), '', 'Online Subscription is no longer a type');
   eq(typeLabel('TEXTBOOK'), 'TEXTBOOK', 'an unknown value is shown as it is');
 });
 
-test('each type has its own tab: a subscription is not listed under online resources', () => {
+test('each type has its own tab: an OER is not listed under online resources', () => {
   const rows = [
-    { reference_id: 30, title: 'Learning Platform', type: 'Online Subscription', author: '', used_in_courses: 'BIT313L', publication_year: '2025' },
+    { reference_id: 30, title: 'Open Algorithms', type: 'OER', author: 'Erickson', used_in_courses: 'BIT313L', publication_year: '2025' },
     { reference_id: 31, title: 'MDN Web Docs', type: 'Online Resource', author: 'Mozilla', used_in_courses: 'BIT313L', publication_year: '2025' }
   ];
   const titlesOf = (type) => buildCatalogView(rows, { ...VIEW, type }).rows.map(r => r.title);
-  eq(titlesOf('Online Subscription').join('|'), 'Learning Platform', 'subscription tab');
+  eq(titlesOf('OER').join('|'), 'Open Algorithms', 'OER tab');
   eq(titlesOf('Online Resource').join('|'), 'MDN Web Docs', 'online resource tab');
 });
 

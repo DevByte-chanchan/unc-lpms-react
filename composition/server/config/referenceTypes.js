@@ -52,13 +52,6 @@ const REFERENCE_TYPES = Object.freeze({
         group: 'Online Resources',
         required: ['title', 'authors', 'link'],
         optional: ['year', 'publisher', 'status', 'category']
-    },
-    'Online Subscription': {
-        label: 'Online Subscription (e.g., O’Reilly)',
-        group: 'Online Subscriptions',
-        required: ['title', 'publisher', 'link'],
-        optional: ['authors', 'year', 'status', 'category'],
-        labels: { publisher: 'Provider / platform', link: 'Subscription link' }
     }
 });
 
@@ -90,8 +83,9 @@ const LEGACY_TYPES = Object.freeze({
     oer: 'OER',
     'open educational resource': 'OER',
     'open educational resources': 'OER',
-    'online subscription': 'Online Subscription',
-    subscription: 'Online Subscription'
+    // Online Subscription was dropped as a type (2026-11-15): those are online resources now.
+    'online subscription': 'Online Resource',
+    subscription: 'Online Resource'
 });
 const legacyTypeKey = (value) => LEGACY_TYPES[String(value ?? '').trim().toLowerCase()] || null;
 
