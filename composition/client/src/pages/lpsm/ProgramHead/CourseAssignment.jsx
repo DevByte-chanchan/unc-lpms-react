@@ -115,7 +115,8 @@ const CourseAssignment = () => {
     { key: 'pre', label: 'PRE-ASSIGNED', width: 220, sortValue: r => instructorName(r.pre?.instructor_user_id) },
     { key: 'official', label: 'OFFICIAL', width: 200, sortValue: r => officialByFaculty(r.official)[0]?.name || '' },
     { key: 'status', label: 'STATUS', width: 170, sortValue: r => (STATUS[r.status] || STATUS.unassigned).label },
-  ].map(col => ({ ...col, thStyle: cellStyle(col) }))
+  // No official list imported yet: the OFFICIAL column would be a dash on every row, and the note above says why.
+  ].filter(col => col.key !== 'official' || data?.official).map(col => ({ ...col, thStyle: cellStyle(col) }))
   const cell = (key) => cellStyle(COLUMNS.find(c => c.key === key))
   // Search (course no., name, pre-assigned or official faculty) and the year level, both on the rows already loaded.
   const words = query.trim().toLowerCase()
@@ -207,10 +208,10 @@ const CourseAssignment = () => {
             </thead>
             <tbody>
               {data.rows.filter(inProgram).length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{data.rows.length ? 'This program has no courses yet.' : 'You do not head a program with courses yet.'}</td></tr>
+                <tr><td colSpan={COLUMNS.length} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{data.rows.length ? 'This program has no courses yet.' : 'You do not head a program with courses yet.'}</td></tr>
               )}
               {data.rows.filter(inProgram).length > 0 && rows.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>No course matches the search or year level.</td></tr>
+                <tr><td colSpan={COLUMNS.length} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>No course matches the search or year level.</td></tr>
               )}
               {rows.map(row => {
                 const key = `row-${row.course_id}-${row.program_id}`
@@ -228,7 +229,7 @@ const CourseAssignment = () => {
                         {data.instructors.map(u => <option key={u.user_id} value={String(u.user_id)}>{u.name}</option>)}
                       </Select>
                     </td>
-                    <td style={cell('official')}>
+                    {data.official && <td style={cell('official')}>
                       {row.official.length === 0 ? <span style={{ color: 'var(--ink-faint)' }}>—</span> : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 13 }}>
                           {officialByFaculty(row.official).map(g => (
@@ -240,7 +241,7 @@ const CourseAssignment = () => {
                           ))}
                         </div>
                       )}
-                    </td>
+                    </td>}
                     <td style={{ ...cell('status'), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
                       <div style={{ color: status.color, fontWeight: 500 }}>{status.label}</div>
                       {canUseOfficial && (

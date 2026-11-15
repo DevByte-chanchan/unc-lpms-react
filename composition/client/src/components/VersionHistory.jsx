@@ -17,7 +17,8 @@ const VersionHistory = ({ pcId }) => {
     return () => { on = false }
   }, [pcId])
 
-  if (!versions?.length) return null
+  // One version has no history to look back on, and its submit / approve dates are already on the approval strip.
+  if (!versions || versions.length < 2) return null
   return (
     <details style={{ margin: '0 0 12px', border: '1px solid var(--line)', borderRadius: 8, padding: '8px 12px', background: 'var(--surface)' }}>
       <summary style={{ cursor: 'pointer', fontWeight: 600 }}>

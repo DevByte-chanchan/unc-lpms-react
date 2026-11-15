@@ -130,11 +130,6 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
     }
   }
 
-  const viewFront = () => {
-    if (!front?.bytes) return
-    window.open(URL.createObjectURL(new Blob([front.bytes], { type: 'application/pdf' })), '_blank', 'noopener')
-  }
-
   // The PO / PEO spreadsheet goes into the editor, not straight into the database: check it, then Save.
   const importSheet = async (file) => {
     if (!file) return
@@ -327,7 +322,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
         <DocumentBar label="Front pages" status={
           front === undefined ? 'checking…' : front ? `${front.pages}-page PDF, added to exports.` : 'none, generated pages are used.'
         }>
-          {front && <button type="button" className="btn btn-secondary btn-sm" onClick={viewFront}>View</button>}
+          {/* No View button: the PDF is already shown below, with full screen and Download in its toolbar. */}
           {data.canEdit && (
             <>
               <input ref={frontRef} type="file" accept="application/pdf,.pdf" hidden aria-label="Front pages PDF" onChange={e => uploadFront(e.target.files?.[0])} />

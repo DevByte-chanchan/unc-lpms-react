@@ -36,8 +36,9 @@ const PlanChecks = ({ pcId }) => {
         setOpen(next)
         try { localStorage.setItem(OPEN_KEY, next ? '1' : '0') } catch { /* private window */ }
       }}
-      style={{ margin: '0 0 12px', border: `1px solid ${clean ? 'var(--line)' : 'var(--warn-solid)'}`, borderRadius: 8, padding: '8px 12px', background: clean ? 'var(--surface-muted)' : '#FFFBEB' }}>
-      <summary style={{ cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+      // All passing is a plain line, not a box: the box (and its colour) is kept for when something needs a look, so it stands out.
+      style={clean ? { margin: '0 0 12px', padding: '0 2px', fontSize: 13 } : { margin: '0 0 12px', border: '1px solid var(--warn-solid)', borderRadius: 8, padding: '8px 12px', background: '#FFFBEB' }}>
+      <summary style={{ cursor: 'pointer', fontWeight: clean ? 500 : 600, display: 'flex', alignItems: 'center', gap: 8 }}>
         {clean ? <CheckCircle size={16} color="var(--good-solid)" aria-hidden="true" /> : <AlertTriangle size={16} color="var(--warn-solid)" aria-hidden="true" />}
         {clean ? `Plan checks: all ${graded.length} pass` : `Plan checks: ${failing.length} of ${graded.length} need a look`}
         <span style={{ marginLeft: 'auto', color: 'var(--ink-muted)', fontSize: 12, fontWeight: 500 }}>{(open ?? !clean) ? 'Hide' : 'Show'}</span>

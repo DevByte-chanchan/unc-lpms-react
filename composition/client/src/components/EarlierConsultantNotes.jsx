@@ -21,8 +21,10 @@ const EarlierConsultantNotes = ({ pcId }) => {
   return (
     <details style={{ margin: '0 0 12px', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px', background: '#F9FAFB' }}>
       <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-        Earlier consultant suggestions ({total}) — for reference, not part of the approval
+        Earlier consultant suggestions ({total})
       </summary>
+      {/* The caveat lives inside: the closed line is just the title and count, like Version history beside it. */}
+      <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-muted)' }}>For reference only; not part of the approval.</p>
       {versions.map(version => (
         <div key={version.offeringId} style={{ marginTop: 10 }}>
           <div style={{ fontSize: 13, color: '#6B7280' }}>{version.schoolYear} · {version.semester} semester · revision {version.revision || 'in progress'}</div>

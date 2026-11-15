@@ -685,6 +685,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const waitingNotice = (isApprover && effectiveStatus !== 'approved' && reviewRecordAvailable && !isRoleActive() && !hasRoleApproved())
     ? (roleKey === 'dean' && !['returned', 'draft', 'with_program_head'].includes(workflowState.currentStage)
       ? 'Your review opens once the Director of Libraries and the Program Head have approved this plan.'
+      // The strip above already says "Returned by … — with the instructor"; the notice adds only what to expect next.
+      : workflowState.currentStage === 'returned' ? 'You can review it again once the instructor resubmits it.'
       : notYourTurnMessage('review'))
     : null
 
