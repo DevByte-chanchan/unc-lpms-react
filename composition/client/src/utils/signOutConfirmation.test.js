@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const src = path.resolve(here, '..')
 const read = relative => fs.readFileSync(path.join(src, relative), 'utf8')
 
-test('sign-out lives in the left bar only and opens the shared confirmation instead of logging out directly', () => {
+test('sign-out lives in the left bar and Settings (not the header) and opens the shared confirmation instead of logging out directly', () => {
   for (const relative of ['components/Header.jsx', 'components/HeaderA.jsx']) {
     assert.doesNotMatch(read(relative), /logout|Sign out|\/profile/, `${relative} shows only the name and role`)
   }

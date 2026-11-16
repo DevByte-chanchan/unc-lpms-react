@@ -50,6 +50,8 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
   const [dueText, setDueText] = React.useState('')
   const [beforeDays, setBeforeDays] = React.useState(DEFAULT_BEFORE)
   const [everyDays, setEveryDays] = React.useState(DEFAULT_EVERY)
+  // "Add a date": any day before the due date, picked on the calendar, besides the quick chips
+  const [pickingDate, setPickingDate] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
   const [dialogError, setDialogError] = React.useState('')
 
@@ -96,7 +98,15 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
   const openDialog = (program) => {
     const found = termDeadline(program)
     setDialog(program); setDueText(found?.syllabus_due || ''); setDialogError('')
-    setBeforeDays(parseBefore(found?.remind_before)); setEveryDays(found?.overdue_every ?? DEFAULT_EVERY)
+    setBeforeDays(parseBefore(found?.remind_before)); setEveryDays(found?.overdue_every ?? DEFAULT_EVERY); setPickingDate(false)
+  }
+  // A day picked on the calendar becomes "N days before" (0-60, like the chips); shown as its own removable chip.
+  const addDate = (iso) => {
+    const before = daysFrom(iso, dueText)
+    setPickingDate(false)
+    if (before === null || before < 0 || before > 60) { setDialogError('Pick a day on or before the due date, up to 60 days before it.'); return }
+    setDialogError('')
+    setBeforeDays(list => (list.includes(before) || list.length >= 6 ? list : [...list, before].sort((a, b) => b - a)))
   }
   // A reminder day on or off (at most 6, at least one).
   const toggleBefore = (day) => setBeforeDays(list => (list.includes(day)
@@ -248,7 +258,29 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
                       {day === 0 ? 'On the day' : `${day}d before`}
                     </button>
                   ))}
+                  {/* days picked on the calendar: their date, and an x to drop them */}
+                  {beforeDays.filter(day => !BEFORE_CHOICES.includes(day)).map(day => (
+                    <button key={`own-${day}`} type="button" className={`${styles.dayChip} ${styles.dayChipOn}`} onClick={() => toggleBefore(day)}
+                      title={`${day} days before the due date. Click to remove.`} aria-label={`Remove the reminder ${day} days before`}>
+                      {dueText ? dayLabel(shiftDay(dueText, -day)) : `${day}d before`} <X size={12} aria-hidden="true" />
+                    </button>
+                  ))}
+                  {!pickingDate && (
+                    <button type="button" className={`${styles.dayChip} ${styles.dayChipAdd}`} disabled={!dueText || beforeDays.length >= 6}
+                      title={!dueText ? 'Pick the due date first' : beforeDays.length >= 6 ? 'Six reminder days at most' : 'Pick any day on the calendar'}
+                      onClick={() => setPickingDate(true)}>
+                      <Plus size={12} aria-hidden="true" /> Add a date
+                    </button>
+                  )}
                 </div>
+                {pickingDate && (
+                  <div className={styles.scheduleEvery}>
+                    <span>Remind on</span>
+                    <DatePicker id="reminder-date" value="" onChange={addDate}
+                      min={(() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` })()} />
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPickingDate(false)}>Cancel</button>
+                  </div>
+                )}
                 <div className={styles.scheduleEvery}>
                   <span>After the due date</span>
                   <Select value={String(everyDays)} onChange={(e) => setEveryDays(Number(e.target.value))} aria-label="After the due date">

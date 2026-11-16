@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CircleAlert as AlertCircle, CircleCheck as CheckCircle, Lock, Maximize, Minimize2, PenLine, User, X } from 'lucide-react'
-import { changePassword, getSession, roleMeta } from '../utils/session.js'
+import { useNavigate } from 'react-router-dom'
+import { CircleAlert as AlertCircle, CircleCheck as CheckCircle, Lock, LogOut, Maximize, Minimize2, PenLine, User, X } from 'lucide-react'
+import { changePassword, getSession, logout, roleMeta } from '../utils/session.js'
+import SignOutDialog from './SignOutDialog.jsx'
 import styles from '../styles/SettingsModal.module.sass'
 import SignatureTab from './SignatureTab.jsx'
 
@@ -101,6 +103,9 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
   const session = getSession()
   const [tab, setTab] = useState(initialTab)
   const [expanded, setExpanded] = useState(false)
+  // Sign out from here too, through the same confirmation as the side bar's Log Out.
+  const [signingOut, setSigningOut] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => { if (open) setTab(initialTab) }, [open, initialTab])
 
@@ -109,13 +114,14 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
   useEffect(() => {
     if (!open) return undefined
     const onKey = (event) => {
-      if (event.key !== 'Escape') return
+      // the sign-out question answers its own Escape; Settings stays open behind it
+      if (event.key !== 'Escape' || signingOut) return
       if (expanded) setExpanded(false)
       else close()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, expanded, close])
+  }, [open, expanded, close, signingOut])
 
   if (!open) return null
   const visibleTabs = TABS.filter(item => !item.roles || (session?.roles || [session?.role]).some(role => item.roles.includes(role)))
@@ -150,6 +156,9 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
                 <item.Icon size={16} aria-hidden="true" /> {item.label}
               </button>
             ))}
+            <button type="button" className={`${styles.tab} ${styles.signOut}`} onClick={() => setSigningOut(true)}>
+              <LogOut size={16} aria-hidden="true" /> Sign out
+            </button>
           </nav>
           <div className={styles.content}>
             <div className={styles.pageHead}>
@@ -180,6 +189,8 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
           </div>
         </div>
       </div>
+      <SignOutDialog open={signingOut} onCancel={() => setSigningOut(false)}
+        onConfirm={() => { setSigningOut(false); onClose(); logout(); navigate('/', { replace: true }) }} />
     </>,
     document.body
   )
