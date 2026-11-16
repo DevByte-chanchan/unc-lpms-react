@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { History } from 'lucide-react'
 import { fetchJson } from '../utils/api.js'
+import styles from '../styles/VersionHistory.module.sass'
 
 // Every version of this course's plan, newest first, with who did what and when (server: utils/versionHistory.js).
 // Closed until opened: it is for looking back, not part of the review.
 const when = (value) => (value ? new Date(value).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')
+const day = (value) => (value ? new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '')
+// The timeline dot's colour by what happened: green approve / accept, amber return, teal submit, grey the rest.
+const toneOf = (action = '') => (/approv|accept/i.test(action) ? 'good' : /return|sent back/i.test(action) ? 'warn' : /submit|forward/i.test(action) ? 'submit' : '')
 
 const VersionHistory = ({ pcId }) => {
   const [versions, setVersions] = useState(null)
@@ -26,28 +30,35 @@ const VersionHistory = ({ pcId }) => {
         <History size={16} color="var(--ink-muted)" aria-hidden="true" />
         Version history · {versions.length} version{versions.length === 1 ? '' : 's'}
       </summary>
-      {versions.map(version => (
-        <div key={version.id} style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>
-            {version.revision ? `Revision ${version.revision}` : 'Working version'} · {version.schoolYear} · {version.semester} semester
-            {version.current && <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}> (this one)</span>}
-            {version.approvedAt && <span style={{ color: 'var(--good)', fontWeight: 400 }}> · approved {when(version.approvedAt)}</span>}
-            {version.carriedFrom && <span style={{ color: 'var(--ink-muted)', fontWeight: 400 }}> · carried over from an earlier term</span>}
-          </div>
-          {version.events.length === 0 ? (
-            <div style={{ fontSize: 13, color: 'var(--ink-muted)' }}>No actions yet.</div>
-          ) : (
-            <ol style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: 13 }}>
-              {version.events.map((event, i) => (
-                <li key={i}>
-                  <strong>{event.action}</strong> by {event.who || 'someone'} ({event.role}) · {when(event.at)}
-                  {event.note && <div style={{ color: 'var(--ink-soft)' }}>&ldquo;{event.note}&rdquo;</div>}
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-      ))}
+      {/* One card per version: its name, term and state, then a timeline of what happened, newest version first. */}
+      <div className={styles.versions}>
+        {versions.map(version => (
+          <section key={version.id} className={styles.version}>
+            <header className={styles.versionHead}>
+              <strong>{version.revision ? `Revision ${version.revision}` : 'Working version'}</strong>
+              <span className={styles.term}>{version.schoolYear} · {version.semester} semester</span>
+              {version.current && <span className={`${styles.chip} ${styles.chipCurrent}`}>This one</span>}
+              {version.approvedAt && <span className={`${styles.chip} ${styles.chipApproved}`}>Approved {day(version.approvedAt)}</span>}
+              {version.carriedFrom && <span className={styles.chip}>Carried over</span>}
+            </header>
+            {version.events.length === 0 ? (
+              <div className={styles.none}>No actions yet.</div>
+            ) : (
+              <ol className={styles.timeline}>
+                {version.events.map((event, i) => (
+                  <li key={i} className={styles.event}>
+                    <span className={`${styles.dot} ${styles[toneOf(event.action)] || ''}`} aria-hidden="true" />
+                    <span className={styles.action}>{event.action}</span>
+                    <span className={styles.who}>{event.who || 'Someone'} <span className={styles.role}>{event.role}</span></span>
+                    <time className={styles.when} dateTime={event.at}>{when(event.at)}</time>
+                    {event.note && <q className={styles.note}>{event.note}</q>}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        ))}
+      </div>
     </details>
   )
 }

@@ -1,0 +1,130 @@
+// Version history (components/VersionHistory.jsx): a card per version, with a timeline of what happened in it.
+.versions
+  display: flex
+  flex-direction: column
+  gap: 10px
+  margin: 8px 0 4px
+
+.version
+  // stacked (the plan page lays its own <section>s out in a row)
+  display: flex
+  flex-direction: column
+  align-items: stretch
+  padding: 12px 14px
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  background: #fff
+
+.versionHead
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  gap: 6px 10px
+  margin-bottom: 8px
+
+  strong
+    color: var(--ink)
+    font-size: var(--fs-sm)
+    font-weight: var(--fw-semibold)
+
+.term
+  color: var(--ink-muted)
+  font-size: var(--fs-xs)
+
+.chip
+  padding: 2px 8px
+  border-radius: var(--radius-pill)
+  background: var(--surface-sunken)
+  color: var(--ink-soft)
+  font-size: 11px
+  font-weight: var(--fw-medium)
+
+.chipCurrent
+  background: var(--primary)
+  color: #fff
+
+.chipApproved
+  background: var(--good-soft)
+  color: var(--good)
+
+.none
+  color: var(--ink-muted)
+  font-size: var(--fs-xs)
+
+// the timeline: a thin line down the left with a dot per action; action, who (role in grey) and the date on the right
+.timeline
+  position: relative
+  margin: 0
+  padding: 0 0 0 18px
+  list-style: none
+
+  &::before
+    content: ''
+    position: absolute
+    left: 4px
+    top: 6px
+    bottom: 6px
+    width: 2px
+    border-radius: 1px
+    background: var(--line)
+
+.event
+  position: relative
+  display: grid
+  grid-template-columns: 88px minmax(0, 1fr) auto
+  column-gap: 12px
+  align-items: baseline
+  padding: 5px 0
+  font-size: var(--fs-xs)
+  line-height: 1.4
+
+.dot
+  position: absolute
+  left: -18px
+  top: 9px
+  width: 10px
+  height: 10px
+  border: 2px solid #fff
+  border-radius: 50%
+  background: var(--ink-faint)
+  box-sizing: border-box
+
+.good
+  background: var(--good-solid)
+
+.warn
+  background: var(--warn-solid)
+
+.submit
+  background: var(--primary)
+
+.action
+  color: var(--ink)
+  font-weight: var(--fw-semibold)
+
+.who
+  min-width: 0
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  color: var(--ink-soft)
+
+.role
+  color: var(--ink-muted)
+
+.when
+  color: var(--ink-muted)
+  font-variant-numeric: tabular-nums
+  white-space: nowrap
+
+.note
+  grid-column: 2 / -1
+  margin-top: 2px
+  color: var(--ink-soft)
+  font-style: normal
+
+@media (max-width: 600px)
+  .event
+    grid-template-columns: 1fr
+  .when
+    margin-top: 1px

@@ -31,8 +31,8 @@
 .newCount
   padding: 1px 8px
   border-radius: var(--radius-pill)
-  background: var(--accent-soft)
-  color: var(--accent)
+  background: var(--primary)
+  color: #fff
   font-size: 11px
   font-weight: 600
 
@@ -41,7 +41,7 @@
   padding: 0
   border: 0
   background: transparent
-  color: #2563eb
+  color: var(--primary)
   font: var(--fw-medium) 12px var(--font-ui)
   cursor: pointer
 
@@ -114,12 +114,12 @@
   &:active
     transform: none
 
-// not read yet: a faint tint and a dot after the time; the title stays bold either way
+// not read yet: a faint tint of the app's teal and a teal dot after the time (blue is not used elsewhere)
 .unread
-  background: oklch(97.05% 0.0142 254.6 / .55)
+  background: oklch(96.5% 0.012 205)
 
   &:hover
-    background: var(--accent-soft)
+    background: oklch(94% 0.018 205)
 
 .icon
   width: 32px
@@ -146,7 +146,7 @@
   width: 7px
   height: 7px
   border-radius: 50%
-  background: var(--accent)
+  background: var(--primary)
 
 .blue
   background: #e8edff
@@ -202,7 +202,7 @@
   align-items: center
   gap: 2px
   margin-top: 2px
-  color: var(--accent)
+  color: var(--primary)
   font-size: var(--fs-xs)
   font-weight: var(--fw-medium)
 

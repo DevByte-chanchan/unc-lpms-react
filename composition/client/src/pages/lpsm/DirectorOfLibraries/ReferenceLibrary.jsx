@@ -490,11 +490,10 @@ const ReferenceLibrary = () => {
           {/* Always there, one line high: adding or removing a filter never moves the table below it. */}
           {layoutMode !== 'courses' && (
             <div className={styles.activeFilters} aria-label="Active filters">
-              <span className={styles.activeFiltersLabel}>Active filters</span>
-              {activeFilterChips.length === 0 ? (
-                <span className={styles.noFilters}>None</span>
-              ) : (
+              {/* empty: the row stays (blank), so a first filter does not move the table */}
+              {activeFilterChips.length > 0 && (
                 <>
+                  <span className={styles.activeFiltersLabel}>Active filters</span>
                   {activeFilterChips.map(filter => (
                     <button key={filter.key} type="button" className={styles.activeFilterChip} onClick={filter.remove} aria-label={`Remove ${filter.label} filter`}>
                       <span>{filter.label}</span><X size={12} />
