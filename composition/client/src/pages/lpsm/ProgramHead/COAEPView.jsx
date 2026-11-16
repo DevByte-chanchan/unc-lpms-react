@@ -141,6 +141,7 @@ const COAEPView = ({ tabs = null }) => {
               prefix="Course:"
               value={offeringId}
               onChange={event => setOfferingId(event.target.value)}
+              placeholder={courses === null ? 'Loading…' : 'Select…'}
               aria-label="Select course"
             >
               {(courses || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
@@ -188,7 +189,7 @@ const COAEPView = ({ tabs = null }) => {
                   })}
                 </tbody>
             </HeadBodyTable></div>
-          ) : serverCoaep === undefined && courseCode ? (
+          ) : (courses === null && !error) || (serverCoaep === undefined && courseCode) ? (
             <Loading label="Loading the plan…"><TableSkeleton rows={5} cols={[40, 250, '1fr', 260, 220]} rowHeight={80} /></Loading>
           ) : courses !== null && courses.length === 0 ? (
             <EmptyState

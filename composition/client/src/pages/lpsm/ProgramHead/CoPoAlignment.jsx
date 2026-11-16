@@ -2,6 +2,7 @@ import Select from '../../../components/Select.jsx'
 import { useEffect, useMemo, useState } from 'react';
 import { Download } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
+import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
@@ -86,7 +87,7 @@ const CoPoAlignment = ({ tabs = null }) => {
       </div>
 
       <div className={pageStyles.toolbarControls}>
-        <Select variant="pill" prefix="Course:" value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
+        <Select variant="pill" prefix="Course:" value={offeringId} onChange={event => setOfferingId(event.target.value)} placeholder={offerings === null ? 'Loading…' : 'Select…'} aria-label="Select course">
             {(offerings || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
           </Select>
       </div>
@@ -104,6 +105,10 @@ const CoPoAlignment = ({ tabs = null }) => {
             <span><strong>D</strong> – Demonstrative</span>
           </div>
         </div>
+      )}
+
+      {offerings === null && !error && (
+        <Loading label="Loading your courses…"><TableSkeleton rows={4} cols={['1fr', 52, 52, 52, 52, 52, 52]} rowHeight={72} /></Loading>
       )}
 
       {offerings !== null && offerings.length === 0 && !error && (
