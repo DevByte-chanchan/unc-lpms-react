@@ -11,7 +11,7 @@ import styles from '../styles/Select.module.sass'
 // once something is picked the list starts with "Clear selection" instead. `clearable` adds that row without a prompt option.
 const POPOVER_MAX = 288
 const CLEAR_LABEL = 'Clear selection'
-const isPrompt = (option) => option.value === '' && (option.label.trim() === '' || /^select/i.test(option.label.trim()))
+const isPrompt = (option) => option.value === '' && (option.label.trim() === '' || /^select\b/i.test(option.label.trim()))
 
 const collect = (children, found = []) => {
   Children.forEach(children, (child) => {
