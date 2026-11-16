@@ -1194,6 +1194,8 @@ ${suggestionLine}` : text,
             {activeSelectedSection === 'Course and Program Outcome Alignment' && (
               <section ref={alignmentRef}>
                 <OutcomeAlignment
+                  // reviewers read it; only the plan's instructor edits (the server refuses anyone else)
+                  isReadOnly
                   offeringID={validPcId}
                   revisionNum={validRevNum}
                   styles={stylesC}
@@ -1237,6 +1239,8 @@ ${suggestionLine}` : text,
             {activeSelectedSection === 'Criteria for Grading' && (
               <section ref={criteriaRef}>
                 <CriteriaForGrading
+                  // reviewers read it; only the plan's instructor edits (the server refuses anyone else)
+                  isReadOnly
                   offeringID={validPcId}
                   revisionNum={validRevNum}
                   status={effectiveStatus}
