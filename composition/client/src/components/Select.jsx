@@ -1,6 +1,6 @@
 import { Children, Fragment, isValidElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown, X } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 import styles from '../styles/Select.module.sass'
 
 // A drop-down list in the app's look, in place of the browser's own <select> popup (which cannot be styled). It is a
@@ -134,7 +134,7 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
             <li key={`${option.value}-${index}`} role="option" title={option.label} aria-selected={current === option} aria-disabled={option.disabled || undefined}
               data-active={index === active} className={`${styles.option} ${index === active ? styles.active : ''} ${option.disabled ? styles.off : ''} ${option.clear ? styles.clear : ''}`}
               onMouseEnter={() => setActive(index)} onClick={() => pick(option)}>
-              <span>{option.clear && <X size={14} aria-hidden="true" />}{option.label}</span>
+              <span>{option.label}</span>
               {current === option && <Check size={14} aria-hidden="true" />}
             </li>
           ))}

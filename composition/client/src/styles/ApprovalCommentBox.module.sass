@@ -181,7 +181,9 @@
     transform: none
 
 // Why a field is not available yet, under it.
+// always rendered, one line high even when empty: a hint appearing or going never moves the fields below
 .fieldHint
+  min-height: 16px
   font-size: 11px
   color: var(--ink-muted)
 

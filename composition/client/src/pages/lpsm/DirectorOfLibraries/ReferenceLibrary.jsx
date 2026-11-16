@@ -486,15 +486,22 @@ const ReferenceLibrary = () => {
           <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} aria-pressed={layoutMode === 'courses'} style={SWITCH_BTN}><Grid size={16} aria-hidden="true" /> Courses</button>
         </div>
           </div>
-          {layoutMode !== 'courses' && activeFilterChips.length > 0 && (
+          {/* Always there, one line high: adding or removing a filter never moves the table below it. */}
+          {layoutMode !== 'courses' && (
             <div className={styles.activeFilters} aria-label="Active filters">
               <span className={styles.activeFiltersLabel}>Active filters</span>
-              {activeFilterChips.map(filter => (
-                <button key={filter.key} type="button" className={styles.activeFilterChip} onClick={filter.remove} aria-label={`Remove ${filter.label} filter`}>
-                  <span>{filter.label}</span><X size={12} />
-                </button>
-              ))}
-              <button className={styles.resetButton} type="button" onClick={resetDiscovery}>Reset all</button>
+              {activeFilterChips.length === 0 ? (
+                <span className={styles.noFilters}>None</span>
+              ) : (
+                <>
+                  {activeFilterChips.map(filter => (
+                    <button key={filter.key} type="button" className={styles.activeFilterChip} onClick={filter.remove} aria-label={`Remove ${filter.label} filter`}>
+                      <span>{filter.label}</span><X size={12} />
+                    </button>
+                  ))}
+                  <button className={styles.resetButton} type="button" onClick={resetDiscovery}>Reset all</button>
+                </>
+              )}
             </div>
           )}
         </div>

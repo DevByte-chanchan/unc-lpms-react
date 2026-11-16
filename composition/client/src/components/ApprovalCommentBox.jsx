@@ -160,6 +160,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           return {
             ...defaultComment(mode),
             ...c,
+            // a week is always under an outcome: an older draft could hold a week with no outcome
+            ilo: c.courseOutcome ? c.ilo : '',
             comment: c.comment || c.text || '',
             createdAt: c.createdAt || new Date().toISOString(),
             reviewer: c.reviewer || seedData.name,
@@ -605,7 +607,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                                 <option key={i} value={i}>{iloLabel(i)}</option>
                               ))}
                             </Select>
-                            {!c.courseOutcome && <span className={styles.fieldHint}>Pick a course outcome first.</span>}
+                            <span className={styles.fieldHint}>{!c.courseOutcome ? 'Pick a course outcome first.' : ''}</span>
                           </div>
 
                           <div className={styles.field}>
@@ -616,7 +618,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               <option value="References">References</option>
                               <option value="TLA">Teaching-Learning Activity (TLA)</option>
                             </Select>
-                            {!c.ilo && <span className={styles.fieldHint}>Pick a week first.</span>}
+                            <span className={styles.fieldHint}>{!c.ilo ? 'Pick a week first.' : ''}</span>
                           </div>
 
                           <div className={styles.field}>
@@ -629,7 +631,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               onChange={(vals) => updateCommentCoverageDetail(c.id, vals)}
                               options={targetOptions(c)}
                             />
-                            {!c.coverageType && <span className={styles.fieldHint}>Pick a coverage type first.</span>}
+                            <span className={styles.fieldHint}>{!c.coverageType ? 'Pick a coverage type first.' : ''}</span>
                           </div>
 
                           {c.coverageType === 'Topic' && subtopicChoices(weekSubtopics(c), pickedTopics(c)).length > 0 && (

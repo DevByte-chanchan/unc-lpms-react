@@ -218,13 +218,28 @@
 
 }
 
+// A fixed one-line row: it is always there and never wraps (many chips scroll sideways), so filtering never moves
+// the table below.
 .activeFilters {
   display: flex;
   grid-column: 1 / -1;
   align-items: center;
   gap: 7px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  height: 30px;
   margin-top: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+
+  > * {
+    flex: 0 0 auto;
+  }
+}
+
+.noFilters {
+  color: var(--ink-faint);
+  font-size: 12px;
 }
 
 .activeFiltersLabel {
