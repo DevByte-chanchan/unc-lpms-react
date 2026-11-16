@@ -107,7 +107,7 @@ const Header = ({ department }) => {
         </div>
       )}
       {/* every page: full screen (the bars step aside; components/FullscreenToggle.jsx) */}
-      <FullscreenToggle />
+      <FullscreenToggle className={styles.bell} />
       {session && session.role !== 'superuser' && <NotificationBell />}
       <SettingsModal open={settings !== null} initialTab={settings || 'account'} onClose={() => setSettings(null)} />
     </div>

@@ -987,25 +987,50 @@ body[data-focus] [data-layout-nav],
 body[data-focus] [data-layout-header] {
     display: none !important;
 }
-/* bottom-left: the corner the hidden side bar leaves free (top-right is where pages keep their own buttons) */
-.app-focus-exit {
+/* The exit tab: centred on the top edge, shown for 3 s after entering, then tucked above the edge so it covers
+   nothing; a thin strip along the top edge brings it back on hover, and keyboard focus does too. */
+.app-focus-exit-zone {
     position: fixed;
-    bottom: 14px;
-    left: 14px;
+    top: 0;
+    left: 50%;
     z-index: 2900;
+    width: 320px;
+    height: 12px;
+    transform: translateX(-50%);
+}
+.app-focus-exit {
+    position: absolute;
+    top: 0;
+    left: 50%;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     height: 32px;
-    padding: 0 12px;
+    padding: 0 10px 0 12px;
     border: 1px solid var(--control-border);
-    border-radius: var(--control-radius);
-    background: #fff;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
-    color: var(--ink-soft);
+    border-top: 0;
+    border-radius: 0 0 var(--control-radius) var(--control-radius);
+    background: var(--primary);
+    color: #fff;
     font: var(--fw-medium) var(--fs-xs) var(--font-ui);
+    white-space: nowrap;
     cursor: pointer;
-    opacity: .85;
-    transition: opacity var(--t-fast);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .18);
+    transform: translate(-50%, -100%);
+    animation: focusPeek 3.2s ease-in-out;
+    transition: transform .2s ease-out;
 }
-.app-focus-exit:hover, .app-focus-exit:focus-visible { opacity: 1; }
+.app-focus-exit kbd {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .16);
+    font: inherit;
+    font-size: 11px;
+}
+.app-focus-exit-zone:hover .app-focus-exit,
+.app-focus-exit:focus-visible { transform: translate(-50%, 0); }
+.app-focus-exit:active { transform: translate(-50%, 0) scale(.97); }
+@keyframes focusPeek {
+    0%, 85% { transform: translate(-50%, 0); }
+    100% { transform: translate(-50%, -100%); }
+}
