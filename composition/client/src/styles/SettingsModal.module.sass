@@ -1,11 +1,14 @@
 // The settings window: centred, dark backdrop, the shared window header, tabs, and rows of label / value.
 .backdrop
+  animation: backdropIn .15s ease-out
   position: fixed
   inset: 0
   z-index: 2999
   background: var(--backdrop)
 
 .window
+  // opens like every window: from 96%, 180ms ease-out
+  animation: windowIn .18s ease-out
   position: fixed
   top: 50%
   left: 50%
@@ -155,3 +158,12 @@
 
   .good
     color: var(--good)
+
+@keyframes windowIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(.96)
+
+@keyframes backdropIn
+  from
+    opacity: 0

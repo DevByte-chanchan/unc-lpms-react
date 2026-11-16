@@ -214,6 +214,9 @@
   transform: rotate(180deg)
 
 .roleFilterMenu
+  // opens from its trigger: 95%, 160ms ease-out
+  transform-origin: top left
+  animation: popIn .16s ease-out
   position: absolute
   top: calc(100% + 4px)
   left: 0
@@ -1177,3 +1180,8 @@
   margin: 6px 0 0
   font-size: 12px
   color: #4A5568
+
+@keyframes popIn
+  from
+    opacity: 0
+    transform: scale(.95)

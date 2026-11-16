@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Check, Crosshair } from 'react-feather'
+import { ChevronRight, ChevronDown, ChevronUp, MessageSquare, Check, Crosshair } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
 import Select from './Select.jsx'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
@@ -97,7 +97,7 @@ const CommentsSidebar = ({
         aria-controls={panelId}
         title={collapsed ? `Show ${nouns}` : `Hide ${nouns}`}
       >
-        <span aria-hidden="true" className={styles['comments-toggle-icon']}>{collapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}</span>
+        <span aria-hidden="true" className={styles['comments-toggle-icon']}><ChevronRight size={16} className="chevron-turn" data-open={collapsed || undefined} /></span>
         <span className={styles['comments-toggle-label']}>
           {collapsed ? `Show ${nouns} (${comments.length})` : `Hide ${nouns}`}
         </span>

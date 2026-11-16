@@ -1,12 +1,15 @@
 // "Scan · Check what was read" (components/ScanReviewModal.jsx): the file on the left, the values on the right.
 
 .backdrop
+  animation: backdropIn .15s ease-out
   position: fixed
   inset: 0
   z-index: 2999
   background: var(--backdrop)
 
 .window
+  // opens like every window: from 96%, 180ms ease-out
+  animation: windowIn .18s ease-out
   position: fixed
   z-index: 3000
   top: 50%
@@ -217,3 +220,12 @@
   .preview
     border-right: 0
     border-bottom: 1px solid var(--line)
+
+@keyframes windowIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(.96)
+
+@keyframes backdropIn
+  from
+    opacity: 0

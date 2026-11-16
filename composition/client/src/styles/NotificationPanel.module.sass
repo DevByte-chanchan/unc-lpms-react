@@ -1,6 +1,9 @@
 // The notifications drop-down under the top bar's bell (components/NotificationBell.jsx).
 
 .panel
+  // opens from its trigger: 95%, 160ms ease-out
+  transform-origin: top right
+  animation: popIn .16s ease-out
   position: fixed
   z-index: 1200
   display: flex
@@ -208,3 +211,8 @@
   from
     opacity: 0
     transform: translateY(-4px)
+
+@keyframes popIn
+  from
+    opacity: 0
+    transform: scale(.95)

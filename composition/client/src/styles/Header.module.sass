@@ -97,6 +97,9 @@
 
 // Menu
 .menu
+  // opens from its trigger: 95%, 160ms ease-out
+  transform-origin: top right
+  animation: popIn .16s ease-out
   position: absolute
   top: calc(100% + 6px)
   right: 0
@@ -257,3 +260,8 @@
     padding: 10px 16px
   .text
     display: none
+
+@keyframes popIn
+  from
+    opacity: 0
+    transform: scale(.95)
