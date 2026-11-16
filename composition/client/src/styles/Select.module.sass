@@ -99,6 +99,15 @@
   color: var(--ink-faint)
   cursor: default
 
+// "Clear selection": quieter than the choices, set apart from them by a line
+.option.clear
+  color: var(--ink-muted)
+  border-bottom: 1px solid var(--line)
+  span
+    display: inline-flex
+    align-items: center
+    gap: 6px
+
 // variant="term": the look of the instructor's year / semester picker on Assigned Course Offerings.
 .trigger.term
   height: 34px

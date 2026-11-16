@@ -37,8 +37,7 @@ const Field = ({ label, error, value, onChange, onBlur, options, placeholder, ch
   <div className={styles.field}>
     <div className={styles.label}>{label}</div>
     {options ? (
-      <Select block value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">Select an option</option>
+      <Select block value={value} placeholder="Select an option" aria-label={label} onChange={(event) => onChange(event.target.value)}>
         {options.map(option => <option key={option} value={option}>{option}</option>)}
       </Select>
     ) : kind === 'year' ? (

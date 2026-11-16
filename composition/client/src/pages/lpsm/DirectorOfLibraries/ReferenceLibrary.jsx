@@ -699,7 +699,7 @@ const ReferenceLibrary = () => {
                 {!previewReference.archived && (
                   <div className={styles.fileRow}>
                     <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                      <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="Course…" aria-label="Course to file this reference under">
+                      <Select block clearable value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="Course…" aria-label="Course to file this reference under">
                         {allCourses.filter(c => !(previewCourses || []).some(f => f.course_id === c.id)).map(c => <option key={c.id} value={String(c.id)}>{`${c.code} — ${c.title}`}</option>)}
                       </Select>
                     </div>

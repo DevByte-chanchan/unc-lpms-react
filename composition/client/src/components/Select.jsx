@@ -1,13 +1,17 @@
 import { Children, Fragment, isValidElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown } from 'react-feather'
+import { Check, ChevronDown, X } from 'react-feather'
 import styles from '../styles/Select.module.sass'
 
 // A drop-down list in the app's look, in place of the browser's own <select> popup (which cannot be styled). It is a
 // drop-in: it takes the same <option> children, `value`, `onChange` (called with { target: { value, name } }),
 // `disabled`, `id`, `name` and `aria-label`. Extra props: `block` (fill the width) and `size` ('lg' is 40px tall).
 // Keys: Up / Down / Home / End move, Enter or Space picks, Escape closes, a letter jumps to an option that starts with it.
+// An empty prompt option (value "" with a blank or "Select …" label) is not listed: it is the hint on the closed box, and
+// once something is picked the list starts with "Clear selection" instead. `clearable` adds that row without a prompt option.
 const POPOVER_MAX = 288
+const CLEAR_LABEL = 'Clear selection'
+const isPrompt = (option) => option.value === '' && (option.label.trim() === '' || /^select/i.test(option.label.trim()))
 
 const collect = (children, found = []) => {
   Children.forEach(children, (child) => {
@@ -21,9 +25,16 @@ const collect = (children, found = []) => {
 }
 
 // variant 'pill': the rounded, bordered picker of the Course Assignment module; `prefix` is a label inside it ("Year Level:").
-const Select = ({ value, onChange, children, disabled = false, id, name, block = false, size = 'md', variant = '', title, placeholder = 'Select…', prefix = '', ...rest }) => {
-  const options = collect(children)
-  const current = options.find(option => option.value === String(value ?? ''))
+const Select = ({ value, onChange, children, disabled = false, id, name, block = false, size = 'md', variant = '', title, placeholder = 'Select…', prefix = '', clearable = false, ...rest }) => {
+  const all = collect(children)
+  const prompt = all.find(isPrompt)
+  const picked = String(value ?? '') !== ''
+  const options = [
+    ...((prompt || clearable) && picked ? [{ value: '', label: CLEAR_LABEL, disabled: false, clear: true }] : []),
+    ...all.filter(option => !isPrompt(option))
+  ]
+  const hint = prompt?.label.trim() || placeholder
+  const current = picked || !prompt ? options.find(option => !option.clear && option.value === String(value ?? '')) : undefined
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const [pos, setPos] = useState({ left: 0, top: 0, width: 0, up: false })
@@ -112,7 +123,7 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
         className={`${styles.trigger} ${size === 'lg' ? styles.lg : ''} ${block ? styles.block : ''} ${variant === 'term' ? styles.term : ''} ${variant === 'inline' ? styles.inline : ''} ${variant === 'pill' ? styles.pill : ''}`}
         aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined} aria-label={rest['aria-label']}>
         {prefix && <span className={styles.prefix}>{prefix}</span>}
-        <span className={current ? styles.value : styles.placeholder}>{current ? current.label : placeholder}</span>
+        <span className={current ? styles.value : styles.placeholder}>{current ? current.label : hint}</span>
         <ChevronDown size={16} aria-hidden="true" className={styles.chevron} />
       </button>
 
@@ -121,9 +132,9 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
           style={{ left: pos.left, minWidth: pos.width, maxWidth: 'calc(100vw - 24px)', ...(pos.up ? { bottom: window.innerHeight - pos.top } : { top: pos.top }) }}>
           {options.map((option, index) => (
             <li key={`${option.value}-${index}`} role="option" title={option.label} aria-selected={current === option} aria-disabled={option.disabled || undefined}
-              data-active={index === active} className={`${styles.option} ${index === active ? styles.active : ''} ${option.disabled ? styles.off : ''}`}
+              data-active={index === active} className={`${styles.option} ${index === active ? styles.active : ''} ${option.disabled ? styles.off : ''} ${option.clear ? styles.clear : ''}`}
               onMouseEnter={() => setActive(index)} onClick={() => pick(option)}>
-              <span>{option.label}</span>
+              <span>{option.clear && <X size={13} aria-hidden="true" />}{option.label}</span>
               {current === option && <Check size={14} aria-hidden="true" />}
             </li>
           ))}
