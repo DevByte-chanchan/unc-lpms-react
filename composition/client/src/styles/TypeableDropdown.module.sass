@@ -19,8 +19,9 @@
   display: flex
   align-items: center
   align-self: stretch
-  border-radius: 4px
-  border: 1px solid #DCE2F0
+  // the app's control box (tokens.css), like Select and the inputs
+  border-radius: var(--control-radius)
+  border: 1px solid var(--control-border)
   transition: border-color 0.2s ease-in-out
   box-sizing: border-box
   background: #FFFFFF
@@ -42,19 +43,19 @@
 // Text Input structural wrapper matching your old select padding limits exactly
 .typeableInput
   width: 100%
-  height: 100%
-  padding: 8px 15px
+  height: 34px
+  padding: 0 12px
   outline: none
   border: 0
-  font-size: 14px
-  font-family: Manrope, sans-serif
+  font-size: var(--fs-sm)
+  font-family: var(--font-ui)
   background: transparent
   box-sizing: border-box
 
 // Consistent arrow indicator positioning
 .chevronIcon
-  color: #5D6D7E
-  margin-right: 15px
+  color: var(--ink-muted)
+  margin-right: 10px
   cursor: pointer
   transition: transform 0.2s ease
   user-select: none
@@ -64,44 +65,47 @@
   transform: rotate(180deg)
 
 // Absolute overlay options popover module
+// the list: like the Select list (12px card, 6px rows)
 .optionsMenu
   position: absolute
-  top: 105%
-  left: -1px // Aligns perfectly across left outer border line boundaries
-  width: calc(100% + 2px) // Prevents pixel mismatch lines on outer border walls
-  max-height: 220px
+  top: calc(100% + 6px)
+  left: 0
+  width: 100%
+  max-height: 280px
   overflow-y: auto
-  background: #FFFFFF
-  border: 1px solid #DCE2F0
-  border-radius: 4px
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12)
-  z-index: 99999 !important
+  padding: 6px
+  box-sizing: border-box
+  background: #fff
+  border: 1px solid var(--line)
+  border-radius: calc(var(--radius-sm) + 6px)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18)
+  z-index: 3400
 
 .menuOptionItem
-  padding: 10px 15px
-  font-family: Manrope, sans-serif
-  font-size: 14px
-  color: #333333
+  padding: 8px 10px
+  border-radius: var(--radius-sm)
+  font-size: var(--fs-sm)
+  color: var(--ink)
   cursor: pointer
   user-select: none
-  transition: background-color 0.15s ease
+  transition: background-color var(--t-fast)
 
   &:hover
-    background-color: #F4F6F9
+    background-color: var(--hover-tint)
 
 .selectedOption
-  background-color: #ECF0F1
-  font-weight: 500
+  font-weight: var(--fw-medium)
 
 .noOptions
-  padding: 12px 15px
-  font-family: Manrope, sans-serif
-  font-size: 14px
-  color: #757575
+  padding: 12px
+  font-size: var(--fs-sm)
+  color: var(--ink-faint)
   text-align: center
 
+// disabled: like a disabled Select (white, faded)
 .disabled-style
-  background: #F8F9F9
+  background: #fff
+  opacity: .55
   pointer-events: none
   cursor: not-allowed
 
