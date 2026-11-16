@@ -3,7 +3,7 @@ import { alertDialog } from "../utils/appDialog.jsx";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, ChevronDown, ChevronUp, XCircle, HelpCircle, Download, Clock, RotateCcw, CheckCircle, Search, List, Grid } from 'react-feather';
+import { ChevronRight, ChevronDown, XCircle, HelpCircle, Download, Clock, RotateCcw, CheckCircle, Search, List, Grid } from 'react-feather';
 import SortableTh from './SortableTh.jsx';
 import { sortRows, nextSort } from '../utils/tableSort.js';
 import { fetchJson } from "../utils/api.js";
@@ -18,6 +18,7 @@ import TableScrollRegion from './TableScrollRegion.jsx';
 import { usePageSearch, matchesSearch, setPageSearch } from '../utils/pageSearch.js';
 import NotSubmittedPanel from './NotSubmittedPanel.jsx';
 import ApprovalDetailsPopup from './ApprovalDetailsPopup.jsx';
+import Reveal from './Reveal.jsx';
 import { Loading, TableSkeleton } from './LoadingSkeleton.jsx';
 import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
@@ -50,11 +51,11 @@ const ApprovalCard = ({ code, date, title, link, exportButton }) => {
                     </div>
                     <button type="button" className={styles.toggleDetailsBtn} onClick={() => setExpanded(!expanded)}
                         title={expanded ? 'Hide details' : 'Show details'} aria-expanded={expanded}>
-                        {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        <ChevronDown size={18} className="chevron-turn" data-open={expanded || undefined} aria-hidden="true" />
                     </button>
                 </div>
             </div>
-            {expanded && (
+            <Reveal open={expanded}>
                 <div className={styles.cardDetails}>
                     <div className={styles.detailsContent}>
                         <div className={styles.detailRow}>
@@ -73,7 +74,7 @@ const ApprovalCard = ({ code, date, title, link, exportButton }) => {
                         ))}
                     </div>
                 </div>
-            )}
+            </Reveal>
         </div>
     );
 };

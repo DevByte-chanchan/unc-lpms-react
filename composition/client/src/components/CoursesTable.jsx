@@ -3,7 +3,8 @@ import { offeringPath } from '../utils/offeringKey.js'
 import Spinner from './Spinner.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle, Download, FileText, Clock, RotateCcw, CheckCircle, List, Grid, ChevronDown, ChevronUp, Search } from 'react-feather';
+import Reveal from './Reveal.jsx';
+import { ChevronRight, Edit, XCircle, HelpCircle, Download, FileText, Clock, RotateCcw, CheckCircle, List, Grid, ChevronDown, Search } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import { revisionLabel } from '../utils/offeringLabels.js';
@@ -287,13 +288,13 @@ const CoursesTable = () => {
                                 title={expanded ? 'Hide details' : 'Show details'}
                                 aria-expanded={expanded}
                             >
-                                {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                <ChevronDown size={18} className="chevron-turn" data-open={expanded || undefined} aria-hidden="true" />
                             </button>
                         )}
                     </div>
                 </div>
 
-                {!isDraft && expanded && (
+                {!isDraft && (<Reveal open={expanded}>
                     <div className={styles.cardDetails}>
                         <div className={styles.detailsContent}>
                             {!isApproved && (
@@ -321,7 +322,7 @@ const CoursesTable = () => {
                             ))}
                         </div>
                     </div>
-                )}
+                </Reveal>)}
             </div>
         );
     };

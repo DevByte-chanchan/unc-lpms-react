@@ -534,6 +534,8 @@ table.approvalTable
 .gridContainer
   display: grid
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))
+  // each card keeps its own height: opening one card's details must not stretch the others in its row
+  align-items: start
   gap: 20px
   width: 100%
   align-content: start

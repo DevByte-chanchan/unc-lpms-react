@@ -915,3 +915,29 @@ p {
 table, [role="table"], [class*="count" i], [class*="Count"], [class*="badge" i] {
     font-variant-numeric: tabular-nums;
 }
+
+/* Reveal (components/Reveal.jsx): details slide open by growing from 0 to their own height (ease-in-out, a move)
+   and close a little faster, as exits should; the content fades with it. */
+.reveal {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows .18s ease-in-out, opacity .14s ease-in;
+}
+.reveal[data-open] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition: grid-template-rows .22s ease-in-out, opacity .2s ease-out .04s;
+}
+.reveal-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* A chevron that turns to show open / closed instead of swapping icons. */
+.chevron-turn {
+    transition: transform .22s ease-in-out;
+}
+.chevron-turn[data-open] {
+    transform: rotate(180deg);
+}

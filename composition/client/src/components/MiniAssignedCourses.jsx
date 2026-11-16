@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, ChevronRight, Edit, ChevronDown, ChevronUp } from 'react-feather';
+import { ExternalLink, ChevronRight, Edit, ChevronDown } from 'react-feather';
+import Reveal from './Reveal.jsx';
 import styles from '../styles/Dashboard.module.sass';
 
 const formatDate = (dateString) => {
@@ -154,13 +155,13 @@ const MiniCourseCard = ({ row, selectedStatus }) => {
                             onClick={() => setExpanded(!expanded)}
                             title={expanded ? 'Hide Details' : 'Show Details'}
                         >
-                            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            <ChevronDown size={16} className="chevron-turn" data-open={expanded || undefined} aria-hidden="true" />
                         </button>
                     )}
                 </div>
             </div>
 
-            {hasDetails && expanded && (
+            {hasDetails && (<Reveal open={expanded}>
                 <div className={styles.cardDetails}>
                     <div className={styles.detailsContent}>
                         {!isApproved && (
@@ -226,7 +227,7 @@ const MiniCourseCard = ({ row, selectedStatus }) => {
                         })}
                     </div>
                 </div>
-            )}
+            </Reveal>)}
         </div>
     );
 };
