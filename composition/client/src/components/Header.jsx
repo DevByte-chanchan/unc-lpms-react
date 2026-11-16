@@ -6,6 +6,7 @@ import { getSession, setActiveRole, homeRouteForRole, roleMeta } from '../utils/
 import { ROLE_DESCRIPTIONS } from '../utils/accountAuth.js'
 import { initialsOf } from '../utils/userInitials.js'
 import NotificationBell from './NotificationBell.jsx'
+import FullscreenToggle from './FullscreenToggle.jsx'
 import SettingsModal from './SettingsModal.jsx'
 
 // The top bar of every screen, in the layout of feature/course-assignment: the department (when a page passes
@@ -105,6 +106,8 @@ const Header = ({ department }) => {
           )}
         </div>
       )}
+      {/* every page: full screen (the bars step aside; components/FullscreenToggle.jsx) */}
+      <FullscreenToggle />
       {session && session.role !== 'superuser' && <NotificationBell />}
       <SettingsModal open={settings !== null} initialTab={settings || 'account'} onClose={() => setSettings(null)} />
     </div>

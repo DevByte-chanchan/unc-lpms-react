@@ -22,7 +22,7 @@ const Skeleton = ({ nav, header, content }) => {
                     {nav}
                 </div>
                 <div className={styles.right}>
-                    <div className={styles.up}>
+                    <div className={styles.up} data-layout-header>
                         {header}
                     </div>
                     <div className={styles.down} data-layout-content>

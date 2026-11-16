@@ -979,4 +979,33 @@ details.info-line, div.info-line {
 }
 .info-line[open] > summary::after { content: 'Hide'; }
 .info-line > summary svg, div.info-line svg { flex: none; }
-.info-line > :not(summary) { margin-left: 26px; }
+details.info-line > :not(summary) { margin-left: 26px; }
+
+/* Full screen (components/FullscreenToggle.jsx): the side bar and the top bar step aside so the page has the whole
+   window, at any screen size or zoom; a small Exit button stays in the corner. */
+body[data-focus] [data-layout-nav],
+body[data-focus] [data-layout-header] {
+    display: none !important;
+}
+/* bottom-left: the corner the hidden side bar leaves free (top-right is where pages keep their own buttons) */
+.app-focus-exit {
+    position: fixed;
+    bottom: 14px;
+    left: 14px;
+    z-index: 2900;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--control-border);
+    border-radius: var(--control-radius);
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+    color: var(--ink-soft);
+    font: var(--fw-medium) var(--fs-xs) var(--font-ui);
+    cursor: pointer;
+    opacity: .85;
+    transition: opacity var(--t-fast);
+}
+.app-focus-exit:hover, .app-focus-exit:focus-visible { opacity: 1; }

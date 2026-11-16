@@ -43,7 +43,7 @@ const PlanChecks = ({ pcId }) => {
         {clean ? <CheckCircle size={16} color="var(--good-solid)" aria-hidden="true" /> : <AlertTriangle size={16} color="var(--warn-solid)" aria-hidden="true" />}
         {clean ? `Plan checks: all ${graded.length} pass` : `Plan checks: ${failing.length} of ${graded.length} need a look`}
       </summary>
-      <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
+      <ul style={{ listStyle: 'none', margin: '4px 0 6px 26px', padding: 0, display: 'grid', gap: 6 }}>
         {checks.map(check => (
           <li key={check.key} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13 }}>
             {check.info ? <Info size={14} color="var(--ink-muted)" aria-label="For information" style={{ marginTop: 2, flex: 'none' }} />
