@@ -5,7 +5,8 @@ import styles from '../styles/VersionHistory.module.sass'
 
 // Every version of this course's plan, newest first, with who did what and when (server: utils/versionHistory.js).
 // Closed until opened: it is for looking back, not part of the review.
-const when = (value) => (value ? new Date(value).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')
+// two-digit day and hour, so every date is the same length and the column lines up ("Jun 01, 2026, 08:00 AM")
+const when = (value) => (value ? new Date(value).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
 const day = (value) => (value ? new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '')
 // The timeline dot's colour by what happened: green approve / accept, amber return, teal submit, grey the rest.
 const toneOf = (action = '') => (/approv|accept/i.test(action) ? 'good' : /return|sent back/i.test(action) ? 'warn' : /submit|forward/i.test(action) ? 'submit' : '')

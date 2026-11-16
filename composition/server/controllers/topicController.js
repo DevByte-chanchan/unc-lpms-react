@@ -158,6 +158,8 @@ async function getWeekContext(req, res) {
                     FROM Comments c
                     WHERE c.week_id IN (:weekIds)
                       AND c.resolved_status = 0
+                      -- the Industry Consultant only suggests: nothing of theirs waits to be resolved
+                      AND (c.commenter_role IS NULL OR c.commenter_role <> 'INDUSTRY_CONSULTANT')
                     GROUP BY c.week_id, c.comment_for
                 `, {
                     replacements: { weekIds: allWeekIds }

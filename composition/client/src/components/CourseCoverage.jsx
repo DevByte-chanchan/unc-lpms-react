@@ -91,6 +91,8 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                 if (!mounted || !Array.isArray(comments)) return;
 
                                 const unresolvedCount = comments.filter(c => {
+                                    // the Industry Consultant only suggests: nothing of theirs waits to be resolved
+                                    if (c.commenter_role === 'INDUSTRY_CONSULTANT') return false;
                                     return c.resolved_status === false || c.resolved_status === 0 || String(c.resolved_status).toLowerCase() === 'false';
                                 }).length;
 

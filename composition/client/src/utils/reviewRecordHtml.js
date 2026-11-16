@@ -15,7 +15,8 @@ export const fmt = (iso) => {
   const date = new Date(iso)
   return Number.isNaN(date.getTime())
     ? '—'
-    : date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' })
+    // two-digit day and hour, so every date is the same length and a column of them lines up ("Jun 01, 2026, 08:00 AM")
+    : date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' })
 }
 
 const CELL = 'border:1px solid #000; padding:5px 8px; vertical-align:top; font-size:10pt;'
@@ -33,7 +34,9 @@ const table = (headers, rows, emptyText, widths) => `<table style="width:100%; b
 export const buildReviewRecordHtml = (record) => {
   const course = record?.course || {}
   const status = record?.status || {}
-  const comments = record?.comments || []
+  // The Industry Consultant only suggests (for the next version): their entries are listed apart and never "resolved".
+  const comments = (record?.comments || []).filter(c => !c.documentationOnly)
+  const suggestions = (record?.comments || []).filter(c => c.documentationOnly)
   const where = (c) => [c.section, c.location].filter(Boolean).join(' — ')
 
   const approvers = table(
@@ -64,13 +67,24 @@ export const buildReviewRecordHtml = (record) => {
     comments.map(c => [
       esc(fmt(c.date)),
       esc(c.reviewerName, 'Name not recorded'),
-      esc(c.roleLabel) + (c.documentationOnly ? ' <em>(documentation only)</em>' : ''),
+      esc(c.roleLabel),
       esc(where(c)) + (c.targets?.length ? `<br><small>${c.targets.map(t => esc(t)).join('; ')}</small>` : ''),
       esc(c.message),
       c.resolved ? `Yes${c.resolvedDate ? ` (${esc(fmt(c.resolvedDate))})` : ''}` : 'No'
     ]),
     'No comments were recorded for this revision.',
     [12, 13, 14, 15, 36, 10])
+
+  const suggestionRows = table(
+    ['Date', 'Consultant', 'Section', 'Suggestion'],
+    suggestions.map(c => [
+      esc(fmt(c.date)),
+      esc(c.reviewerName, 'Name not recorded'),
+      esc(where(c)) + (c.targets?.length ? `<br><small>${c.targets.map(t => esc(t)).join('; ')}</small>` : ''),
+      esc(c.message)
+    ]),
+    'No suggestions were recorded for this revision.',
+    [14, 16, 20, 50])
 
   const approvalLine = status.approved
     ? `Approved by the Dean on ${esc(fmt(status.approvedAt))}.`
@@ -105,6 +119,9 @@ export const buildReviewRecordHtml = (record) => {
   ${actions}
   <h2>Reviewer comments (${comments.length})</h2>
   ${commentRows}
+  ${suggestions.length ? `<h2>Industry Consultant suggestions (${suggestions.length})</h2>
+  <p><em>For the next version of the plan. Not part of the approval and nothing to resolve.</em></p>
+  ${suggestionRows}` : ''}
 </body></html>`
 }
 

@@ -26,7 +26,8 @@ test('the record lists every comment with reviewer, role, section, message, date
   for (const text of ['DANILA, JUNAR', 'Program Head', 'Topics — CO2-ILO3', 'Container Basics', 'Add a lab topic.', 'Consider Kubernetes.', 'Yes (']) {
     assert.ok(html.includes(text), text)
   }
-  assert.match(html, /Reviewer comments \(2\)/)
+  assert.match(html, /Reviewer comments \(1\)/, 'the consultant is not counted among the comments')
+  assert.match(html, /Industry Consultant suggestions \(1\)/)
 })
 
 test('every workflow action and the final approvers with dates are listed', () => {
@@ -34,9 +35,10 @@ test('every workflow action and the final approvers with dates are listed', () =
   for (const text of ['Submitted', 'NORTON, MONICA', 'SANTOS, MARIA', 'REYES, AGNES', 'Approved by the Dean on']) assert.ok(html.includes(text), text)
 })
 
-test('consultant entries are labelled as documentation, not part of the chain; an unknown author is not invented', () => {
+test('consultant entries are suggestions, not part of the chain or the comments to resolve; an unknown author is not invented', () => {
   const html = buildReviewRecordHtml(record)
-  assert.match(html, /\(documentation only\)/)
+  assert.match(html, /Not part of the approval and nothing to resolve/)
+  assert.match(html, /<th[^>]*>Suggestion<\/th>/)
   assert.match(html, /\(not part of the approval chain\)/)
   assert.match(html, /Name not recorded/)
 })

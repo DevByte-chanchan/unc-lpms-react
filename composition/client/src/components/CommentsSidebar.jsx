@@ -60,14 +60,17 @@ const CommentsSidebar = ({
     return next
   })
 
+  // The Industry Consultant only suggests (for the next version): a suggestion is never open or resolved, so it is
+  // left out of those counts and filters and tagged "Suggestion".
+  const isSuggestion = (c) => c.role === 'Industry Consultant'
   // Open ones first (newest first within each group), filtered by the switch.
-  const resolvedCount = comments.filter(c => c.resolved).length
+  const resolvedCount = comments.filter(c => c.resolved && !isSuggestion(c)).length
   // Who wrote them, with how many (and how many still open) each.
   const roles = [...new Set(comments.map(c => c.role).filter(Boolean))].map(role => ({
-    role, total: comments.filter(c => c.role === role).length, open: comments.filter(c => c.role === role && !c.resolved).length
+    role, total: comments.filter(c => c.role === role).length, open: comments.filter(c => c.role === role && !c.resolved && !isSuggestion(c)).length
   }))
   const listedComments = comments
-    .filter(c => commentFilter === 'all' || (commentFilter === 'open' ? !c.resolved : c.resolved))
+    .filter(c => commentFilter === 'all' || (!isSuggestion(c) && (commentFilter === 'open' ? !c.resolved : c.resolved)))
     .filter(c => roleFilter === 'all' || c.role === roleFilter)
     .slice()
     .sort((a, b) => (Number(Boolean(a.resolved)) - Number(Boolean(b.resolved)))
@@ -188,10 +191,14 @@ const CommentsSidebar = ({
                             {submittedAt && <> · <time dateTime={submittedAt} title={new Date(submittedAt).toLocaleString()}>{new Date(submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</time></>}
                           </small>
                         </div>
-                        <span className={`${styles.commentStatus} ${comment.resolved ? styles.statusResolved : styles.statusPending}`}>
-                          {comment.resolved ? <Check size={12} aria-hidden="true" className="icon-swap" /> : <span className={styles.statusDot} aria-hidden="true" />}
-                          {comment.resolved ? 'Resolved' : 'Open'}
-                        </span>
+                        {isSuggestion(comment) ? (
+                          <span className={styles.commentStatus}>Suggestion</span>
+                        ) : (
+                          <span className={`${styles.commentStatus} ${comment.resolved ? styles.statusResolved : styles.statusPending}`}>
+                            {comment.resolved ? <Check size={12} aria-hidden="true" className="icon-swap" /> : <span className={styles.statusDot} aria-hidden="true" />}
+                            {comment.resolved ? 'Resolved' : 'Open'}
+                          </span>
+                        )}
                       </header>
 
                       {/* What kind of comment, and exactly what in the plan it is about. */}
@@ -241,14 +248,14 @@ const CommentsSidebar = ({
                         </div>
                       )}
 
-                      {(comment.resolvedAt || canResolve(comment) || canShowInPlan(comment)) && (
+                      {(comment.resolvedAt || (canResolve(comment) && !isSuggestion(comment)) || canShowInPlan(comment)) && (
                         <footer className={styles.commentMeta}>
                           {comment.resolvedAt && (
                             <span className={styles.resolvedDate}>
                               <Check size={12} aria-hidden="true" /> Resolved {new Date(comment.resolvedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </span>
                           )}
-                          {!comment.resolved && canResolve(comment) && (
+                          {!comment.resolved && (canResolve(comment) && !isSuggestion(comment)) && (
                             <button type="button" className={styles.resolveCommentButton} onClick={() => onResolve(comment.id)}>
                               <Check size={14} /> Mark resolved
                             </button>
