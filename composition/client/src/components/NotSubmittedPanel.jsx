@@ -197,7 +197,8 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
 
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="syllabus-due-date">Submit by</label>
-                <DatePicker id="syllabus-due-date" value={dueText} onChange={setDueText} />
+                {/* A due date already past would send every reminder at once: past days cannot be picked. */}
+                <DatePicker id="syllabus-due-date" value={dueText} onChange={setDueText} min={(() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` })()} />
               </div>
               <div className={styles.hint}>Set it at least 2 weeks before classes start.</div>
 

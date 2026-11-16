@@ -135,3 +135,23 @@
   .row
     grid-template-columns: 1fr
     gap: 8px
+
+// The new-password checklist: a rule not met yet is grey (still being typed, not an error), a met one green.
+.rules
+  display: grid
+  gap: 4px
+  margin: -4px 0 12px
+  padding: 0
+  list-style: none
+  font-size: 12px
+
+  li
+    display: flex
+    align-items: center
+    gap: 6px
+
+  .bad
+    color: var(--ink-muted)
+
+  .good
+    color: var(--good)

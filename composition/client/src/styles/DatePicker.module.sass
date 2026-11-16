@@ -123,3 +123,10 @@
   &:disabled
     color: var(--ink-faint)
     cursor: default
+
+// A day before `min`: visible for orientation, but faded and not clickable.
+.day:disabled
+  color: var(--ink-faint)
+  opacity: .45
+  cursor: not-allowed
+  background: transparent

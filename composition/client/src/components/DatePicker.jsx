@@ -32,7 +32,8 @@ const shiftMonth = (value, months) => {
 const todayIso = () => { const t = new Date(); return iso(t.getFullYear(), t.getMonth(), t.getDate()) }
 const labelOf = (value) => { const p = parse(value); return p ? `${p.d} ${SHORT[p.m]} ${p.y}` : '' }
 
-const DatePicker = ({ id, value, onChange, placeholder = 'Select a date', ariaLabel }) => {
+// `min` ('YYYY-MM-DD'): days before it cannot be picked (greyed out and inert), e.g. a due date in the past.
+const DatePicker = ({ id, value, onChange, placeholder = 'Select a date', ariaLabel, min = '' }) => {
   const [open, setOpen] = useState(false)
   const [focusDay, setFocusDay] = useState(value || todayIso())
   const [pos, setPos] = useState({ left: 0, top: 0 })
@@ -98,16 +99,17 @@ const DatePicker = ({ id, value, onChange, placeholder = 'Select a date', ariaLa
           <div className={styles.grid} role="grid">
             {days.map(day => {
               const p = parse(day)
+              const blocked = Boolean(min) && day < min
               return (
                 <button key={day} type="button" role="gridcell" tabIndex={day === focusDay ? 0 : -1} data-focus={day === focusDay}
-                  aria-selected={day === value} aria-label={`${p.d} ${MONTHS[p.m]} ${p.y}`}
+                  aria-selected={day === value} aria-label={`${p.d} ${MONTHS[p.m]} ${p.y}`} disabled={blocked}
                   className={`${styles.day} ${p.m !== view.m ? styles.outside : ''} ${day === today ? styles.today : ''} ${day === value ? styles.selected : ''}`}
                   onClick={() => pick(day)}>{p.d}</button>
               )
             })}
           </div>
           <div className={styles.foot}>
-            <button type="button" className={styles.link} onClick={() => pick(today)}>Today</button>
+            <button type="button" className={styles.link} onClick={() => pick(today)} disabled={Boolean(min) && today < min}>Today</button>
             <button type="button" className={styles.link} onClick={() => pick('')} disabled={!value}>Clear</button>
           </div>
         </div>,

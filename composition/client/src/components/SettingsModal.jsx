@@ -34,6 +34,14 @@ const SecurityTab = () => {
   const [busy, setBusy] = useState(false)
   const set = (field) => (event) => { setDone(false); setForm(previous => ({ ...previous, [field]: event.target.value })) }
 
+  const rules = [
+    { label: 'At least 8 characters', ok: form.newPassword.length >= 8 },
+    { label: 'A letter and a number', ok: /[a-z]/i.test(form.newPassword) && /[0-9]/.test(form.newPassword) },
+    { label: 'Different from the current password', ok: !!form.newPassword && form.newPassword !== form.currentPassword },
+    { label: 'Confirmation matches', ok: !!form.confirm && form.confirm === form.newPassword },
+  ]
+  const ready = !!form.currentPassword && rules.every(rule => rule.ok)
+
   const submit = async (event) => {
     event.preventDefault()
     if (busy) return
@@ -60,6 +68,16 @@ const SecurityTab = () => {
         <input className={styles.control} type="password" autoComplete="new-password" aria-label="New password"
           value={form.newPassword} onChange={set('newPassword')} />
       </Row>
+      {form.newPassword && (
+        // The rules as a checklist that ticks while typing, so the form is right before it is sent, not after.
+        <ul className={styles.rules} aria-live="polite">
+          {rules.map(rule => (
+            <li key={rule.label} className={rule.ok ? styles.good : styles.bad}>
+              {rule.ok ? <CheckCircle size={13} aria-hidden="true" /> : <AlertCircle size={13} aria-hidden="true" />} {rule.label}
+            </li>
+          ))}
+        </ul>
+      )}
       <Row label="Confirm new password">
         <input className={styles.control} type="password" autoComplete="new-password" aria-label="Confirm new password"
           value={form.confirm} onChange={set('confirm')} />
@@ -67,7 +85,7 @@ const SecurityTab = () => {
       {error && <div role="alert" className={`${styles.note} ${styles.bad}`}><AlertCircle size={14} aria-hidden="true" /> {error}</div>}
       {done && <div role="status" className={`${styles.note} ${styles.good}`}><CheckCircle size={14} aria-hidden="true" /> Your password was changed.</div>}
       <div className={styles.actions}>
-        <button type="submit" className="btn btn-primary" disabled={busy || !form.currentPassword || !form.newPassword}>{busy ? 'Saving…' : 'Change password'}</button>
+        <button type="submit" className="btn btn-primary" disabled={busy || !ready}>{busy ? 'Saving…' : 'Change password'}</button>
       </div>
     </form>
   )
