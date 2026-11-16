@@ -125,7 +125,7 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
           <div className="app-window-actions">
             <button type="button" className="app-icon-btn" onClick={() => setExpanded(value => !value)}
               title={expanded ? 'Exit full screen' : 'Full screen'} aria-label={expanded ? 'Exit full screen' : 'Full screen'}>
-              {expanded ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
+              {expanded ? <Minimize2 size={16} /> : <Maximize size={16} />}
             </button>
             <button type="button" className="app-icon-close" onClick={close} aria-label="Close settings">
               <X size={16} strokeWidth={2} color="currentColor" />

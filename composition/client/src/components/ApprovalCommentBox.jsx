@@ -409,7 +409,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         <h3 id="approval-comment-title" className="app-window-title">{dialogTitle}</h3>
         <div className="app-window-actions">
           <button type="button" className="app-icon-btn" onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen">
-            {isFullscreen ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
           </button>
           <button type="button" className="app-icon-close" onClick={handleClose} aria-label="Close">
             <X size={16} strokeWidth={2} color="currentColor" />

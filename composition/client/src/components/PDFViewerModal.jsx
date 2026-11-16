@@ -321,7 +321,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
               <Download size={16} /> {exporting ? 'Exporting…' : 'Download PDF'}
             </button>
             <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
-              {isFullscreen ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
             </button>
             <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
               <X size={16} strokeWidth={2} color="currentColor" />
