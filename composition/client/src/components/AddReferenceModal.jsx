@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useDialogFocus from '../utils/useDialogFocus.js';
+import { confirmDiscard } from '../utils/appDialog.jsx';
 import { X, Maximize, Minimize2 } from 'lucide-react';
 import ReferenceFields from './ReferenceFields.jsx';
 import { useReferenceForm } from './useReferenceForm.js';
@@ -16,12 +17,16 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
   useDialogFocus(dialogRef, show);
   useEffect(() => { if (!show) setSaveError(''); }, [show]);
 
+  // Closing without saving asks first when something was entered (Escape, the X, the dim and Cancel alike).
+  const closeRef = useRef(null);
+  closeRef.current = async () => { if (await confirmDiscard(form.dirty)) onClose(); };
+
   useEffect(() => {
     if (!show) return;
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
       if (isFullscreen) setIsFullscreen(false);
-      else onClose();
+      else closeRef.current();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -45,7 +50,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
   return (
     <>
       {!isFullscreen && (
-        <div onClick={onClose} className={styles.backdrop} />
+        <div onClick={() => closeRef.current()} className={styles.backdrop} />
       )}
       <div
         ref={dialogRef}
@@ -63,7 +68,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
             <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
             </button>
-            <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
+            <button type="button" className="app-icon-close" onClick={() => closeRef.current()} aria-label="Close">
               <X size={16} strokeWidth={2} color="currentColor" />
             </button>
           </div>
@@ -78,7 +83,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
 
         {saveError && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 20px 0' }}>{saveError}</div>}
         <div className={styles.actions}>
-          <button onClick={onClose} className="btn btn-secondary">Cancel</button>
+          <button onClick={() => closeRef.current()} className="btn btn-secondary">Cancel</button>
           <button onClick={handleSave} disabled={form.saving || !form.typesReady || !form.values?.type} className="btn btn-primary">
             {form.saving ? 'Saving…' : (isEditMode ? 'Update' : 'Save')}
           </button>

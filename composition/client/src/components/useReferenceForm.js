@@ -87,5 +87,8 @@ export const useReferenceForm = (record, active = true) => {
     }
   }, [values, record]);
 
-  return { values, errors, change, check, save, saving, typesReady, typesError };
+  // Something entered that is not saved yet: what is in the form differs from what it was opened with.
+  const dirty = JSON.stringify(values) !== JSON.stringify(fromRecord(record));
+
+  return { values, errors, change, check, save, saving, typesReady, typesError, dirty };
 };

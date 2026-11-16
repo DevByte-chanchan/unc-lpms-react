@@ -16,6 +16,11 @@ const open = (props) => new Promise((resolve) => {
 export const confirmDialog = (message, { title = 'Are you sure?', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = {}) =>
   open({ title, message, confirmLabel, cancelLabel, danger, tone: danger ? 'warning' : undefined })
 
+// Closing a window that holds unsaved input: asks first (Discard / Keep editing) only when something was entered.
+// Resolves true when the window may close.
+export const confirmDiscard = async (dirty, message = 'What you entered in this window will be lost.') =>
+  !dirty || confirmDialog(message, { title: 'Discard changes?', confirmLabel: 'Discard', cancelLabel: 'Keep editing', danger: true })
+
 // A message with one OK button.
 export const alertDialog = (message, { title = 'Something went wrong' } = {}) =>
   open({ title, message, confirmLabel: 'OK', cancelLabel: null, danger: false, tone: 'error' })

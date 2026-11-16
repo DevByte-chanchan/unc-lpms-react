@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, Trash as Trash2, X, Zap } from 'lucide-react'
 import useDialogFocus from '../utils/useDialogFocus.js'
+import { confirmDiscard } from '../utils/appDialog.jsx'
 import styles from '../styles/ScanReviewModal.module.sass'
 import { SOURCE_LABEL } from '../utils/scanSource.js'
 import PdfViewer from './PdfViewer.jsx'
@@ -24,8 +25,11 @@ const ScanReviewModal = ({ kind, file, result, onUse, onCancel, busy = false, er
   useEffect(() => () => URL.revokeObjectURL(url), [url])
   const windowRef = useRef(null)
   useDialogFocus(windowRef, true)
+  // Closing after correcting values asks first (Escape, the X and Cancel alike).
+  const cancelRef = useRef(null)
+  cancelRef.current = async () => { if (await confirmDiscard(JSON.stringify(data) !== JSON.stringify(result.data), 'Your corrections to what was read will be lost.')) onCancel() }
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape' && !busy) onCancel() }
+    const onKey = (e) => { if (e.key === 'Escape' && !busy) cancelRef.current() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [busy, onCancel])
@@ -49,7 +53,7 @@ const ScanReviewModal = ({ kind, file, result, onUse, onCancel, busy = false, er
             <div className={styles.sub}>{kind === 'coaep' ? 'COAEP' : 'CO and PO'} · {file.name}</div>
           </div>
           <div className="app-window-actions">
-            <button type="button" className="app-icon-close" onClick={onCancel} disabled={busy} aria-label="Close">
+            <button type="button" className="app-icon-close" onClick={() => cancelRef.current()} disabled={busy} aria-label="Close">
               <X size={16} strokeWidth={2} color="currentColor" />
             </button>
           </div>
@@ -130,7 +134,7 @@ const ScanReviewModal = ({ kind, file, result, onUse, onCancel, busy = false, er
 
         <div className={styles.footer}>
           <span className={styles.note}>{error ? <span role="alert" className={styles.error}>{error}</span> : 'Nothing is saved until you press Use these.'}</span>
-          <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button type="button" className="btn btn-secondary" onClick={() => cancelRef.current()} disabled={busy}>Cancel</button>
           <button type="button" className="btn btn-primary" disabled={busy || !cos.length}
             onClick={() => onUse({ cos: kind === 'coaep'
               ? cos.map(c => ({ ...c, ilos: c.ilos.map(i => ({ ...i, assessments: i.assessments.map(a => ({ name: a.name.trim() })).filter(a => a.name) })) }))

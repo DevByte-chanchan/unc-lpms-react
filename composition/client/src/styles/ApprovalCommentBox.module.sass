@@ -176,6 +176,10 @@
   &:hover
     background: var(--hover-tint)
 
+  // full width: the press shrink reads as a jump
+  &:active
+    transform: none
+
 // Why a field is not available yet, under it.
 .fieldHint
   font-size: 11px
@@ -501,3 +505,14 @@
   .refList
     flex: 1 1 auto
     max-height: none
+
+// Clear (and Remove) on a comment's header line; the compact ghost button so the header stays one row
+.commentHeaderActions
+  display: inline-flex
+  align-items: center
+  gap: 4px
+
+  :global(.btn-sm)
+    height: 28px
+    padding: 0 8px
+    gap: 5px

@@ -11,7 +11,7 @@ import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { getSession } from '../utils/session.js'
-import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
+import { alertDialog, confirmDialog, confirmDiscard } from '../utils/appDialog.jsx'
 import { toast } from '../utils/toast.jsx'
 
 // User Accounts (feature/course-assignment), for the VPAA and the superuser: every account with its roles and
@@ -139,6 +139,11 @@ export const UserAccountsPanel = () => {
     })
   }
 
+  // The account form remembers what it opened with; closing it after a change asks first (the X, the dim, Cancel).
+  const formStart = React.useRef('')
+  const openForm = (next) => { setError(''); formStart.current = JSON.stringify(next); setForm(next) }
+  const closeForm = async () => { if (await confirmDiscard(JSON.stringify(form) !== formStart.current, 'The changes to this account will be lost.')) setForm(null) }
+
   const toggleFormRole = (key) => setForm(f => {
     // The superuser role stands alone.
     if (key === 'superuser') return { ...f, roles: f.roles.includes('superuser') ? [] : ['superuser'] }
@@ -187,7 +192,7 @@ export const UserAccountsPanel = () => {
       <div className={pageStyles.pageHeader}>
         <h2 className="app-page-title">User Accounts</h2>
         <div className={pageStyles.pageHeaderActions}>
-          <button type="button" className="btn btn-primary" onClick={() => { setError(''); setForm(emptyForm) }}>
+          <button type="button" className="btn btn-primary" onClick={() => openForm(emptyForm)}>
             <UserPlus size={16} color="currentColor" /> Create account
           </button>
         </div>
@@ -239,7 +244,7 @@ export const UserAccountsPanel = () => {
                     <td style={cell('invitation')}>{invitationLabel(account.invitation)}</td>
                     <td style={{ ...cell('actions'), flexWrap: 'wrap' }}>
                       <button type="button" className="btn btn-secondary btn-sm" disabled={busy}
-                        onClick={() => { setError(''); setForm({ id: account.id, name: account.name, email: account.email, roles: account.roles, programs: (account.heads?.programs || []).map(p => p.id), departments: (account.heads?.departments || []).map(d => d.id) }) }}>
+                        onClick={() => openForm({ id: account.id, name: account.name, email: account.email, roles: account.roles, programs: (account.heads?.programs || []).map(p => p.id), departments: (account.heads?.departments || []).map(d => d.id) })}>
                         Edit
                       </button>{' '}
                       {invitable ? (
@@ -276,8 +281,8 @@ export const UserAccountsPanel = () => {
       )}
 
       {form && (
-        <Dialog label={form.id ? 'Edit account' : 'Create account'} onClose={() => setForm(null)} actions={<>
-          <button type="button" onClick={() => setForm(null)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
+        <Dialog label={form.id ? 'Edit account' : 'Create account'} onClose={closeForm} actions={<>
+          <button type="button" onClick={closeForm} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
           <button type="button" onClick={save} disabled={saving || form.roles.length === 0} className="btn btn-primary" style={{ flex: 1 }}>
             {saving ? 'Saving…' : (form.id ? 'Save' : 'Create')}
           </button>

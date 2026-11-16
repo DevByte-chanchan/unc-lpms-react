@@ -482,6 +482,14 @@ button.btn-danger.btn-danger {
 }
 button.btn-danger.btn-danger:hover:not(:disabled) { background: #b91c1c; border-color: #b91c1c; }
 
+/* A quiet helper action (Clear, Clear all): no box until hovered, so it never competes with Cancel / the main action. */
+button.btn-ghost.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ink-muted);
+}
+button.btn-ghost.btn-ghost:hover:not(:disabled) { background: var(--hover-tint); color: var(--ink); }
+
 /* A destructive action that is not the confirm itself (Deactivate in a list): red outline, so it stands apart. */
 button.btn-danger-outline.btn-danger-outline {
     background: #fff;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { confirmDialog } from '../utils/appDialog.jsx'
+import { confirmDialog, confirmDiscard } from '../utils/appDialog.jsx'
 import { createPortal } from 'react-dom'
 import { X, Pen as Edit2, Trash as Trash2, PenLine as PenTool } from 'lucide-react'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
@@ -18,6 +18,9 @@ const ConsultantReview = ({ pcId, signedAt, onSigned, onClose }) => {
   const [editing, setEditing] = useState(null) // { id, text }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // Closing with an unsent suggestion or an unsaved edit asks first (Escape, the X, the dim and Close alike).
+  const closeRef = useRef(null)
+  closeRef.current = async () => { if (await confirmDiscard(!!draft.trim() || !!editing, 'The suggestion you wrote will be lost.')) onClose() }
   const windowRef = useRef(null)
   useDialogFocus(windowRef, true)
 
@@ -32,7 +35,7 @@ const ConsultantReview = ({ pcId, signedAt, onSigned, onClose }) => {
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    const onKey = (event) => { if (event.key === 'Escape' && !busy) onClose() }
+    const onKey = (event) => { if (event.key === 'Escape' && !busy) closeRef.current() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose, busy])
@@ -61,14 +64,14 @@ const ConsultantReview = ({ pcId, signedAt, onSigned, onClose }) => {
 
   return createPortal(
     <>
-      <div role="presentation" className={styles.backdrop} onClick={() => !busy && onClose()} />
+      <div role="presentation" className={styles.backdrop} onClick={() => !busy && closeRef.current()} />
       <div ref={windowRef} role="dialog" aria-modal="true" aria-label="Suggest and sign" className={styles.window} style={{ width: 'min(560px, calc(100vw - 32px))' }}>
         <div className="app-window-header">
           <div>
             <h2 className="app-window-title">Suggest &amp; Sign</h2>
             <div className={styles.sub}>{signedAt ? `Signed as reviewed on ${when(signedAt)}. You can still edit your suggestions.` : 'Suggestions for the next revision, then sign the plan as reviewed.'}</div>
           </div>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose} disabled={busy}><X size={16} strokeWidth={2} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={() => closeRef.current()} disabled={busy}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={styles.body} style={{ maxHeight: '60vh', overflowY: 'auto', display: 'grid', gap: 10 }}>
           {items === null && <div className={styles.hint}>Loading…</div>}

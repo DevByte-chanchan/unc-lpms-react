@@ -1,6 +1,6 @@
 import Select from './Select.jsx'
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, X, Maximize, Minimize2, MessageSquare, Plus } from 'lucide-react'
+import { Search, X, Maximize, Minimize2, MessageSquare, Plus, RotateCcw } from 'lucide-react'
 import { toast } from '../utils/toast.jsx'
 import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
 import styles from '../styles/ApprovalCommentBox.module.sass'
@@ -194,7 +194,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       prev.map((c) => {
         if (c.id !== commentId) return c
         const allowedIlos = coToIlos[courseOutcome] || resolvedIlos
-        const nextIlo = allowedIlos.includes(c.ilo) ? c.ilo : ''
+        // No outcome, no week: the week list belongs to an outcome.
+        const nextIlo = courseOutcome && allowedIlos.includes(c.ilo) ? c.ilo : ''
         return { ...c, courseOutcome, ilo: nextIlo, coverageType: '', coverageDetail: [], subtopics: [] }
       })
     )
@@ -235,16 +236,31 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     ])
   }
 
+  // Clear: one comment back to empty (it keeps its place and reviewer), or every comment and suggestion.
+  const clearComment = (commentId) => {
+    setComments((prev) => prev.map((c) => (c.id === commentId
+      ? { ...defaultComment(mode), id: c.id, reviewer: c.reviewer, role: c.role, recipientRole: c.recipientRole }
+      : c)))
+  }
+  const clearAll = async () => {
+    if (!(await confirmDialog('Every comment and suggestion in this window is emptied.', { title: 'Clear everything?', confirmLabel: 'Clear all', cancelLabel: 'Keep', danger: true }))) return
+    setComments((prev) => [{ ...defaultComment(mode), reviewer: prev[0]?.reviewer, role: prev[0]?.role, recipientRole: prev[0]?.recipientRole }])
+    setSelectedRefs([])
+    clearDraft()
+  }
+
   const removeCommentSection = (commentId) => {
     setComments((prev) => (prev.length === 1 ? prev : prev.filter((c) => c.id !== commentId)))
   }
 
+  // Escape asks the same "discard?" question as the close button (closeRef: the handler defined below).
+  const closeRef = useRef(null)
   useEffect(() => {
     if (!show) return
     const onKey = (e) => {
       if (e.key === 'Escape') {
         if (isFullscreen) setIsFullscreen(false)
-        else onClose()
+        else (closeRef.current || onClose)()
       }
     }
     document.addEventListener('keydown', onKey)
@@ -257,12 +273,17 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const saveDisabled = !hasCompleteComment
 
-  const hasUnsavedChanges = comments.some(c => c.text?.trim())
-  // Unsent comments are lost on close, so the app's confirm window asks first.
+  // Anything picked or typed counts: closing would lose it, so the app's confirm window asks first.
+  const hasUnsavedChanges = selectedRefs.length > 0 || comments.some(c => c.text?.trim() || c.courseOutcome || c.ilo || c.coverageType
+    || hasCoverageDetail(c) || c.subtopics?.length || c.commentedRefId)
   const handleClose = async () => {
-    if (!readOnly && hasUnsavedChanges && !(await confirmDialog('The comments you wrote here will be lost.', { title: 'Discard unsaved comments?', confirmLabel: 'Discard', danger: true }))) return
+    if (!readOnly && hasUnsavedChanges) {
+      if (!(await confirmDialog('What you picked and wrote in this window will be lost.', { title: 'Discard this comment?', confirmLabel: 'Discard', cancelLabel: 'Keep editing', danger: true }))) return
+      clearDraft()
+    }
     onClose()
   }
+  closeRef.current = handleClose
 
   const isDirector = (() => {
     if (!approverRole) return false
@@ -465,11 +486,16 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           <div key={c.id} className={styles.directorCard}>
                             <div className={styles.directorCardHead}>
                               <span>Comment {idx + 1}</span>
-                              {comments.length > 1 && (
-                                <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
-                                  <X size={16} strokeWidth={2} color="currentColor" />
+                              <span className={styles.commentHeaderActions}>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={() => clearComment(c.id)} title="Empty this comment">
+                                  <RotateCcw size={14} aria-hidden="true" /> Clear
                                 </button>
-                              )}
+                                {comments.length > 1 && (
+                                  <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
+                                    <X size={16} strokeWidth={2} color="currentColor" />
+                                  </button>
+                                )}
+                              </span>
                             </div>
                             <div className={styles.field}>
                               <label className={styles.label}>Reference</label>
@@ -511,14 +537,19 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 {comments.map((c, idx) => {
                   return (
                     <div key={c.id} className={styles.commentItem}>
-                      {comments.length > 1 && (
-                        <div className={styles.commentHeader}>
-                          <span>Comment {idx + 1}</span>
-                          <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
-                            <X size={16} strokeWidth={2} color="currentColor" />
+                      <div className={styles.commentHeader}>
+                        <span>Comment {idx + 1}</span>
+                        <span className={styles.commentHeaderActions}>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => clearComment(c.id)} title="Empty this comment's fields">
+                            <RotateCcw size={14} aria-hidden="true" /> Clear
                           </button>
-                        </div>
-                      )}
+                          {comments.length > 1 && (
+                            <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
+                              <X size={16} strokeWidth={2} color="currentColor" />
+                            </button>
+                          )}
+                        </span>
+                      </div>
 
                       <div className={styles.commentBody}>
                         {(c.courseOutcome || c.ilo || c.coverageType || hasCoverageDetail(c)) && (() => {
@@ -662,6 +693,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             : `Fill in a comment, with its course outcome, week, coverage type and target, ${outcome}.`
           return (
             <div className={styles.actions}>
+              {hasUnsavedChanges && (
+                <button type="button" className="btn btn-ghost" onClick={clearAll} title="Empty every comment and suggestion">
+                  <RotateCcw size={16} aria-hidden="true" /> Clear all
+                </button>
+              )}
               {blocked
                 ? <span className={styles.actionsHint}>{why}</span>
                 : isDirector && <span className={styles.actionsHint}>{[directorFilled && `${directorFilled} comment${directorFilled > 1 ? 's' : ''}`, directorSuggested && `${directorSuggested} suggestion${directorSuggested > 1 ? 's' : ''}`].filter(Boolean).join(' · ')} ready to send</span>}
