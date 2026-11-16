@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { CircleAlert as AlertCircle, TriangleAlert as AlertTriangle, X } from 'lucide-react'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import styles from '../styles/DueDateDialog.module.sass'
+import Mascot from './Mascot.jsx'
 
 // The app's own replacement for the browser's alert() and confirm(): the standard window (header with close, a
 // message, the app's buttons) instead of the browser's grey box. Opened by utils/appDialog.jsx. `tone` puts the same
@@ -28,7 +29,11 @@ const AppDialog = ({ title, message, confirmLabel, cancelLabel, danger, tone, on
           <button type="button" className="app-icon-close" aria-label="Close" onClick={() => onDone(false)}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={styles.body}>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{message}</p>
+          {/* the mascot owl beside the message: worried when something failed, thinking when it asks */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <Mascot pose={tone === 'error' ? 'worried' : 'thinking'} size={56} />
+            <p style={{ margin: '4px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{message}</p>
+          </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             {cancelLabel && <button type="button" className="btn btn-secondary" onClick={() => onDone(false)}>{cancelLabel}</button>}
             <button type="button" className={danger ? 'btn btn-danger' : 'btn btn-primary'} onClick={() => onDone(true)}>{confirmLabel}</button>

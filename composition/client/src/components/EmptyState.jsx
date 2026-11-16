@@ -1,6 +1,7 @@
 import React from 'react'
 import { Inbox } from 'lucide-react'
 import styles from '../styles/EmptyState.module.sass'
+import Mascot from './Mascot.jsx'
 
 /**
  * What a screen shows when it has nothing to show.
@@ -14,7 +15,8 @@ import styles from '../styles/EmptyState.module.sass'
  * Props:
  * - title   the one-line statement ("No learning plans pending review")
  * - hint    optional second line explaining why it is empty or what to do
- * - icon    optional lucide-react element; defaults to an inbox
+ * - icon    optional lucide-react element; defaults to an inbox. Used by the compact (inline) block; the full block
+ *           shows the mascot owl reading instead (components/Mascot.jsx).
  * - action  optional node (a button/link) under the hint
  * - inline  true renders a shorter block for use inside a card or a table cell
  * - colSpan when set, the block is wrapped in <tr><td colSpan=…> so it can be
@@ -23,7 +25,9 @@ import styles from '../styles/EmptyState.module.sass'
 const EmptyState = ({ title = 'Nothing here yet', hint = '', icon = null, action = null, inline = false, colSpan = null }) => {
     const block = (
         <div className={`${styles.empty} ${inline ? styles.inline : ''}`}>
-            <div className={styles.icon}>{icon || <Inbox size={22} strokeWidth={1.6} />}</div>
+            {inline
+                ? <div className={styles.icon}>{icon || <Inbox size={22} strokeWidth={1.6} />}</div>
+                : <Mascot pose="reading" size={76} className={styles.mascot} />}
             <div className={styles.title}>{title}</div>
             {hint && <div className={styles.hint}>{hint}</div>}
             {action && <div className={styles.action}>{action}</div>}
