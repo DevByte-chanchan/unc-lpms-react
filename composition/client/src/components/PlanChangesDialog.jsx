@@ -31,7 +31,7 @@ const PlanChangesDialog = ({ open, onClose, data, courseCode }) => {
             <h2 className="app-window-title">What changed since the return</h2>
             <div className={frame.sub}>{courseCode}: returned {since}; {changes.length} change{changes.length === 1 ? '' : 's'} in the resubmitted plan.</div>
           </div>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={frame.body}>
           {changes.length === 0 ? <p>Nothing in the plan changed since it was returned.</p> : (

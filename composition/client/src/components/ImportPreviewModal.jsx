@@ -72,7 +72,7 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
             <h2 className="app-window-title">{source.title}</h2>
             <div className={styles.sub}>{sub}</div>
           </div>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose} disabled={busy}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose} disabled={busy}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
 
         <div className={styles.body}>

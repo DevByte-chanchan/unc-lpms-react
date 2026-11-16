@@ -29,7 +29,7 @@ const ApprovalDetailsPopup = ({ data, onClose }) => {
     return (
         <div className={styles.detailsPopup} style={{
             background: '#fff',
-            border: '1px solid #ddd',
+            border: '1px solid var(--control-border)',
             borderRadius: 6,
             boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
             padding: 12
@@ -37,7 +37,7 @@ const ApprovalDetailsPopup = ({ data, onClose }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <strong>View details</strong>
                 <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close details">
-                    <X size={16} strokeWidth={2.5} color="currentColor" />
+                    <X size={16} strokeWidth={2} color="currentColor" />
                 </button>
             </div>
 

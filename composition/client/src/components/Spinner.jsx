@@ -33,7 +33,7 @@ const Spinner = ({
     // space the reader is looking at. Matching EmptyState matters beyond
     // arithmetic: the spinner is replaced by the empty state the moment loading
     // finishes, and if the two boxes differed the message would visibly jump.
-    minHeight = 'calc(100vh - 240px)',
+    minHeight = 'calc(100dvh - 240px)',
     className = ''
 }) => {
     const ring = (

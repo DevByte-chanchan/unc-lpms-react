@@ -185,7 +185,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
                 <h2 className="app-window-title">Syllabus due date</h2>
                 <div className={styles.sub}>When instructors must submit their learning plans.</div>
               </div>
-              <button type="button" className="app-icon-close" aria-label="Close" onClick={closeDialog}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+              <button type="button" className="app-icon-close" aria-label="Close" onClick={closeDialog}><X size={16} strokeWidth={2} color="currentColor" /></button>
             </div>
 
             <div className={styles.body}>

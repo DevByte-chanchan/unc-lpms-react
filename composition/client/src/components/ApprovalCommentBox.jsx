@@ -454,10 +454,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         <h3 id="approval-comment-title" className="app-window-title">{dialogTitle}</h3>
         <div className="app-window-actions">
           <button type="button" className="app-icon-btn" onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen">
-            {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
+            {isFullscreen ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
           </button>
           <button type="button" className="app-icon-close" onClick={handleClose} aria-label="Close">
-            <X size={16} strokeWidth={2.5} color="currentColor" />
+            <X size={16} strokeWidth={2} color="currentColor" />
           </button>
         </div>
       </div>
@@ -507,7 +507,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         </Select>
                         {comments.length > 1 && (
                           <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
-                            <X size={16} strokeWidth={2.5} color="currentColor" />
+                            <X size={16} strokeWidth={2} color="currentColor" />
                           </button>
                         )}
                       </div>
@@ -549,7 +549,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         <div className={styles.commentHeader}>
                           <span>Comment {idx + 1}</span>
                           <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
-                            <X size={16} strokeWidth={2.5} color="currentColor" />
+                            <X size={16} strokeWidth={2} color="currentColor" />
                           </button>
                         </div>
                       )}

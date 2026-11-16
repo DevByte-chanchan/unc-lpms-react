@@ -24,7 +24,7 @@ import styles from '../styles/ApprovalChainStatus.module.sass'
  */
 const iconFor = (step) => {
     if (step.readOnly) return <Eye size={14} />
-    if (step.status === 'approved') return <Check size={14} strokeWidth={2.5} />
+    if (step.status === 'approved') return <Check size={14} strokeWidth={2} />
     if (step.status === 'returned') return <RotateCcw size={14} />
     return <Clock size={14} />
 }

@@ -15,7 +15,7 @@ const checker = 'repeating-conic-gradient(#e5e7eb 0% 25%, #fff 0% 50%) 0 0 / 16p
 
 const Preview = ({ src, label }) => (
   <div style={{ background: checker, border: '1px solid var(--line)', borderRadius: 8, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 110 }}>
-    {src ? <img src={src} alt={label} style={{ maxHeight: 90, maxWidth: '100%' }} /> : <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>{label}</span>}
+    {src ? <img src={src} alt={label} style={{ maxHeight: 90, maxWidth: '100%', mixBlendMode: 'multiply' }} /> : <span style={{ color: 'var(--ink-muted)', fontSize: 13 }}>{label}</span>}
   </div>
 )
 

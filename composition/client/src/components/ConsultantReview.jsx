@@ -68,13 +68,13 @@ const ConsultantReview = ({ pcId, signedAt, onSigned, onClose }) => {
             <h2 className="app-window-title">Suggest &amp; Sign</h2>
             <div className={styles.sub}>{signedAt ? `Signed as reviewed on ${when(signedAt)}. You can still edit your suggestions.` : 'Suggestions for the next revision, then sign the plan as reviewed.'}</div>
           </div>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose} disabled={busy}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose} disabled={busy}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={styles.body} style={{ maxHeight: '60vh', overflowY: 'auto', display: 'grid', gap: 10 }}>
           {items === null && <div className={styles.hint}>Loading…</div>}
           {items?.length === 0 && <div className={styles.hint}>No suggestions yet.</div>}
           {(items || []).map(s => (
-            <div key={s.id} style={{ border: '1px solid var(--line, #e2e8f0)', borderRadius: 8, padding: 12, display: 'grid', gap: 8 }}>
+            <div key={s.id} style={{ border: '1px solid var(--line, var(--line))', borderRadius: 8, padding: 12, display: 'grid', gap: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink-soft)' }}>
                 <span>{when(s.at)}</span>
                 {editing?.id !== s.id && (

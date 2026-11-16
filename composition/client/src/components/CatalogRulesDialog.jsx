@@ -56,7 +56,7 @@ const CatalogRulesDialog = ({ open, onClose, onSaved }) => {
             <h2 className="app-window-title">Reference rules</h2>
             <div className={styles.sub}>Apply to everyone, and to the flags reviewers see.</div>
           </div>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={styles.body}>
           {!form ? <p>Loading…</p> : (

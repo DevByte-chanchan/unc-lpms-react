@@ -148,7 +148,7 @@ const PdfViewer = ({ bytes, fileName = 'document.pdf', kind = 'PDF', title, deta
           <button type="button" className="app-icon-btn" onClick={print} title="Print" aria-label="Print"><Printer size={16} /></button>
           <button type="button" className={`btn btn-primary ${styles.download}`} onClick={download}><Download size={16} /> Download PDF</button>
           <button type="button" className="app-icon-btn" onClick={() => setFull(f => !f)} title={full ? 'Exit full screen' : 'Full screen'} aria-label={full ? 'Exit full screen' : 'Full screen'}>
-            {full ? <Minimize2 size={16} /> : <Maximize size={16} />}
+            {full ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
           </button>
         </div>
       </div>

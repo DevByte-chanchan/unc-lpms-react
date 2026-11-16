@@ -44,7 +44,7 @@ const FutureSuggestions = ({ pcId, onClose }) => {
             <h2 className="app-window-title">Future Suggestions</h2>
             <div className={styles.sub}>From the industry consultant, for the next term or revision.</div>
           </div>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={styles.body} style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           {signoffs.length > 0 && (
@@ -56,7 +56,7 @@ const FutureSuggestions = ({ pcId, onClose }) => {
           {items?.length === 0 && !error && <div className={styles.hint}>No suggestions yet.</div>}
           {error && <div role="alert" className={styles.error}>{error}</div>}
           {(items || []).map(s => (
-            <div key={s.id} style={{ border: '1px solid var(--line, #e2e8f0)', borderRadius: 8, padding: 12, display: 'grid', gap: 6 }}>
+            <div key={s.id} style={{ border: '1px solid var(--line, var(--line))', borderRadius: 8, padding: 12, display: 'grid', gap: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, color: 'var(--ink-soft)' }}>
                 <span><strong style={{ color: 'var(--ink)' }}>{s.name}</strong>{s.thisPlan ? '' : ` · ${planLabel(s)}`}</span>
                 <span>{new Date(s.at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>

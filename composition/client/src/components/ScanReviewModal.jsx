@@ -50,7 +50,7 @@ const ScanReviewModal = ({ kind, file, result, onUse, onCancel, busy = false, er
           </div>
           <div className="app-window-actions">
             <button type="button" className="app-icon-close" onClick={onCancel} disabled={busy} aria-label="Close">
-              <X size={16} strokeWidth={2.5} color="currentColor" />
+              <X size={16} strokeWidth={2} color="currentColor" />
             </button>
           </div>
         </div>

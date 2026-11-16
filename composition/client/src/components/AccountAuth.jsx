@@ -54,7 +54,7 @@ export const PasswordField = ({ id, label, value, onChange, autoComplete, autoFo
         onChange={(e) => onChange(e.target.value)}
       />
       <button type="button" className={styles.toggle} onClick={onToggle} aria-label={show ? 'Hide passwords' : 'Show passwords'} aria-pressed={show}>
-        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+        {show ? <EyeOff size={18} className="icon-swap" /> : <Eye size={18} className="icon-swap" />}
       </button>
     </div>
   </div>
@@ -64,7 +64,7 @@ export const PasswordChecklist = ({ checks }) => (
   <ul className={styles.checklist} aria-label="Password requirements">
     {checks.map((c) => (
       <li key={c.label} className={cx(styles.check, c.ok && styles.checkOk)}>
-        {c.ok ? <Check size={14} /> : <Circle size={14} />}
+        {c.ok ? <Check size={14} className="icon-swap" /> : <Circle size={14} className="icon-swap" />}
         {c.label}
       </li>
     ))}

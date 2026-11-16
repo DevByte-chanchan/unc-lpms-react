@@ -72,7 +72,7 @@ class ErrorBoundary extends React.Component {
             padding: 32,
             background: '#fff',
             borderRadius: 12,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--line)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
           }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>

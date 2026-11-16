@@ -87,7 +87,8 @@ $cell-inset: 18px
       background: transparent
       color: var(--ink-muted)
       font-weight: 500
-      border-radius: 6px
+      // concentric: the 8px track minus its 3px padding
+      border-radius: 5px
       transition: all 0.2s ease
       font-size: 13px
       display: inline-flex
@@ -218,9 +219,10 @@ $cell-inset: 18px
 .layoutToggles
   display: flex
   align-items: center
-  background: #f0f0f0
+  background: var(--surface-sunken)
   padding: 4px
-  border-radius: 6px
+  // concentric: the 4px buttons inside plus this 4px padding
+  border-radius: var(--control-radius)
   gap: 4px
 
 .toggleBtn

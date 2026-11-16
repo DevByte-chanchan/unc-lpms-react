@@ -273,7 +273,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
         {/* Header */}
         <div className={styles.header} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '16px 24px', borderBottom: '1px solid #e5e7eb', gap: 12, flexShrink: 0,
+          padding: '16px 24px', borderBottom: '1px solid var(--line)', gap: 12, flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -321,10 +321,10 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
               <Download size={16} /> {exporting ? 'Exporting…' : 'Download PDF'}
             </button>
             <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
+              {isFullscreen ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
             </button>
             <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
-              <X size={16} strokeWidth={2.5} color="currentColor" />
+              <X size={16} strokeWidth={2} color="currentColor" />
             </button>
           </div>
         </div>

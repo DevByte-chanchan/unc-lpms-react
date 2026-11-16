@@ -189,7 +189,7 @@ const CommentsSidebar = ({
                           </small>
                         </div>
                         <span className={`${styles.commentStatus} ${comment.resolved ? styles.statusResolved : styles.statusPending}`}>
-                          {comment.resolved ? <Check size={12} aria-hidden="true" /> : <span className={styles.statusDot} aria-hidden="true" />}
+                          {comment.resolved ? <Check size={12} aria-hidden="true" className="icon-swap" /> : <span className={styles.statusDot} aria-hidden="true" />}
                           {comment.resolved ? 'Resolved' : 'Open'}
                         </span>
                       </header>

@@ -442,7 +442,7 @@
   overflow-y: auto;
   align-self: start;
   margin: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: var(--control-radius);
   background: #fff;
 }
@@ -582,7 +582,7 @@ button.previewClose.previewClose {
   gap: 8px;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--line);
 }
 
 .previewSectionTitle {
@@ -634,7 +634,7 @@ button.previewClose.previewClose {
   padding: 20px 24px;
   background: white;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   min-width: 0;
   flex: 1 1 160px;
@@ -778,7 +778,7 @@ button.previewClose.previewClose {
   th {
     padding: 12px 12px;
     text-align: left;
-    border-bottom: 2px solid #e5e7eb;
+    border-bottom: 2px solid var(--line);
     font-size: 14px;
     font-weight: 600;
     color: #000;
@@ -1169,7 +1169,7 @@ button.previewClose.previewClose {
   box-sizing: border-box;
   flex: 0 0 36px;
   border-radius: var(--control-radius);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   background: white;
   color: #374151;
   cursor: pointer;
@@ -1505,7 +1505,7 @@ button.previewClose.previewClose {
     display: block;
     width: min(340px, calc(100vw - 42px));
     height: 100dvh;
-    border-right: 1px solid #d5dee1;
+    border-right: 1px solid var(--line);
     box-shadow: 12px 0 30px rgba(15, 35, 42, .18);
   }
 
@@ -1547,7 +1547,7 @@ button.previewClose.previewClose {
     max-height: calc(100dvh - 88px);
     padding: 20px;
     overflow-y: auto;
-    border: 1px solid #d5dee1;
+    border: 1px solid var(--line);
     border-radius: 16px 0 0;
     background: #fff;
     box-shadow: -12px -8px 32px rgba(15, 35, 42, .18);

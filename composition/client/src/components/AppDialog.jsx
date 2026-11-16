@@ -19,7 +19,7 @@ const AppDialog = ({ title, message, confirmLabel, cancelLabel, danger, onDone }
       <div ref={windowRef} role="alertdialog" aria-modal="true" aria-label={title} className={styles.window}>
         <div className="app-window-header">
           <h2 className="app-window-title">{title}</h2>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={() => onDone(false)}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={() => onDone(false)}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={styles.body}>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{message}</p>

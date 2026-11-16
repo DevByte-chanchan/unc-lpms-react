@@ -41,7 +41,7 @@
   align-items: center
   gap: 10px
   background: #fff
-  border: 1px solid #E2E8F0
+  border: 1px solid var(--line)
   padding: 8px 12px
   border-radius: 6px
   input
@@ -62,7 +62,7 @@
   gap: 6px
   background: #ffffff
   color: #334155
-  border: 1px solid #CBD5E1
+  border: 1px solid var(--control-border)
   padding: 8px 14px
   border-radius: 6px
   font-size: 13px
@@ -101,7 +101,7 @@
 .continueDropdownHeader
   padding: 10px 14px
   background: #F8FAFC
-  border-bottom: 1px solid #E2E8F0
+  border-bottom: 1px solid var(--line)
   font-size: 11.5px
   font-weight: 700
   color: #475569
@@ -167,7 +167,7 @@
   align-items: center
   justify-content: center
   gap: 7px
-  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
+  background: linear-gradient(135deg, #2563EB 0%, #4861F1 12.5%, #625FF5 25%, #775EF6 37.5%, #8B5CF6 50%, #AA55E7 62.5%, #C44ED2 75%, #DA4AB7 87.5%, #EC4899 100%)
   background-size: 200% 200%
   color: white
   border: none
@@ -295,7 +295,7 @@
     grid-template-columns: repeat(2, 1fr)
 
 .topicCard
-  border: 1px solid #E2E8F0
+  border: 1px solid var(--line)
   border-radius: 8px
   background: white
   overflow: hidden
@@ -313,10 +313,10 @@
 // AI-Imported Topic Card: Gradient border matching the AI Suggest button (#2563EB -> #8B5CF6 -> #EC4899)
 .aiSuggestedTopicCard
   border: 2px solid transparent !important
-  background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%) border-box !important
+  background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #2563EB 0%, #4861F1 12.5%, #625FF5 25%, #775EF6 37.5%, #8B5CF6 50%, #AA55E7 62.5%, #C44ED2 75%, #DA4AB7 87.5%, #EC4899 100%) border-box !important
   box-shadow: 0 4px 14px rgba(139, 92, 246, 0.16)
   .topicHeaderCard
-    background: linear-gradient(135deg, #EFF6FF 0%, #FAF5FF 50%, #FDF2F8 100%)
+    background: linear-gradient(135deg, #EFF6FF 0%, #F2F6FF 12.5%, #F4F5FF 25%, #F7F5FF 37.5%, #FAF5FF 50%, #FBF4FD 62.5%, #FCF3FC 75%, #FCF3FA 87.5%, #FDF2F8 100%)
     border-bottom: 1px solid #DDD6FE
 
 .newEntry
@@ -335,7 +335,7 @@
   height: 47px
   box-sizing: border-box
   background: #F8FAFC
-  border-bottom: 1px solid #E2E8F0
+  border-bottom: 1px solid var(--line)
   display: flex
   justify-content: space-between
   align-items: center
@@ -442,7 +442,7 @@
   gap: 5px
   button
     background: #F7FAFC
-    border: 1px solid #E2E8F0
+    border: 1px solid var(--line)
     padding: 4px
     border-radius: 4px
     color: #718096
@@ -499,7 +499,7 @@
 // --- PLACEHOLDER / GHOST CARDS ---
 
 .placeholderCard
-  border: 2px dashed #E2E8F0
+  border: 2px dashed var(--line)
   border-radius: 8px
   background: transparent
   height: 315px
@@ -511,7 +511,7 @@
 .placeholderHeader
   height: 47px
   box-sizing: border-box
-  border-bottom: 2px dashed #E2E8F0
+  border-bottom: 2px dashed var(--line)
   background: #F8FAFC
   border-radius: 8px 8px 0 0
 

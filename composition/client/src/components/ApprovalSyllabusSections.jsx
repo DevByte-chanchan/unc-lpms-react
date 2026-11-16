@@ -942,7 +942,7 @@ ${suggestionLine}` : text,
           <div className="app-window-header">
             <h2 id="plan-unavailable-title" className="app-window-title">{noAccess ? 'No access to this learning plan' : 'Learning plan unavailable'}</h2>
             <button type="button" className="app-icon-close" aria-label="Close and go back to the course list" onClick={() => navigate(backPath)}>
-              <X size={16} strokeWidth={2.5} color="currentColor" />
+              <X size={16} strokeWidth={2} color="currentColor" />
             </button>
           </div>
           <div className={dialogStyles.body}>

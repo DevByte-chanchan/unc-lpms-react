@@ -19,7 +19,7 @@ const EarlierConsultantNotes = ({ pcId }) => {
   if (versions.length === 0) return null
   const total = versions.reduce((sum, version) => sum + version.comments.length, 0)
   return (
-    <details style={{ margin: '0 0 12px', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px', background: '#F9FAFB' }}>
+    <details style={{ margin: '0 0 12px', border: '1px solid var(--line)', borderRadius: 8, padding: '8px 12px', background: '#F9FAFB' }}>
       <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
         Earlier consultant suggestions ({total})
       </summary>

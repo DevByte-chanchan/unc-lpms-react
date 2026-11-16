@@ -36,3 +36,21 @@
 .canvas > :global(table) > :global(tbody)
   flex: 1 1 auto
   min-height: 0
+
+// Masked edge: while columns are hidden to the right, that edge fades out, hinting there is more to scroll to.
+// Driven by the scroll position itself (no script on scroll), only where the browser supports scroll timelines;
+// with nothing to scroll the timeline is inactive and --edge-fade stays 0 (no fade). Left edge left alone: several
+// tables pin their first column there.
+@supports (animation-timeline: scroll())
+  .region:not([data-scrolls-y='true'])
+    mask-image: linear-gradient(to left, transparent, #000 var(--edge-fade))
+    animation: edgeFade linear both
+    animation-timeline: scroll(self inline)
+
+@keyframes edgeFade
+  from
+    --edge-fade: 28px
+  92%
+    --edge-fade: 28px
+  to
+    --edge-fade: 0px

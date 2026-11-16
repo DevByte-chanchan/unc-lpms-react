@@ -65,7 +65,7 @@ const ConsultantDialog = ({ open, onClose, courseCode }) => {
             <h2 className="app-window-title">Industry Consultant</h2>
             <div className={styles.sub}>Who reviews {courseCode} as the industry consultant.</div>
           </div>
-          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2.5} color="currentColor" /></button>
+          <button type="button" className="app-icon-close" aria-label="Close" onClick={onClose}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
 
         <div className={styles.body}>

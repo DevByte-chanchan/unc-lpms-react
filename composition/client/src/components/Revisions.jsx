@@ -127,10 +127,10 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                     <div className="app-window-actions">
                         <button type="button" className="app-icon-btn" onClick={() => setExpanded(value => !value)}
                             title={expanded ? 'Exit full screen' : 'Full screen'} aria-label={expanded ? 'Exit full screen' : 'Full screen'}>
-                            {expanded ? <Minimize2 size={16} /> : <Maximize size={16} />}
+                            {expanded ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
                         </button>
                         <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close revisions">
-                            <X size={16} strokeWidth={2.5} color="currentColor" />
+                            <X size={16} strokeWidth={2} color="currentColor" />
                         </button>
                     </div>
                 </div>
@@ -235,7 +235,7 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                                                             {/* Comments directly attached underneath RETURNED events */}
                                                             {event.comments && event.comments.length > 0 && (
                                                                 <div className={styles.timelineNode}>
-                                                                    <div className={styles.timelineNodeBody} style={{ marginLeft: '1.25rem', width: '95%', borderLeft: '2px dashed #ddd', paddingLeft: '1rem', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+                                                                    <div className={styles.timelineNodeBody} style={{ marginLeft: '1.25rem', width: '95%', borderLeft: '2px dashed var(--control-border)', paddingLeft: '1rem', marginTop: '-0.5rem', marginBottom: '1rem' }}>
                                                                         {event.comments.map((comment) => (
                                                                             <div key={`comment-${comment.id}`} className={styles.commentCardFrame}>
                                                                                 <div className={styles.commentCardMetaBar}>

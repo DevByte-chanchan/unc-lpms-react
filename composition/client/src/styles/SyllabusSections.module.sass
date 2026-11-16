@@ -164,7 +164,7 @@ section
     right: 0
     margin-top: 4px
     background-color: #f3f5f6
-    border: 1px solid #e2e8f0
+    border: 1px solid var(--line)
     border-radius: 6px
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)
     z-index: 1000
@@ -436,7 +436,7 @@ section
   height: 22px
   border-radius: 9999px
   background: #FFFFFF
-  border: 1.5px solid #CBD5E1
+  border: 1.5px solid var(--control-border)
   color: #0F172A
   font-size: 10.5px
   font-weight: 700
@@ -458,7 +458,7 @@ section
 // 1. Course Orientation Kickoff Card
 .orientationKickoffCard
   background: #FFFFFF
-  border: 1px solid #E2E8F0
+  border: 1px solid var(--line)
   border-left: 4px solid #4F46E5
   border-radius: 12px
   padding: 16px 20px
@@ -467,7 +467,7 @@ section
 
   &:hover
     box-shadow: 0 3px 8px rgba(15, 23, 42, 0.05)
-    border-color: #CBD5E1
+    border-color: var(--control-border)
     border-left-color: #4F46E5
 
 .kickoffMain
@@ -519,7 +519,7 @@ section
   padding: 3px 10px
   border-radius: 9999px
   background: #F8FAFC
-  border: 1px solid #E2E8F0
+  border: 1px solid var(--line)
   color: #475569
   font-size: 12px
   font-weight: 600
@@ -531,7 +531,7 @@ section
 // 2. Structured 3-Zone Course Outcome Card (CO1–CO4)
 .coCard
   background: #FFFFFF
-  border: 1px solid #E2E8F0
+  border: 1px solid var(--line)
   border-radius: 12px
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03)
   display: flex
@@ -541,7 +541,7 @@ section
 
   &:hover
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05)
-    border-color: #CBD5E1
+    border-color: var(--control-border)
 
 // Zone 1 — Header Strip
 .coZoneHeader
@@ -639,7 +639,7 @@ section
   display: inline-flex
   align-items: center
   background: #FFFFFF
-  border: 1px solid #E2E8F0
+  border: 1px solid var(--line)
   color: #334155
   font-size: 11px
   font-weight: 600
@@ -743,7 +743,7 @@ section
   align-items: center
   gap: 6px
   background: #F1F5F9
-  border: 1px solid #E2E8F0
+  border: 1px solid var(--line)
   padding: 6px 16px
   border-radius: 20px
   font-size: 12.5px
@@ -755,7 +755,7 @@ section
 
   &:hover
     background: #E2E8F0
-    border-color: #CBD5E1
+    border-color: var(--control-border)
     color: #0F172A !important
 
 // Backwards-compatible aliases
@@ -771,7 +771,7 @@ section
   display: flex
   flex-direction: column
   background: white
-  border: 1px solid #e5e7eb
+  border: 1px solid var(--line)
   border-radius: 12px
   padding: 20px
   gap: 16px
@@ -809,7 +809,7 @@ section
   top: 0
   left: 0
   width: 100vw
-  height: 100vh
+  height: 100dvh
   background: rgba(0, 0, 0, 0.7)
   display: flex
   justify-content: center
@@ -831,7 +831,7 @@ section
   justify-content: space-between
   align-items: center
   padding: 12px 16px
-  border-bottom: 1px solid #e5e7eb
+  border-bottom: 1px solid var(--line)
   background: #f9fafb
 
 .modalTitle
@@ -935,7 +935,7 @@ section
   top: 0
   left: 0
   width: 100vw
-  height: 100vh
+  height: 100dvh
   background: rgba(0, 0, 0, 0.7)
   background: rgba(0, 0, 0, 0.3)
   backdrop-filter: blur(2px)
@@ -953,7 +953,7 @@ section
 
 .submitModal
   background: #ffffff
-  border: 1px solid #e5e7eb
+  border: 1px solid var(--line)
   width: 380px
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1)
   display: flex

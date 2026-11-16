@@ -61,10 +61,10 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
           </h2>
           <div className="app-window-actions">
             <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
+              {isFullscreen ? <Minimize2 size={16} className="icon-swap" /> : <Maximize size={16} className="icon-swap" />}
             </button>
             <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
-              <X size={16} strokeWidth={2.5} color="currentColor" />
+              <X size={16} strokeWidth={2} color="currentColor" />
             </button>
           </div>
         </div>

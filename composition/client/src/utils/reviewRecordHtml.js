@@ -44,7 +44,7 @@ export const buildReviewRecordHtml = (record) => {
         a.accepted ? esc(a.name, 'Name not recorded') : '<em>Not yet accepted</em>',
         esc(a.roleLabel),
         a.accepted ? esc(fmt(a.date)) : '—',
-        image ? `<img src="${image}" alt="Signature" style="max-height:14mm; max-width:40mm;">` : '—'
+        image ? `<img src="${image}" alt="Signature" style="max-height:14mm; max-width:40mm; mix-blend-mode:multiply;">` : '—'
       ]
     }),
     'No approvers recorded.')

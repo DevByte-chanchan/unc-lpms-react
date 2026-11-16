@@ -526,7 +526,7 @@ button.app-icon-btn.app-icon-btn.is-on { background: #e2e8f0; }
     justify-content: space-between;
     gap: 12px;
     padding: 16px 24px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--line);
     flex-shrink: 0;
     background: #fff;
 }
@@ -880,4 +880,23 @@ tbody tr:hover, tbody tr:focus {
 
 .mobile-grading-table {
     min-width: 800px;
+}
+
+/* Blurred icon swap: an icon that replaces another (show / hide password, full screen / exit) blurs and scales in
+   instead of snapping. React mounts the new icon, so the animation runs on each swap. */
+@keyframes icon-swap-in {
+    from { opacity: 0; filter: blur(3px); transform: scale(.6); }
+}
+.icon-swap {
+    animation: icon-swap-in .18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+    .icon-swap { animation: none; }
+}
+
+/* Animated by TableScrollRegion's right-edge fade; registered so it can interpolate. */
+@property --edge-fade {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
 }
