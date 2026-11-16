@@ -147,7 +147,7 @@ const NotificationBell = () => {
     <div>
       <button ref={trigger} type="button" className={`${headerStyles.bell} ${open ? headerStyles.bellOpen : ''}`}
         title="Notifications" aria-label={label} aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
-        <Bell size={20} />
+        <Bell size={18} />
         {count > 0 && <span className={headerStyles.badge} aria-hidden="true">{count > 9 ? '9+' : count}</span>}
       </button>
 

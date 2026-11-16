@@ -99,7 +99,7 @@ function RoleFilterDropdown({ options, value, onChange }) {
                         </span>
                     )}
                     <ChevronDown
-                        size={15}
+                        size={16}
                         className={`${styles.roleFilterChevron} ${isOpen ? styles.roleFilterChevronOpen : ''}`}
                     />
                 </span>
@@ -1440,13 +1440,13 @@ const TopicForm = () => {
                                     <div className={styles.checklistCard}>
                                         <div className={styles.checklistHeaderCollapsible}>
                                             <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                                                <MessageSquare size={18} className={styles.headerIcon} />
+                                                <MessageSquare size={16} className={styles.headerIcon} />
                                                 <h3 style={{fontSize: '14px', margin: 0, fontWeight: 500}}>Review Feedback</h3>
                                             </div>
                                             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                                                 {unresolvedCount > 0 && <span className={styles.floatingBadge} style={{position: 'relative', top: 0, right: 0}}>{unresolvedCount}</span>}
                                                 <button onClick={() => setIsCommentsOpen(false)} className={styles.closeCollapse}>
-                                                    <ChevronsRight size={20} />
+                                                    <ChevronsRight size={16} />
                                                 </button>
                                             </div>
                                         </div>
@@ -1458,7 +1458,7 @@ const TopicForm = () => {
                                         onClick={() => setIsCommentsOpen(true)}
                                         title={`View Review Feedback for ${steps[currentStep]}`}
                                     >
-                                        <MessageSquare size={20} className={styles.headerIcon} />
+                                        <MessageSquare size={16} className={styles.headerIcon} />
                                         {unresolvedCount > 0 && <span className={styles.collapsedBadge}>{unresolvedCount}</span>}
                                     </button>
                                 )}

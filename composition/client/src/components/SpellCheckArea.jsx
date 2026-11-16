@@ -316,12 +316,12 @@ const SpellCheckArea = ({
                         }}
                         title="Go to the first problem"
                     >
-                        <AlertCircle size={13} />
+                        <AlertCircle size={14} />
                         {count} {count === 1 ? 'problem' : 'problems'}
                     </button>
                 )}
                 {count === 0 && hasText && ready && (
-                    <span className={`${styles.count} ${styles.clean}`}><Check size={13} /> No spelling or grammar problems</span>
+                    <span className={`${styles.count} ${styles.clean}`}><Check size={14} /> No spelling or grammar problems</span>
                 )}
                 {/* Said plainly rather than passed off as "no problems". If the
                     chunk never arrives this is what stays on screen, which is
@@ -343,7 +343,7 @@ const SpellCheckArea = ({
                             ? 'Check grammar online (the full text is sent only after confirmation)'
                             : 'Fix every underlined problem that has only one possible fix'}
                     >
-                        {busy ? <Spinner inline size={13} label="Working…" /> : <Zap size={13} />}
+                        {busy ? <Spinner inline size={13} label="Working…" /> : <Zap size={14} />}
                         {busy ? 'Checking…' : buttonLabel}
                     </button>
                 )}

@@ -119,19 +119,19 @@ const MiniCourseCard = ({ row, selectedStatus }) => {
     if (selectedStatus === 'DRAFT') {
         actionBtn = (
             <Link className={styles.miniActionBtn} to={`/courses/${offeringId}/${revNum}/${statusParam}`}>
-                Compose <ChevronRight size={13} />
+                Compose <ChevronRight size={14} />
             </Link>
         );
     } else if (selectedStatus === 'RETURNED' || overall === 'returned') {
         actionBtn = (
             <Link className={styles.miniActionBtn} to={`/courses/${offeringId}/${revNum}/${statusParam}`}>
-                Update <Edit size={13} />
+                Update <Edit size={14} />
             </Link>
         );
     } else {
         actionBtn = (
             <Link className={styles.miniActionBtn} to={`/courses/${offeringId}/${revNum}/${statusParam}`}>
-                View <ChevronRight size={13} />
+                View <ChevronRight size={14} />
             </Link>
         );
     }
@@ -287,7 +287,7 @@ const MiniAssignedCourses = ({ assignments = [], counts = {}, loading = false })
                         title="Go to Assigned Learning Plans"
                         aria-label="Go to Assigned Learning Plans"
                     >
-                        <ExternalLink size={20} color="#334155" />
+                        <ExternalLink size={16} color="#334155" />
                     </button>
                 </div>
             </div>

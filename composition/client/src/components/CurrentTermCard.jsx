@@ -216,7 +216,7 @@ const CurrentTermCard = ({ term, loading }) => {
                                             {!isLast && <span aria-hidden="true" className={styles.milestoneConnector} />}
                                             <div className={styles.milestoneMarkerCol}>
                                                 {isDone ? (
-                                                    <CheckCircle size={15} className={styles.doneCheckIcon} />
+                                                    <CheckCircle size={16} className={styles.doneCheckIcon} />
                                                 ) : (
                                                     <span className={styles.milestoneDot} />
                                                 )}
@@ -246,7 +246,7 @@ const CurrentTermCard = ({ term, loading }) => {
                         {/* Calendar warning checks if any */}
                         {checks.length > 0 && (
                             <div role="note" className={styles.calendarChecksNote}>
-                                <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+                                <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} />
                                 <div>
                                     {checks.map((l) => (
                                         <div key={l}>{l}</div>

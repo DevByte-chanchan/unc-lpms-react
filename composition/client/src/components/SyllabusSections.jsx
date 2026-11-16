@@ -267,7 +267,7 @@ const SyllabusSections = () => {
             <div className={styles.navi}>
                 <Link  to={backPath} className={'actionLink'} >
                     <div className={styles.return}>
-                        <ChevronLeft size={22}/>
+                        <ChevronLeft size={18}/>
                     </div>
                 </Link>
 

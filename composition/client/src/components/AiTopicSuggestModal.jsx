@@ -540,7 +540,7 @@ const AiTopicSuggestModal = ({
                             </h4>
                             <div className={styles.topicMetaSubrow}>
                                 <span className={`${styles.topicDurationBadge} ${isCardChecked ? styles.topicDurationActive : styles.topicDurationMuted}`}>
-                                    <Clock size={11} />
+                                    <Clock size={12} />
                                     <span>
                                         {formatMinutesToDuration(displayedTopicMins)}
                                         {isCardChecked && activeTopicMins !== fullTopicMins
@@ -630,7 +630,7 @@ const AiTopicSuggestModal = ({
                         </div>
                     </div>
                     <button type="button" onClick={onClose} className={styles.closeBtn} aria-label="Close modal">
-                        <X size={20} />
+                        <X size={16} />
                     </button>
                 </div>
 
@@ -647,9 +647,9 @@ const AiTopicSuggestModal = ({
                     >
                         <div className={styles.budgetLeft}>
                             <div className={styles.budgetStatusIcon}>
-                                {timeStatus === 'exact' && <CheckCircle size={18} />}
-                                {timeStatus === 'under' && <Clock size={18} />}
-                                {timeStatus === 'over' && <AlertTriangle size={18} />}
+                                {timeStatus === 'exact' && <CheckCircle size={16} />}
+                                {timeStatus === 'under' && <Clock size={16} />}
+                                {timeStatus === 'over' && <AlertTriangle size={16} />}
                             </div>
                             <div className={styles.budgetTextContent}>
                                 <div className={styles.budgetTitleRow}>
@@ -705,7 +705,7 @@ const AiTopicSuggestModal = ({
                         <div className={styles.confirmChangeContainer}>
                             <div className={styles.confirmChangeCard}>
                                 <div className={styles.confirmIconCircle}>
-                                    <AlertTriangle size={26} />
+                                    <AlertTriangle size={22} strokeWidth={1.6} />
                                 </div>
                                 <h4 className={styles.confirmChangeTitle}>
                                     Previous Week Topic Assignments Have Changed
@@ -753,7 +753,7 @@ const AiTopicSuggestModal = ({
                                         className={styles.confirmRegenerateBtn}
                                         onClick={handleConfirmRegenerateFromPrevWeekChange}
                                     >
-                                        <RefreshCw size={15} />
+                                        <RefreshCw size={16} />
                                         <span>Yes, Review Data &amp; Regenerate</span>
                                     </button>
                                 </div>
@@ -963,7 +963,7 @@ const AiTopicSuggestModal = ({
                                         >
                                             <div className={styles.stepStatusIndicator}>
                                                 {isDone ? (
-                                                    <Check size={13} />
+                                                    <Check size={14} />
                                                 ) : isCurrent ? (
                                                     <span className={styles.stepPulseDot} />
                                                 ) : (
@@ -1039,7 +1039,7 @@ const AiTopicSuggestModal = ({
                                     >
                                         {isLoadingMore ? (
                                             <>
-                                                <RefreshCw size={15} className={styles.loadMoreSpin} />
+                                                <RefreshCw size={16} className={styles.loadMoreSpin} />
                                                 <span>Generating Additional Alternative Subtopics...</span>
                                             </>
                                         ) : (
@@ -1098,7 +1098,7 @@ const AiTopicSuggestModal = ({
                                 >
                                     <GeminiStar size={15} />
                                     <span>Generate Aligned Topics &amp; Subtopics</span>
-                                    <ArrowRight size={15} />
+                                    <ArrowRight size={16} />
                                 </button>
                             </div>
                         </>
@@ -1127,7 +1127,7 @@ const AiTopicSuggestModal = ({
                                     onClick={() => setPhase('ilo-select')}
                                     title="Return to the input data and ILO selection screen to regenerate suggestions"
                                 >
-                                    <RefreshCw size={13} />
+                                    <RefreshCw size={14} />
                                     <span>Regenerate Again</span>
                                 </button>
                             </div>

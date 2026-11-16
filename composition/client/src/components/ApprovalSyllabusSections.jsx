@@ -948,7 +948,7 @@ ${suggestionLine}` : text,
           <div className={dialogStyles.body}>
             <div className={dialogStyles.notice}>
               <span className={`${dialogStyles.noticeIcon} ${noAccess ? '' : dialogStyles.noticeIconWarn}`} aria-hidden="true">
-                {noAccess ? <Lock size={18} /> : <AlertTriangle size={18} />}
+                {noAccess ? <Lock size={16} /> : <AlertTriangle size={16} />}
               </span>
               <div>
                 {codeToUse && <div className={dialogStyles.noticeCourse}>{codeToUse}{resolvedCourse?.name ? ` · ${resolvedCourse.name}` : ''}</div>}
@@ -972,7 +972,7 @@ ${suggestionLine}` : text,
         <div className={styles.navi}>
           <Link to={backPath} className={'actionLink'} aria-label="Back to assigned course offerings">
             <div className={styles.return}>
-              <ChevronLeft size={22} />
+              <ChevronLeft size={18} />
             </div>
           </Link>
 

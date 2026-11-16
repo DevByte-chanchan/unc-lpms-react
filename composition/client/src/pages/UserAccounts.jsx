@@ -188,7 +188,7 @@ export const UserAccountsPanel = () => {
         <h2 className="app-page-title">User Accounts</h2>
         <div className={pageStyles.pageHeaderActions}>
           <button type="button" className="btn btn-primary" onClick={() => { setError(''); setForm(emptyForm) }}>
-            <UserPlus size={18} color="currentColor" /> Create account
+            <UserPlus size={16} color="currentColor" /> Create account
           </button>
         </div>
       </div>

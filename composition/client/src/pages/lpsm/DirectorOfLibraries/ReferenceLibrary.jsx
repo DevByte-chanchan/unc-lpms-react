@@ -427,7 +427,7 @@ const ReferenceLibrary = () => {
                 <Plus size={16} /><span className="btn-label">Add</span>
               </button>
               <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
-                <Upload size={15} /> Bulk Upload
+                <Upload size={16} /> Bulk Upload
               </button>
               {/* A once-in-a-while setting: an icon button, so the row reads as Add and Bulk Upload. A menu holding only
                   this would cost an extra click for nothing. */}
@@ -462,7 +462,7 @@ const ReferenceLibrary = () => {
           />
           {query && (
             <button className={styles.clearSearch} type="button" onClick={() => setQuery('')} aria-label="Clear search">
-              <X size={15} />
+              <X size={16} />
             </button>
           )}
           <Search size={16} aria-hidden="true" className={styles.searchIcon} />
@@ -505,7 +505,7 @@ const ReferenceLibrary = () => {
         <div className={`${styles.discoveryLayout} ${layoutMode === 'courses' ? styles.coursesMode : ''}`}>
         <aside className={`${styles.facetRail} ${filtersOpen ? styles.filterDrawer : ''}`} aria-label="Reference filters">
           <div className={styles.facetHeader}>
-            {filtersOpen && <button className={`${styles.drawerClose} app-icon-close`} type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters"><X size={15} /></button>}
+            {filtersOpen && <button className={`${styles.drawerClose} app-icon-close`} type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters"><X size={16} /></button>}
           </div>
 
           <div className={styles.facetGroup}>
@@ -656,7 +656,7 @@ const ReferenceLibrary = () => {
         <aside className={`${styles.previewPane} ${viewRef ? styles.previewSheet : ''}`} aria-label="Reference preview">
           {previewReference ? (
             <>
-              <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
+              <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={16} /></button></div>
               {isReferenceDeprecated(previewReference, CURRENT_YEAR, rules.recencyYears) && <div className={styles.warningBanner}>{`This reference is ${rules.recencyYears} years old or older and may need review.`}</div>}
               {(() => {
                 // Only the fields that hold something. Half the rows used to read "Not provided" / "Not recorded",
@@ -691,7 +691,7 @@ const ReferenceLibrary = () => {
                     <span key={c.course_id} className={styles.courseChecking} title={c.course_title}>
                       {c.course_no}{' '}
                       <button type="button" className="app-icon-close" style={{ width: 18, height: 18, minHeight: 18, padding: 0 }} disabled={filing}
-                        onClick={() => fileUnderCourse(c.course_id, true)} aria-label={`Remove from ${c.course_no}`}><X size={11} /></button>
+                        onClick={() => fileUnderCourse(c.course_id, true)} aria-label={`Remove from ${c.course_no}`}><X size={12} /></button>
                     </span>
                   ))}
                 </div>
@@ -710,15 +710,15 @@ const ReferenceLibrary = () => {
                 </p>
               </section>
               <div className={styles.previewActions}>
-                <button className="btn btn-primary" type="button" onClick={() => { setEditRef(previewReference); setAddRefOpen(true); }}><Edit2 size={13} /> Edit</button>
+                <button className="btn btn-primary" type="button" onClick={() => { setEditRef(previewReference); setAddRefOpen(true); }}><Edit2 size={14} /> Edit</button>
                 {previewReference.archived ? (
-                  <button className="btn btn-secondary" type="button" onClick={() => confirmUnarchive(previewReference)}><RotateCcw size={13} /> Restore</button>
+                  <button className="btn btn-secondary" type="button" onClick={() => confirmUnarchive(previewReference)}><RotateCcw size={14} /> Restore</button>
                 ) : (
-                  <button className={`btn btn-secondary ${styles.rowActionDanger}`} type="button" onClick={() => archiveReference(previewReference)}><Archive size={13} /> Archive</button>
+                  <button className={`btn btn-secondary ${styles.rowActionDanger}`} type="button" onClick={() => archiveReference(previewReference)}><Archive size={14} /> Archive</button>
                 )}
               </div>
             </>
-          ) : <div className={styles.previewEmpty}><BookOpen size={30} /><p>Select a reference to preview it.</p></div>}
+          ) : <div className={styles.previewEmpty}><BookOpen size={22} strokeWidth={1.6} /><p>Select a reference to preview it.</p></div>}
         </aside>
         </div>
       </div>

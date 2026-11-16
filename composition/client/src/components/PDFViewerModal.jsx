@@ -384,7 +384,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       marginBottom: 14,
                     }}>
-                      <FileText size={28} />
+                      <FileText size={22} strokeWidth={1.6} />
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: SLATE_900, letterSpacing: '-0.01em' }}>
                       {title}

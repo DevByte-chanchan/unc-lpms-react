@@ -51,7 +51,7 @@ const ApprovalCard = ({ code, date, title, link, exportButton }) => {
                     </div>
                     <button type="button" className={styles.toggleDetailsBtn} onClick={() => setExpanded(!expanded)}
                         title={expanded ? 'Hide details' : 'Show details'} aria-expanded={expanded}>
-                        <ChevronDown size={18} className="chevron-turn" data-open={expanded || undefined} aria-hidden="true" />
+                        <ChevronDown size={16} className="chevron-turn" data-open={expanded || undefined} aria-hidden="true" />
                     </button>
                 </div>
             </div>
@@ -325,7 +325,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
 
             <button type="button" className={styles.info} aria-label="View approval details" title="View details"
                 onClick={() => setDetails({ submittedAt: latestSubmissionAt(row), approverStatuses: buildApproverStatus(row) })}>
-                <HelpCircle opacity={.8} size={18} />
+                <HelpCircle opacity={.8} size={16} />
             </button>
         </div>
     );
@@ -419,7 +419,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
 
             <div className={styles.tableControlsOuter}>
                 <div className={styles.searchContainer}>
-                    <Search color="#A4A9AF" size={18} />
+                    <Search color="#A4A9AF" size={16} />
                     <input
                         type="text"
                         placeholder="Search course code or name..."
@@ -442,11 +442,11 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     <div className={styles.layoutToggles}>
                         <button type="button" className={`${styles.toggleBtn} ${layoutMode === 'list' ? styles.active : ''}`}
                             onClick={() => setLayoutMode('list')} title="List view" aria-pressed={layoutMode === 'list'}>
-                            <List size={18} />
+                            <List size={16} />
                         </button>
                         <button type="button" className={`${styles.toggleBtn} ${layoutMode === 'grid' ? styles.active : ''}`}
                             onClick={() => setLayoutMode('grid')} title="Grid view" aria-pressed={layoutMode === 'grid'}>
-                            <Grid size={18} />
+                            <Grid size={16} />
                         </button>
                     </div>
                 )}

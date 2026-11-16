@@ -113,7 +113,7 @@ const ViewReference = () => {
         <div className={styles.fileSection}>
           <span className={styles.detailLabel}>UPLOADED FILE</span>
           <div className={styles.fileCard}>
-            <FileText size={20} />
+            <FileText size={16} />
             <span className={styles.fileName}>{ref.filename}</span>
             <button className="btn btn-secondary btn-sm" type="button">
               <Download size={16} />

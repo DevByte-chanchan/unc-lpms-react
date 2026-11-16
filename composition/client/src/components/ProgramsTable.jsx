@@ -36,7 +36,7 @@ const ProgramsTable = ({ programs = mockPrograms, onAssign }) => {
                     style={{ color: '#111827', display: 'inline-flex', alignItems: 'center' }}
                   >
                     <span style={{ marginRight: 8 }}>Assign</span>
-                    <span className={styles.actionIcon} style={{ color: '#111827' }}><UserPlus size={18} /></span>
+                    <span className={styles.actionIcon} style={{ color: '#111827' }}><UserPlus size={16} /></span>
                   </a>
               </td>
             </tr>

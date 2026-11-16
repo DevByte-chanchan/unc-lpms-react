@@ -27,7 +27,7 @@ const NAVIGATION_ICON_COMPONENTS = {
 
 const NavigationIcon = ({ label }) => {
     const Icon = NAVIGATION_ICON_COMPONENTS[navigationIconName(label)] || FileText
-    return <Icon size={24} />
+    return <Icon size={18} />
 }
 
 const SideNavigation = ({ mode = 'instructor' }) => {
@@ -207,7 +207,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 <div className={styles.logoutWrapper}>
                     <div className={styles.listB} onClick={onLogoutClick} role="button" tabIndex={0} title="Log Out" aria-label="Log Out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
-                        <LogOut size={24} /> <span className={styles.listText}>Log Out</span>
+                        <LogOut size={18} /> <span className={styles.listText}>Log Out</span>
                     </div>
                 </div>
 

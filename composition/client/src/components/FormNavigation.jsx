@@ -36,11 +36,11 @@ const FormNavigation = ({
         return (
             <div className={styles.navi}>
                 <div onClick={goBack} className={styles.return} title="Return">
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={18} />
                 </div>
                 <div className="fill"></div>
                 <div className={styles.save} onClick={onSave} style={{ cursor: "pointer" }}>
-                    <CheckCircle size={20} /> &nbsp; Save
+                    <CheckCircle size={16} /> &nbsp; Save
                 </div>
             </div>
         );
@@ -100,7 +100,7 @@ const FormNavigation = ({
                 tabIndex={isExpanded ? -1 : 0}
                 aria-hidden={isExpanded}
             >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={18} />
             </button>
 
             <div className={`${styles.plannerBar} ${isExpanded ? styles.plannerBarExpanded : ""}`}>
@@ -121,7 +121,7 @@ const FormNavigation = ({
                                     : (coNumber ? `CO ${coNumber}` : "Schedule")}
                             </span>
                             <span className={styles.coToggleChevron}>
-                                {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                             </span>
                         </button>
 
@@ -283,7 +283,7 @@ const FormNavigation = ({
                 tabIndex={isExpanded ? -1 : 0}
                 aria-hidden={isExpanded}
             >
-                <CheckCircle size={18} />
+                <CheckCircle size={16} />
                 <span>Save</span>
             </button>
         </div>

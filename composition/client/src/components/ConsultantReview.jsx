@@ -79,8 +79,8 @@ const ConsultantReview = ({ pcId, signedAt, onSigned, onClose }) => {
                 <span>{when(s.at)}</span>
                 {editing?.id !== s.id && (
                   <span style={{ display: 'flex', gap: 6 }}>
-                    <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => setEditing({ id: s.id, text: s.message })}><Edit2 size={13} /> Edit</button>
-                    <button type="button" className="btn btn-danger-outline btn-sm" disabled={busy} onClick={() => remove(s.id)} aria-label="Remove suggestion"><Trash2 size={13} /></button>
+                    <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => setEditing({ id: s.id, text: s.message })}><Edit2 size={14} /> Edit</button>
+                    <button type="button" className="btn btn-danger-outline btn-sm" disabled={busy} onClick={() => remove(s.id)} aria-label="Remove suggestion"><Trash2 size={14} /></button>
                   </span>
                 )}
               </div>
@@ -106,7 +106,7 @@ const ConsultantReview = ({ pcId, signedAt, onSigned, onClose }) => {
           {error && <div role="alert" className={styles.error}>{error}</div>}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button type="button" className="btn btn-secondary" disabled={busy || !draft.trim()} onClick={add}>Add suggestion</button>
-            {!signedAt && <button type="button" className="btn btn-primary" disabled={busy} onClick={sign}><PenTool size={15} /> Sign as reviewed</button>}
+            {!signedAt && <button type="button" className="btn btn-primary" disabled={busy} onClick={sign}><PenTool size={16} /> Sign as reviewed</button>}
           </div>
         </div>
       </div>

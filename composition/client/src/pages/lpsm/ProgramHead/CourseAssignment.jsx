@@ -162,7 +162,7 @@ const CourseAssignment = () => {
 
       {/* The term, then the search and the year level, above the table. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#18191A' }}><Calendar size={15} aria-hidden="true" /> Current Term:</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#18191A' }}><Calendar size={16} aria-hidden="true" /> Current Term:</span>
         <Select variant="pill" value={`${schoolYear}|${semester}`} aria-label="Term"
           onChange={(e) => { const [year, sem] = e.target.value.split('|'); setSchoolYear(year); setSemester(sem) }}>
           {YEARS.flatMap(y => [...SEMESTERS].reverse().map(s => <option key={`${y}|${s}`} value={`${y}|${s}`}>{s === 'Summer' ? 'Summer' : `${s} Semester`} {y}</option>))}

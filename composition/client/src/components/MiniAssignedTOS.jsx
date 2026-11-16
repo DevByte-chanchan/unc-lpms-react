@@ -52,7 +52,7 @@ const MiniAssignedTOS = () => {
                         title="Go to Assigned TOS"
                         aria-label="Go to Assigned TOS"
                     >
-                        <ExternalLink size={20} color="#334155" />
+                        <ExternalLink size={16} color="#334155" />
                     </button>
                 </div>
             </div>
@@ -76,7 +76,7 @@ const MiniAssignedTOS = () => {
                                         className={styles.miniActionBtn}
                                         onClick={() => navigate('/assigned-courses')}
                                     >
-                                        Compose <ChevronRight size={13} />
+                                        Compose <ChevronRight size={14} />
                                     </button>
                                 </div>
                             </div>

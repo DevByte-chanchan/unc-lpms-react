@@ -110,7 +110,7 @@ const CommentsSidebar = ({
             background: '#fff',
             borderBottom: '1px solid #e0e4ec'
           }}>
-            <MessageSquare size={18} color="#475569" />
+            <MessageSquare size={16} color="#475569" />
             <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', flex: 1 }}>
               {Nouns}
             </h4>
@@ -222,7 +222,7 @@ const CommentsSidebar = ({
                         <p className={isLong && !open ? styles.commentClamped : isLong ? styles.commentOpen : undefined}>{text}</p>
                         {isLong && (
                           <button type="button" className={styles.commentToggle} aria-expanded={open} onClick={() => toggleComment(comment.id)}>
-                            {open ? <>Show less <ChevronUp size={13} aria-hidden="true" /></> : <>Show more <ChevronDown size={13} aria-hidden="true" /></>}
+                            {open ? <>Show less <ChevronUp size={14} aria-hidden="true" /></> : <>Show more <ChevronDown size={14} aria-hidden="true" /></>}
                           </button>
                         )}
                       </div>
@@ -250,12 +250,12 @@ const CommentsSidebar = ({
                           )}
                           {!comment.resolved && canResolve(comment) && (
                             <button type="button" className={styles.resolveCommentButton} onClick={() => onResolve(comment.id)}>
-                              <Check size={13} /> Mark resolved
+                              <Check size={14} /> Mark resolved
                             </button>
                           )}
                           {canShowInPlan(comment) && (
                             <button type="button" className={styles.commentJump} onClick={() => onShowInPlan(comment)}>
-                              <Crosshair size={13} aria-hidden="true" /> Show in plan
+                              <Crosshair size={14} aria-hidden="true" /> Show in plan
                             </button>
                           )}
                         </footer>

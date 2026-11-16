@@ -43,7 +43,7 @@ const SortableTh = ({ col, sortKey, sortDir, onSort, fill = false }) => {
             <button type="button" className={fill ? `${styles.btn} ${styles.btnFill}` : styles.btn} onClick={() => onSort(col.key)} aria-label={`Sort by ${col.label}`}>
                 <span className={styles.label}>{col.label}</span>
                 <span className={styles.arrow} style={{ opacity: active ? 1 : 0.35 }} aria-hidden="true">
-                    {active && dir === 'desc' ? <ArrowDown size={13} /> : <ArrowUp size={13} />}
+                    {active && dir === 'desc' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
                 </span>
                 {/* The arrow is aria-hidden, so the state has to be said in
                     words for anyone who cannot see it. */}

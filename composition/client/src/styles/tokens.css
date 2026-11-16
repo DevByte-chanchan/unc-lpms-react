@@ -73,6 +73,9 @@
        12px every surface: card, panel, window, menu, toast  --radius-lg
        pill badges, chips and counts; 50% switches, dots, avatars.
      A control nested inside another with padding p uses the outer radius minus p (concentric). */
+  /* Icons (Feather), sized by the text beside them, stroke 2:
+       12 inside tags · 14 beside 13px text (small buttons, chips, meta) · 16 beside 14px text (buttons, menus,
+       toolbars, inputs) · 18 the top bar, side navigation and back arrows · 22 empty states (stroke 1.6). */
   --radius-xs: 4px;
   --radius-lg: 12px;
 

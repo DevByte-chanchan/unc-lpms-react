@@ -123,7 +123,7 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>{result ? 'Close' : 'Cancel'}</button>
             {!result && (
               <button type="button" className="btn btn-primary" onClick={commit} disabled={busy || !preview || preview.valid === 0}>
-                <Upload size={15} /> {busy ? 'Importing…' : !preview ? 'Checking…' : preview.valid === 0 ? 'Nothing to import' : `Import ${preview.valid} valid row${preview.valid === 1 ? '' : 's'}`}
+                <Upload size={16} /> {busy ? 'Importing…' : !preview ? 'Checking…' : preview.valid === 0 ? 'Nothing to import' : `Import ${preview.valid} valid row${preview.valid === 1 ? '' : 's'}`}
               </button>
             )}
           </div>

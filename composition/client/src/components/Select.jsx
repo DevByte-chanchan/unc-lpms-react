@@ -134,7 +134,7 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
             <li key={`${option.value}-${index}`} role="option" title={option.label} aria-selected={current === option} aria-disabled={option.disabled || undefined}
               data-active={index === active} className={`${styles.option} ${index === active ? styles.active : ''} ${option.disabled ? styles.off : ''} ${option.clear ? styles.clear : ''}`}
               onMouseEnter={() => setActive(index)} onClick={() => pick(option)}>
-              <span>{option.clear && <X size={13} aria-hidden="true" />}{option.label}</span>
+              <span>{option.clear && <X size={14} aria-hidden="true" />}{option.label}</span>
               {current === option && <Check size={14} aria-hidden="true" />}
             </li>
           ))}

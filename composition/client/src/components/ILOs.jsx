@@ -157,7 +157,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
         <div key={key} className={`${styles.roadmapStep} ${styles.roadmapStepMilestone}`}>
             <div className={styles.stepNodeExam}>
                 <span className={styles.nodeExam} title={title}>
-                    <Flag size={11} />
+                    <Flag size={12} />
                 </span>
             </div>
             <div className={styles.milestoneDividerRow}>
@@ -182,7 +182,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
 
             <div className={styles.iloHeader}>
                 <div className={styles.iloSearchContainer}>
-                    <Search color="#94A3B8" size={17} />
+                    <Search color="#94A3B8" size={16} />
                     <input
                         type="text"
                         placeholder="Search ILO number, CO number, or description..."
@@ -197,7 +197,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                     if (filteredIlos.length === 0) {
                         return (
                             <div className={styles.emptyStateContainer} style={{ padding: '40px' }}>
-                                <Inbox size={40} strokeWidth={1} />
+                                <Inbox size={22} strokeWidth={1.6} />
                                 <span>No matching results found.</span>
                             </div>
                         );
@@ -259,7 +259,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                         {totalBadges > 0 && (
                                                             <span className={styles['comment-badge']}>{totalBadges}</span>
                                                         )}
-                                                        <ChevronRight size={15} />
+                                                        <ChevronRight size={16} />
                                                     </Link>
                                                 </div>
                                             </div>
@@ -368,7 +368,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                         {coTotalBadges > 0 && (
                                                             <span className={styles['comment-badge']}>{coTotalBadges}</span>
                                                         )}
-                                                        <ChevronRight size={15} />
+                                                        <ChevronRight size={16} />
                                                     </Link>
                                                 </div>
                                             </div>

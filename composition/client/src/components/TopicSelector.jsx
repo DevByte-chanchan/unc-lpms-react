@@ -273,7 +273,7 @@ const TopicSelector = ({
                                 }}
                             />
                             <ChevronDown
-                                size={18}
+                                size={16}
                                 className={`${styles.chevron} ${isPickerOpen ? styles.up : ''}`}
                                 onClick={() => {
                                     setIsPickerOpen(!isPickerOpen);
@@ -293,7 +293,7 @@ const TopicSelector = ({
                                     }}
                                     title={`Continue one topic from Week ${prevWeekDisplay} with new subtopics for Week ${weekNumber}`}
                                 >
-                                    <CornerDownRight size={15} className={styles.btnIcon} />
+                                    <CornerDownRight size={16} className={styles.btnIcon} />
                                     <span>Continue Previous Topic</span>
                                     <ChevronDown size={14} className={`${styles.continueChevron} ${isContinueOpen ? styles.up : ''}`} />
                                 </button>
@@ -399,7 +399,7 @@ const TopicSelector = ({
                                         <div className={styles.topicTitleGroup}>
                                             <div className={styles.inputWrapper}>
                                                 {isLockedContinuation ? (
-                                                    <Lock size={13} className={styles.lockIcon} title="Continued from previous week (Title locked)" />
+                                                    <Lock size={14} className={styles.lockIcon} title="Continued from previous week (Title locked)" />
                                                 ) : (
                                                     <Edit2 size={12} className={styles.editIcon} />
                                                 )}

@@ -288,7 +288,7 @@ const CoursesTable = () => {
                                 title={expanded ? 'Hide details' : 'Show details'}
                                 aria-expanded={expanded}
                             >
-                                <ChevronDown size={18} className="chevron-turn" data-open={expanded || undefined} aria-hidden="true" />
+                                <ChevronDown size={16} className="chevron-turn" data-open={expanded || undefined} aria-hidden="true" />
                             </button>
                         )}
                     </div>
@@ -373,7 +373,7 @@ const CoursesTable = () => {
 
             <div className={styles.tableControlsOuter}>
                 <div className={styles.searchContainer}>
-                    <Search color="#A4A9AF" size={18} />
+                    <Search color="#A4A9AF" size={16} />
                     <input
                         type="text"
                         placeholder="Search course code or name..."
@@ -391,7 +391,7 @@ const CoursesTable = () => {
                         title="List view"
                         aria-pressed={layoutMode === 'list'}
                     >
-                        <List size={18} />
+                        <List size={16} />
                     </button>
                     <button
                         type="button"
@@ -400,7 +400,7 @@ const CoursesTable = () => {
                         title="Grid view"
                         aria-pressed={layoutMode === 'grid'}
                     >
-                        <Grid size={18} />
+                        <Grid size={16} />
                     </button>
                 </div>
             </div>
@@ -459,7 +459,7 @@ const CoursesTable = () => {
                                             state={{ fromStatus: selectedStatus.toLowerCase() }}
                                         >
                                             {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
-                                            <ChevronRight size={18} />
+                                            <ChevronRight size={16} />
                                         </Link>
 
                                         {(selectedStatus === 'APPROVED' || canExportRow(row)) &&
@@ -488,7 +488,7 @@ const CoursesTable = () => {
 
                                         {selectedStatus === 'APPROVED' &&
                                             <button onClick={() => openPopup(row)} className={styles.info}>
-                                                <HelpCircle size={18} />
+                                                <HelpCircle size={16} />
                                             </button>
                                         }
                                     </div>
@@ -543,7 +543,7 @@ const CoursesTable = () => {
                                                 </Link>
                                             )}
                                             <button onClick={() => openPopup(row)} className={styles.info}>
-                                                <HelpCircle opacity={.8} size={18} />
+                                                <HelpCircle opacity={.8} size={16} />
                                             </button>
                                         </div>
                                     </td>

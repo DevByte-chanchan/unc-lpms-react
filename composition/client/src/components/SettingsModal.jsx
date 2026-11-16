@@ -73,7 +73,7 @@ const SecurityTab = () => {
         <ul className={styles.rules} aria-live="polite">
           {rules.map(rule => (
             <li key={rule.label} className={rule.ok ? styles.good : styles.bad}>
-              {rule.ok ? <CheckCircle size={13} aria-hidden="true" /> : <AlertCircle size={13} aria-hidden="true" />} {rule.label}
+              {rule.ok ? <CheckCircle size={14} aria-hidden="true" /> : <AlertCircle size={14} aria-hidden="true" />} {rule.label}
             </li>
           ))}
         </ul>

@@ -442,11 +442,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             <div className={styles.directorWrap}>
               <div className={styles.tabs} role="tablist" aria-label="What to do">
                 <button type="button" role="tab" aria-selected={directorTab === 'comment'} className={`${styles.tab} ${directorTab === 'comment' ? styles.tabActive : ''}`} onClick={() => setDirectorTab('comment')}>
-                  <MessageSquare size={15} aria-hidden="true" /> Comment on references
+                  <MessageSquare size={16} aria-hidden="true" /> Comment on references
                   {directorFilled > 0 && <span className={styles.tabCount}>{directorFilled}</span>}
                 </button>
                 <button type="button" role="tab" aria-selected={directorTab === 'suggest'} className={`${styles.tab} ${directorTab === 'suggest' ? styles.tabActive : ''}`} onClick={() => setDirectorTab('suggest')}>
-                  <Plus size={15} aria-hidden="true" /> Suggest from library
+                  <Plus size={16} aria-hidden="true" /> Suggest from library
                   {directorSuggested > 0 && <span className={styles.tabCount}>{directorSuggested}</span>}
                 </button>
               </div>

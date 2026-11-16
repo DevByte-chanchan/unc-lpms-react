@@ -31,7 +31,7 @@ export const ContinueAs = ({ roles, onPick, onCancel }) => (
               <span className={styles.roleName}>{roleMeta(role)?.label || role}</span>
               <span className={styles.roleDesc}>{ROLE_DESCRIPTIONS[role]}</span>
             </span>
-            <ChevronRight size={18} color="#6B7280" />
+            <ChevronRight size={16} color="#6B7280" />
           </button>
         ))}
       </div>
@@ -54,7 +54,7 @@ export const PasswordField = ({ id, label, value, onChange, autoComplete, autoFo
         onChange={(e) => onChange(e.target.value)}
       />
       <button type="button" className={styles.toggle} onClick={onToggle} aria-label={show ? 'Hide passwords' : 'Show passwords'} aria-pressed={show}>
-        {show ? <EyeOff size={18} className="icon-swap" /> : <Eye size={18} className="icon-swap" />}
+        {show ? <EyeOff size={16} className="icon-swap" /> : <Eye size={16} className="icon-swap" />}
       </button>
     </div>
   </div>

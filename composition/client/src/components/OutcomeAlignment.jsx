@@ -219,7 +219,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
                             <tr>
                                 <td colSpan={(cpaData.programOutcomes.length || 9) + 1}>
                                     <div style={{ textAlign: 'center', padding: '30px' }}>
-                                        <Inbox size={40} strokeWidth={1} style={{ display: 'block', margin: '0 auto 10px' }} />
+                                        <Inbox size={22} strokeWidth={1.6} style={{ display: 'block', margin: '0 auto 10px' }} />
                                         <span>No course outcomes / alignments found for this course.</span>
                                     </div>
                                 </td>

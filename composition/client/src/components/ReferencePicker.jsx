@@ -139,7 +139,7 @@ const ReferencePicker = ({
                             {ref.isbn && <span className={styles.isbn}> • ISBN: {ref.isbn}</span>}
                             {ref.outdated && (
                                 <span className={styles.outdatedTag}>
-                                    <AlertTriangle size={11} /> outside {recency.from}–{recency.to}
+                                    <AlertTriangle size={12} /> outside {recency.from}–{recency.to}
                                 </span>
                             )}
                             {blocked && <span className={styles.outdatedTag}>not in library</span>}
@@ -247,7 +247,7 @@ const ReferencePicker = ({
                                         onClick={() => handleToggle(ref)}
                                         disabled={disabled}
                                     >
-                                        <X size={11} />
+                                        <X size={12} />
                                     </button>
                                 </span>
                             ))}
@@ -259,7 +259,7 @@ const ReferencePicker = ({
                 {suggested.length > 0 && (
                     <div className={styles.suggestBlock}>
                         <div className={styles.suggestHeader}>
-                            <Star size={13} /> Suggested for {courseTitle || courseCode || 'this course'}
+                            <Star size={14} /> Suggested for {courseTitle || courseCode || 'this course'}
                         </div>
                         {suggested.map((ref, i) => renderRow(ref, `s${i}`, true))}
                     </div>
@@ -272,7 +272,7 @@ const ReferencePicker = ({
                     ) : (
                         <EmptyState
                             inline
-                            icon={<Book size={20} strokeWidth={1.6} />}
+                            icon={<Book size={16} strokeWidth={1.6} />}
                             title={`No ${String(activeFilter || 'reference').toLowerCase()} to show`}
                             hint={scope === 'catalog'
                                 ? `Nothing in ${courseCode || 'this course'}’s catalog matches. Titles appear here once the library records them against this course.`
@@ -291,7 +291,7 @@ const ReferencePicker = ({
                         <span>Still nothing? Search outside UNC:</span>
                         {externalLinks.map(link => (
                             <a key={link.key} href={link.url} target="_blank" rel="noreferrer" title={link.note || ''}>
-                                {link.label}{link.subscription ? ' ★' : ''} <ExternalLink size={11} />
+                                {link.label}{link.subscription ? ' ★' : ''} <ExternalLink size={12} />
                             </a>
                         ))}
                     </div>
