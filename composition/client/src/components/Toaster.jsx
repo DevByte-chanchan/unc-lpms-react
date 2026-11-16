@@ -22,11 +22,14 @@ const Toaster = ({ connect }) => {
     <div className={styles.stack} role="status" aria-live="polite">
       {items.map(({ id, message, type }) => {
         const Icon = ICONS[type] || Info
+        const shownFor = SHOWN_FOR[type] || SHOWN_FOR.info
         return (
-          <div key={id} className={`${styles.toast} ${styles[type] || styles.info}`}>
-            <Icon size={18} className={styles.icon} aria-hidden="true" />
+          <div key={id} className={`${styles.toast} ${styles[type] || styles.info}`} style={{ '--shown-for': `${shownFor}ms` }}>
+            <span className={styles.badge} aria-hidden="true"><Icon size={16} strokeWidth={2.25} /></span>
             <span className={styles.message}>{message}</span>
             <button type="button" className={styles.close} aria-label="Dismiss" onClick={() => close(id)}><X size={14} /></button>
+            {/* how long until it closes by itself */}
+            <span className={styles.timer} aria-hidden="true" />
           </div>
         )
       })}
