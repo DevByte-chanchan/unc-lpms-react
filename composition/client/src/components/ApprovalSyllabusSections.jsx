@@ -889,9 +889,6 @@ ${suggestionLine}` : text,
   // Libraries and the Program Head have accepted (marked pending until the Dean does); the review
   // record (every comment, action and approver) is always available and is a separate document.
   const exportMenu = (approved) => (<>
-    <div className={styles.divider}>
-      <div className={styles.line}></div>
-    </div>
     <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}
       onKeyDown={(e) => { if (e.key === 'Escape' && isOpen) { e.stopPropagation(); setIsOpen(false); dropdownRef.current?.querySelector('button')?.focus() } }}>
       <button type="button" className={styles.moreIcon} aria-label="More actions" aria-haspopup="menu" aria-expanded={isOpen}>

@@ -305,8 +305,6 @@ const SyllabusSections = () => {
                 {
                     status !== 'draft' &&
                     <>
-                        <div className={styles.divider}><div className={styles.line}></div></div>
-
                         <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
                             <div className={styles.moreIcon} >
                                 <MoreVertical strokeWidth={2} size={16} />
