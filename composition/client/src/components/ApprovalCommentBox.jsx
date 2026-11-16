@@ -404,7 +404,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   return (
     <>
     {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2999 }} />}
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="approval-comment-title" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="approval-comment-title" data-fullscreen={isFullscreen || undefined} style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
       <div className="app-window-header">
         <h3 id="approval-comment-title" className="app-window-title">{dialogTitle}</h3>
         <div className="app-window-actions">

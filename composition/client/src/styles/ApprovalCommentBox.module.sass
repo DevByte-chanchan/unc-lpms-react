@@ -97,17 +97,18 @@
   display: flex
   flex-direction: column
   gap: 12px
-  flex: 1
+  // as tall as its comments (shrinks and scrolls when there are many); growing pushed "Add another comment" to the bottom
+  flex: 0 1 auto
   min-height: 0
   overflow: auto
   padding-right: 6px
 
+// one comment: the same card as the Director's
 .commentItem
   background: #fff
-  border: 1px solid #DDDFDF
-  border-radius: 6px
-  padding: 12px
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  padding: 14px 16px 16px
 
 // "Comment 2" on the left, its remove button on the right, on one line.
 .commentHeader
@@ -487,3 +488,16 @@
     padding: 0 8px
   .filterRow
     grid-template-columns: 1fr
+
+// Full screen: the content stays a readable column in the middle (not 1,700px wide fields), and the library list
+// fills the height instead of stopping at 420px.
+.modal[data-fullscreen]
+  .body, .actions
+    padding-inline: max(24px, calc((100% - 1040px) / 2))
+
+  .directorWrap, .tabPanel
+    flex: 1 1 auto
+
+  .refList
+    flex: 1 1 auto
+    max-height: none
