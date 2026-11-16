@@ -12,7 +12,8 @@ import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import { offeringKey } from "../utils/offeringKey.js";
 import { getSession } from "../utils/session.js";
 import { IED_LEVELS, DEFAULT_TARGET, levelLabel, levelCode, parsePercent } from "../utils/iedLevels.js";
-import { X, AlertCircle, CheckCircle } from "react-feather";
+import { alertDialog } from "../utils/appDialog.jsx";
+import { toast } from "../utils/toast.jsx";
 
 const MIN_DESCRIPTION = 10;
 const MAX_DESCRIPTION = 500;
@@ -39,8 +40,6 @@ const ILOForm = () => {
     const [loadError, setLoadError] = useState('');
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [showErrorModal, setShowErrorModal] = useState(false);
 
     const goBackHandler = () => navigate(-1);
 
@@ -96,16 +95,22 @@ const ILOForm = () => {
             newErrors.intendedLearningOutcome = `Description must be at most ${MAX_DESCRIPTION} characters.`;
         }
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return newErrors;
     };
+
+    // The app's alert window, listing what to fix (the fields are also marked on the form).
+    const FIELD_LABELS = { intendedLearningOutcome: 'ILO Description', iedLevel: 'IED Level', targetStudents: 'Students target', targetScore: 'Score target' };
+    const showErrors = (found) => alertDialog(
+        'Fix these before saving:\n' + Object.entries(found).filter(([, err]) => err).map(([key, err]) => `• ${FIELD_LABELS[key] || key}: ${err}`).join('\n'),
+        { title: 'Not saved' }
+    );
 
     const handleSaveClick = () => {
         if (loadError || saving) return;
-        if (validateForm()) {
-            setShowConfirmModal(true);
-        } else {
-            setShowErrorModal(true);
-        }
+        const found = validateForm();
+        // An ILO can be edited again, so it saves without an "Are you sure?"; the toast confirms it.
+        if (Object.keys(found).length === 0) handleConfirmSave();
+        else showErrors(found);
     };
 
     const handleConfirmSave = async () => {
@@ -121,12 +126,12 @@ const ILOForm = () => {
                     target_score_percent: parsePercent(targetScore)
                 })
             });
-            setShowConfirmModal(false);
+            toast('ILO saved.');
             navigate(-1);
         } catch (err) {
-            setShowConfirmModal(false);
-            setErrors({ intendedLearningOutcome: apiErrorMessage(err, 'Could not save the ILO.') });
-            setShowErrorModal(true);
+            const found = { intendedLearningOutcome: apiErrorMessage(err, 'Could not save the ILO.') };
+            setErrors(found);
+            showErrors(found);
         } finally {
             setSaving(false);
         }
@@ -192,58 +197,7 @@ const ILOForm = () => {
                         )}
                     </div>
 
-                    {showConfirmModal && (
-                        <div className={styles.modalOverlay}>
-                            <div className={styles.modal}>
-                                <div className={styles.modalHeader}>
-                                    <h3>Confirm Save</h3>
-                                </div>
-                                <div className={styles.modalBody}>
-                                    <CheckCircle size={40} color="#4CAF50" style={{ marginBottom: '1rem' }} />
-                                    <p>Are you sure you want to save these changes?</p>
-                                </div>
-                                <div className={styles.modalActions}>
-                                    <button className={styles.cancelBtn} onClick={() => setShowConfirmModal(false)} disabled={saving}>No, Cancel</button>
-                                    <button className={styles.confirmBtn} onClick={handleConfirmSave} disabled={saving}>{saving ? 'Saving...' : 'Yes, Save'}</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {showErrorModal && (
-                        <div className={styles.modalOverlay}>
-                            <div className={styles.modal}>
-                                <div className={styles.modalHeader} style={{ borderBottomColor: '#FF5252' }}>
-                                    <h3 style={{ color: '#FF5252' }}>Validation Error</h3>
-                                    <button
-                                        type="button"
-                                        className={`${styles.closeIcon} app-icon-close`}
-                                        onClick={() => setShowErrorModal(false)}
-                                        aria-label="Close validation error"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </div>
-                                <div className={styles.modalBody}>
-                                    <AlertCircle size={40} color="#FF5252" style={{ marginBottom: '1rem' }} />
-                                    <p>Please fix the highlighted issues before saving.</p>
-
-                                    <ul className={styles.errorList}>
-                                        {Object.entries(errors).filter(([, err]) => err).map(([key, err]) => (
-                                            <li key={key}>
-                                                {{ intendedLearningOutcome: 'ILO Description', iedLevel: 'IED Level', targetStudents: 'Students target', targetScore: 'Score target' }[key] || key}: {err}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                                <div className={styles.modalActions}>
-                                    <button className={styles.confirmBtn} style={{ backgroundColor: '#FF5252' }} onClick={() => setShowErrorModal(false)}>
-                                        Okay, I'll fix it
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             }
         />

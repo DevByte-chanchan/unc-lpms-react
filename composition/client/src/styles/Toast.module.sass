@@ -1,0 +1,77 @@
+// The app's toast (utils/toast.jsx): a white card in the bottom-right corner, newest at the bottom, above every window.
+.stack
+  position: fixed
+  right: 24px
+  bottom: 24px
+  z-index: 3600
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: 8px
+  max-width: min(420px, calc(100vw - 32px))
+  pointer-events: none
+
+.toast
+  display: flex
+  align-items: flex-start
+  gap: 10px
+  padding: 12px 10px 12px 14px
+  background: var(--surface)
+  border: 1px solid var(--line)
+  border-left: 4px solid var(--tone)
+  border-radius: 12px
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .14)
+  color: var(--ink)
+  font: var(--fw-medium) var(--fs-md) / 1.4 var(--font-ui)
+  pointer-events: auto
+  animation: toastIn .2s ease-out
+
+.success
+  --tone: var(--good-solid)
+.warning
+  --tone: var(--warn-solid)
+.info
+  --tone: var(--accent)
+
+.icon
+  flex: 0 0 auto
+  margin-top: 1px
+  color: var(--tone)
+
+.message
+  flex: 1
+  min-width: 0
+  overflow-wrap: anywhere
+
+.close
+  flex: 0 0 auto
+  display: inline-flex
+  padding: 3px
+  border: 0
+  border-radius: 6px
+  background: transparent
+  color: var(--ink-muted)
+  cursor: pointer
+  &:hover
+    background: var(--hover-tint)
+    color: var(--ink)
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+@keyframes toastIn
+  from
+    opacity: 0
+    transform: translateY(8px)
+
+@media (prefers-reduced-motion: reduce)
+  .toast
+    animation: none
+
+@media (max-width: 600px)
+  .stack
+    right: 16px
+    left: 16px
+    bottom: 16px
+    max-width: none
+    align-items: stretch

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { confirmDialog } from '../utils/appDialog.jsx'
+import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
+import { toast } from '../utils/toast.jsx'
 import { Download, FileText, Upload, Zap } from 'react-feather'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { downloadFromApi, openCourseDocument } from '../utils/courseDocuments.js'
@@ -56,16 +57,16 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
   useEffect(() => { load() }, [load])
   useEffect(() => { onChange?.(doc ?? null) }, [doc, onChange])
 
-  const run = async (action) => {
+  const run = async (action, done) => {
     setBusy(true); setError('')
-    try { await action(); await load() } catch (err) { setError(apiErrorMessage(err, err?.message || 'The change was not saved.')) } finally { setBusy(false) }
+    try { await action(); await load(); toast(done) } catch (err) { alertDialog(apiErrorMessage(err, err?.message || 'The change was not saved.'), { title: 'Not saved' }) } finally { setBusy(false) }
   }
   const upload = (file) => file && run(async () => {
     await fetchJson(`/api/course-documents/${pcId}/${kind}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) }, body: file,
     })
     if (fileRef.current) fileRef.current.value = ''
-  })
+  }, `${label} uploaded. View and Export now use it.`)
   // Scan a picture or PDF of the form: what is read opens in "Check what was read"; nothing is saved yet.
   const startScan = async (file) => {
     if (!file) return
@@ -77,7 +78,7 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
       setScanError('')
       setScan({ file, result })
     } catch (err) {
-      setError(apiErrorMessage(err, 'The file could not be scanned.'))
+      alertDialog(apiErrorMessage(err, 'The file could not be scanned.'), { title: 'Scan failed' })
     } finally {
       setBusy(false)
       if (scanRef.current) scanRef.current.value = ''
@@ -91,6 +92,7 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
       })
       setScan(null)
       await load()
+      toast(`${label} saved from the scan.`)
     } catch (err) {
       setScanError(apiErrorMessage(err, 'The scan was not saved.'))
     } finally {
@@ -100,7 +102,7 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
 
   const remove = async () => {
     if (!(await confirmDialog(`View and Export go back to the table generated from the plan.`, { title: `Remove the uploaded ${label}?`, confirmLabel: 'Remove', danger: true }))) return
-    run(() => fetchJson(`/api/course-documents/${pcId}/${kind}`, { method: 'DELETE' }))
+    run(() => fetchJson(`/api/course-documents/${pcId}/${kind}`, { method: 'DELETE' }), `Uploaded ${label} removed.`)
   }
 
   if (!pcId) return null

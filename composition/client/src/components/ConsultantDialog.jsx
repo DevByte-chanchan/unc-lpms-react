@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'react-feather'
 import Select from './Select.jsx'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
+import { toast } from '../utils/toast.jsx'
 import styles from '../styles/DueDateDialog.module.sass'
 import useDialogFocus from '../utils/useDialogFocus.js'
 
@@ -42,15 +43,16 @@ const ConsultantDialog = ({ open, onClose, courseCode }) => {
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  const act = async (request) => {
+  // A failure shows in this window, beside what was tried; a success is a toast.
+  const act = async (request, done) => {
     setBusy(true); setError('')
-    try { await request(); setPick(''); await load() } catch (err) { setError(apiErrorMessage(err, 'That did not work. Try again.')) } finally { setBusy(false) }
+    try { await request(); setPick(''); await load(); toast(done) } catch (err) { setError(apiErrorMessage(err, 'That did not work. Try again.')) } finally { setBusy(false) }
   }
   const assign = () => act(() => fetchJson('/api/course-consultants', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ course_id: course.course_id, consultant_user_id: Number(pick) })
-  }))
-  const remove = (row) => act(() => fetchJson(`/api/course-consultants/${row.course_consultant_id}/deactivate`, { method: 'PUT' }))
+  }), 'Consultant added.')
+  const remove = (row) => act(() => fetchJson(`/api/course-consultants/${row.course_consultant_id}/deactivate`, { method: 'PUT' }), 'Consultant removed.')
 
   if (!open) return null
   const assignedIds = new Set(assigned.map(row => row.consultant_user_id))

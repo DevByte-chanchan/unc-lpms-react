@@ -1,5 +1,6 @@
 import Select from './Select.jsx'
 import { alertDialog } from '../utils/appDialog.jsx'
+import { toast } from '../utils/toast.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
@@ -148,7 +149,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [globalComments, setGlobalComments] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
-  const [toast, setToast] = useState(null)
   // The panel is 380px wide. Open by default it would swallow a phone screen
   // whole, so on a narrow viewport it starts collapsed and the approver opens
   // it deliberately.
@@ -555,10 +555,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const openComment = () => setShowCommentModal(true)
   const closeComment = () => setShowCommentModal(false)
 
-  const showToastMsg = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
-  }
+  // A finished step or a heads-up is a toast; a failure is a window (utils/toast.jsx says which is which).
+  const showToastMsg = (msg, type = 'success') => (type === 'error' ? alertDialog(msg, { title: 'Something went wrong' }) : toast(msg, type))
 
   // Module 2 integration: persist workflow actions (submit / return / approve)
   // to the server so course-table statuses reflect real state across sessions.
@@ -582,6 +580,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     recordWorkflowAction('ACCEPTED').then(() => {
       reloadWorkflow()
       setRefreshKey(k => k + 1)
+      toast('Approved. The plan moves on to the next approver.')
     }).catch(e => alertDialog(apiErrorMessage(e, 'Could not record your approval.'), { title: 'Approval not saved' }))
   }, [recordWorkflowAction, reloadWorkflow, reviewRecordAvailable])
 
@@ -608,7 +607,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       reloadWorkflow()
       setRefreshKey(k => k + 1)
       setShowSubmitModal(false)
-      showToastMsg('Learning Plan submitted for review!')
+      showToastMsg('Learning plan submitted for review.')
       navigate(backPath)
     }).catch(e => {
       setShowSubmitModal(false)
@@ -842,7 +841,7 @@ ${suggestionLine}` : text,
   const handleAcceptSuggestion = (id) => {
     acceptSuggestion(id);
     setRefreshKey(k => k + 1);
-    showToastMsg('Reference added to learning plan!');
+    showToastMsg('Reference added to the learning plan.');
   }
 
   const handleRejectSuggestion = (id) => {
@@ -1473,26 +1472,6 @@ ${suggestionLine}` : text,
         />
       )}
 
-      {/* ── TOAST NOTIFICATION ─────────────────────────────────────────── */}
-
-      {toast && (
-        <div style={{
-          position: 'fixed', bottom: 32, right: 32, zIndex: 1100,
-          background: toast.type === 'warning' ? 'var(--danger-solid)' : 'var(--good)',
-          color: 'white', padding: '14px 24px',
-          borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-          fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500,
-          display: 'flex', alignItems: 'center', gap: 10,
-          animation: 'slideIn 0.3s ease'
-        }}>
-          {toast.type === 'warning' ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="16 8 10 16 7 13" /></svg>
-          )}
-          {toast.msg}
-        </div>
-      )}
 
     </div>
   )

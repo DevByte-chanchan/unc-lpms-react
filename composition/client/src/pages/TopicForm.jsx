@@ -8,8 +8,10 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import TopicSelector from "../components/TopicSelector.jsx";
 import AiTopicSuggestModal from "../components/AiTopicSuggestModal.jsx";
 import { checkSpelling } from "../utils/spellChecker.js";
-import { X, CheckCircle, MessageSquare, AlertCircle, ChevronsRight, ChevronDown } from 'react-feather';
-import { fetchJson } from "../utils/api.js";
+import { X, MessageSquare, AlertCircle, ChevronsRight, ChevronDown } from 'react-feather';
+import { fetchJson, apiErrorMessage } from "../utils/api.js";
+import { alertDialog } from "../utils/appDialog.jsx";
+import { toast } from "../utils/toast.jsx";
 import CommentMessage from "../components/CommentMessage.jsx";
 
 import TLAForm from "./TLAForm.jsx";
@@ -667,7 +669,6 @@ const TopicForm = () => {
     const [validationErrors, setValidationErrors] = useState({});
     const [showSpellCheckModal, setShowSpellCheckModal] = useState(false);
     const [spellCheckWarnings, setSpellCheckWarnings] = useState([]);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     useEffect(() => {
         setIsOrientation(initialIsOrientation);
@@ -1087,7 +1088,7 @@ const TopicForm = () => {
                             is_orientation: prefix === 'orient',
                             topics: topicsArr
                         })
-                    }).catch(() => {});
+                    }); // a failure here stops the save and opens the alert window below, instead of looking saved
                     initialWeekTopicsMapRef.current[key] = serializeTopics(topicsArr);
                 }
             }
@@ -1105,14 +1106,11 @@ const TopicForm = () => {
                 initialWeekTopicsMapRef.current[savedActiveKey] = serializeTopics(liveTopics);
             }
 
-            setShowSuccessModal(true);
-            setTimeout(() => {
-                setShowSuccessModal(false);
-            }, 1800);
+            toast('Weekly content and comment resolutions saved.');
 
         } catch (err) {
             console.error("Consolidated save execution failed:", err);
-            alert("An error occurred saving changes. Review console details.");
+            alertDialog(apiErrorMessage(err, 'The changes were not saved.') + ' Try again.', { title: 'Not saved' });
         } finally {
             setIsSaving(false);
         }
@@ -1593,19 +1591,6 @@ const TopicForm = () => {
                         </div>
                     </InlineModal>
 
-                    {/* --- Clean Global Save Success Feedback Modal --- */}
-                    <InlineModal
-                        isOpen={showSuccessModal}
-                        title="Saved Successfully"
-                        onClose={() => setShowSuccessModal(false)}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 0' }}>
-                            <CheckCircle size={22} color="#10B981" style={{ flexShrink: 0 }} />
-                            <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 500, color: '#1E293B' }}>
-                                Weekly content changes and comment resolutions have been saved.
-                            </p>
-                        </div>
-                    </InlineModal>
 
                 </div>
             }

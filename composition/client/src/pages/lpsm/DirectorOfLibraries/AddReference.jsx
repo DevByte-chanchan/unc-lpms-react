@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, CheckCircle } from 'react-feather';
+import { ChevronLeft } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -10,6 +10,7 @@ import styles from '../../../styles/Form.module.sass';
 import navStyles from '../../../styles/FormNavigation.module.sass';
 import { loadReference } from '../../../utils/referenceStore.js';
 import { apiErrorMessage } from '../../../utils/api.js';
+import { toast } from '../../../utils/toast.jsx';
 
 // Add (no id in the route) or edit (/edit-reference/:id) a reference. The fields shown come from the
 // server's type definitions; saving goes to the server, which validates the same rules again.
@@ -23,7 +24,6 @@ const AddReference = () => {
   const [loadError, setLoadError] = useState('');
   const [loaded, setLoaded] = useState(!isEditMode);
   const form = useReferenceForm(record);
-  const [toast, setToast] = useState(null);
   const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
@@ -39,8 +39,9 @@ const AddReference = () => {
     setSaveError('');
     const result = await form.save();
     if (!result.ok) { setSaveError(result.message); return; }
-    setToast(isEditMode ? 'Reference updated successfully!' : 'Reference added successfully!');
-    setTimeout(() => navigate('/role/director-of-libraries/reference-library'), 1200);
+    // The toast outlives the page, so the library opens at once.
+    toast(isEditMode ? 'Reference updated.' : 'Reference added.');
+    navigate('/role/director-of-libraries/reference-library');
   };
 
   const content = (
@@ -64,18 +65,6 @@ const AddReference = () => {
         )}
       </div>
 
-      {toast && (
-        <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: 'var(--good)', color: '#fff',
-          padding: '14px 22px', borderRadius: 8, fontSize: 14, fontWeight: 500,
-          boxShadow: '0 6px 20px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif",
-        }}>
-          <CheckCircle size={20} />
-          {toast}
-        </div>
-      )}
     </div>
   );
 

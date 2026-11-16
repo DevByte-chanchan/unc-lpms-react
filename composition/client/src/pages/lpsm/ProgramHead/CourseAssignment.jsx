@@ -7,6 +7,8 @@ import Select from '../../../components/Select.jsx'
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx'
 import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx'
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js'
+import { alertDialog } from '../../../utils/appDialog.jsx'
+import { toast } from '../../../utils/toast.jsx'
 import { getSession } from '../../../utils/session.js'
 import table from '../../../styles/CoursesTable.module.sass'
 import SortableTh from '../../../components/SortableTh.jsx'
@@ -54,7 +56,6 @@ const CourseAssignment = () => {
   const [semester, setSemester] = useState('1st')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState('')
   const [sort, setSort] = useState({ sortKey: 'course_no', sortDir: 'asc' })
   const [query, setQuery] = useState('')
@@ -75,13 +76,13 @@ const CourseAssignment = () => {
   useEffect(() => { load() }, [load])
 
   const run = async (key, action, success) => {
-    setBusy(key); setError(''); setNotice('')
+    setBusy(key)
     try {
       const result = await action()
-      setNotice(typeof success === 'function' ? success(result) : success)
+      toast(typeof success === 'function' ? success(result) : success)
       await load()
     } catch (err) {
-      setError(apiErrorMessage(err, 'The change was not saved.'))
+      alertDialog(apiErrorMessage(err, 'The change was not saved.'), { title: 'Not saved' })
     } finally {
       setBusy('')
     }
@@ -194,7 +195,6 @@ const CourseAssignment = () => {
         </div>
       ))}
       {error && <div role="alert" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>{error}</div>}
-      {notice && <div role="status" style={{ margin: '0 0 12px', color: 'var(--good)' }}>{notice}</div>}
 
       <TableScrollRegion label="Course assignments" minWidth={900} className={table['table-container']}>
         {!data ? <Loading label="Loading course assignments…"><TableSkeleton rows={6} cols={[120, '1fr', 220, 260, 160]} /></Loading> : (

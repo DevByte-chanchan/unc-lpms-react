@@ -11,7 +11,8 @@ import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { getSession } from '../utils/session.js'
-import { confirmDialog } from '../utils/appDialog.jsx'
+import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
+import { toast } from '../utils/toast.jsx'
 
 // User Accounts (feature/course-assignment), for the VPAA and the superuser: every account with its roles and
 // invitation, create an account, change name / email / roles, enable or disable, and send a set-password
@@ -59,7 +60,6 @@ export const UserAccountsPanel = () => {
   const [units, setUnits] = React.useState({ programs: [], departments: [] })
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
-  const [notice, setNotice] = React.useState('')
   const [shown, setShown] = React.useState(null) // { title, label, value }: a password or link shown once
   const [sort, setSort] = React.useState({ sortKey: 'name', sortDir: 'asc' })
   const search = usePageSearch('Search name or email')
@@ -96,17 +96,17 @@ export const UserAccountsPanel = () => {
     if (result.temporaryPassword) {
       setShown({ title: 'Temporary password', label: `${who.name} <${who.email}>. Give it to them securely; it expires ${new Date(result.expiresAt).toLocaleString()}, must be changed at first sign-in, and is shown only now.`, value: result.temporaryPassword })
     } else {
-      setNotice(`A temporary password was e-mailed to ${who.email}.`)
+      toast(`A temporary password was e-mailed to ${who.email}.`)
     }
   }
 
   const act = async (account, run) => {
-    setBusyId(account.id); setError(''); setNotice('')
+    setBusyId(account.id)
     try {
       await run()
       await load()
     } catch (err) {
-      setError(apiErrorMessage(err, 'The change was not saved.'))
+      alertDialog(apiErrorMessage(err, 'The change was not saved.'), { title: 'Not saved' })
     } finally {
       setBusyId(null)
     }
@@ -121,7 +121,7 @@ export const UserAccountsPanel = () => {
     act(account, async () => {
       const result = await fetchJson(`/api/user-accounts/${account.id}/${invite ? 'send-invitation' : 'send-password-reset'}`, json('POST'))
       if (result.link) setShown({ title: invite ? 'Invitation link' : 'Password reset link', label: result.message, value: result.link })
-      else setNotice(result.message)
+      else toast(result.message)
     })
   }
 
@@ -135,7 +135,7 @@ export const UserAccountsPanel = () => {
     if (!enable && !(await confirmDialog('They are signed out and cannot sign in until enabled.', { title: `Disable ${account.name}?`, confirmLabel: 'Disable', danger: true }))) return
     act(account, async () => {
       await fetchJson(`/api/user-accounts/${account.id}`, json('PATCH', { status: enable ? 'Active' : 'Disabled' }))
-      setNotice(`${account.name} was ${enable ? 'enabled' : 'disabled'}.`)
+      toast(`${account.name} was ${enable ? 'enabled' : 'disabled'}.`)
     })
   }
 
@@ -147,13 +147,13 @@ export const UserAccountsPanel = () => {
   })
 
   const save = async () => {
-    setSaving(true); setError('')
+    setSaving(true)
     try {
       const body = { name: form.name, email: form.email, roles: form.roles }
       if (form.id) Object.assign(body, { programs: form.programs, departments: form.departments })
       if (form.id) {
         await fetchJson(`/api/user-accounts/${form.id}`, json('PATCH', body))
-        setNotice(`${form.name} was updated. A role change signs them out.`)
+        toast(`${form.name} was updated. A role change signs them out.`)
       } else {
         const result = await fetchJson('/api/user-accounts', json('POST', body))
         showDelivery(result, result.account)
@@ -161,7 +161,8 @@ export const UserAccountsPanel = () => {
       setForm(null)
       await load()
     } catch (err) {
-      setError(apiErrorMessage(err, 'The account was not saved.'))
+      // In a window over the form: the page's own error line is behind the form, out of sight.
+      alertDialog(apiErrorMessage(err, 'The account was not saved.'), { title: 'Account not saved' })
     } finally {
       setSaving(false)
     }
@@ -193,7 +194,6 @@ export const UserAccountsPanel = () => {
       </div>
 
       {error && <div role="alert" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>{error}</div>}
-      {notice && <div role="status" style={{ margin: '0 0 12px', color: 'var(--good)' }}>{notice}</div>}
 
       <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
         <div className={pageStyles.toolbarControls}>

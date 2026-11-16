@@ -6,6 +6,8 @@ import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
 import { fetchJson as defaultFetchJson } from '../utils/api';
+import { toast } from '../utils/toast.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
 
 const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
     const [cpaData, setCpaData] = useState({
@@ -14,7 +16,6 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
     
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState([]);
-    const [showConfirm, setShowConfirm] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
     const [cpaLoading, setCpaLoading] = useState(false);
@@ -52,7 +53,8 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
 
     const handleEditToggle = () => {
         if (isEditing) {
-            setShowConfirm(true);
+            // Saving can be undone by editing again, so no "Are you sure?" first; a toast confirms it.
+            handleSaveConfirm();
         } else {
             setEditData(JSON.parse(JSON.stringify(cpaData.courseOutcomes)));
             setIsEditing(true);
@@ -80,10 +82,10 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
             });
             setCpaData(prev => ({ ...prev, courseOutcomes: editData }));
             setIsEditing(false);
-            setShowConfirm(false);
+            toast('Outcome alignment saved.');
         } catch (e) {
             console.error('Failed to save alignments', e);
-            alert('Failed to save alignments');
+            alertDialog('The outcome alignment was not saved. Try again.', { title: 'Not saved' });
         } finally {
             setIsSaving(false);
         }
@@ -155,7 +157,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
                     {!isReadOnly && (
                     <div style={{ display: "flex", gap: "10px" }}>
                         {isEditing && (
-                            <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
+                            <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); }}>
                                 Cancel
                             </button>
                         )}
@@ -163,7 +165,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
                             type="button"
                             className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                             onClick={handleEditToggle}
-                            disabled={isEditing && JSON.stringify(editData) === JSON.stringify(cpaData.courseOutcomes)}
+                            disabled={isSaving || (isEditing && JSON.stringify(editData) === JSON.stringify(cpaData.courseOutcomes))}
                         >
                             {isEditing ? (
                                 <>
@@ -228,24 +230,6 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
                 </TableScrollRegion>
             </div>
 
-            {showConfirm && (
-                <div className="matrix-modal-overlay">
-                    <div className="matrix-modal-content">
-                        <div className="matrix-modal-title">Confirm Changes</div>
-                        <div className="matrix-modal-text">
-                            <strong>Caution:</strong> Outcome alignments originate from the official curriculum map and should generally be maintained securely. Modifying these matrix allocations will globally reconfigure outcome chaining.
-                            <br/><br/>
-                            Are you certain you want to commit these alignments?
-                        </div>
-                        <div className="matrix-modal-actions">
-                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
-                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Yes, Save Alignment'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </React.Fragment>
     );
 };

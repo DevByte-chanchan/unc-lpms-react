@@ -7,6 +7,8 @@ import { Loading, TableSkeleton } from './LoadingSkeleton.jsx'
 import styles from '../styles/DueDateDialog.module.sass'
 import dueStyles from '../styles/DueDates.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
+import { alertDialog } from '../utils/appDialog.jsx'
+import { toast } from '../utils/toast.jsx'
 import { dayLabel, programCode, sortMissing } from '../utils/missingSubmissions.js'
 
 // When the system reminds the instructors for a due date: 7, 3 and 1 days before, on the day, then every third day.
@@ -72,8 +74,9 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paused: !row.remindersPaused })
       })
       await load()
+      toast(row.remindersPaused ? `Reminders resumed for ${row.courseCode || 'the course'}.` : `Reminders paused for ${row.courseCode || 'the course'}.`)
     } catch (err) {
-      setError(apiErrorMessage(err, 'The reminders could not be changed.'))
+      alertDialog(apiErrorMessage(err, 'The reminders could not be changed.'), { title: 'Not changed' })
     } finally {
       setBusyId(null)
     }
@@ -93,6 +96,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
       })
       closeDialog()
       await load()
+      toast('Due date saved.')
     } catch (err) {
       setDialogError(apiErrorMessage(err, 'The due date could not be saved.'))
     } finally {
@@ -107,8 +111,9 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
     try {
       await fetchJson(`/api/term-deadlines/${found.id}`, { method: 'DELETE' })
       await load()
+      toast('Due date removed.')
     } catch (err) {
-      setError(apiErrorMessage(err, 'The due date could not be removed.'))
+      alertDialog(apiErrorMessage(err, 'The due date could not be removed.'), { title: 'Not removed' })
     }
   }
 

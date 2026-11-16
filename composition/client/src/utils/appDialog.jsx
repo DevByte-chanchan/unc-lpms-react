@@ -14,8 +14,8 @@ const open = (props) => new Promise((resolve) => {
 
 // Resolves true when confirmed, false when cancelled or closed.
 export const confirmDialog = (message, { title = 'Are you sure?', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = {}) =>
-  open({ title, message, confirmLabel, cancelLabel, danger })
+  open({ title, message, confirmLabel, cancelLabel, danger, tone: danger ? 'warning' : undefined })
 
 // A message with one OK button.
 export const alertDialog = (message, { title = 'Something went wrong' } = {}) =>
-  open({ title, message, confirmLabel: 'OK', cancelLabel: null, danger: false })
+  open({ title, message, confirmLabel: 'OK', cancelLabel: null, danger: false, tone: 'error' })

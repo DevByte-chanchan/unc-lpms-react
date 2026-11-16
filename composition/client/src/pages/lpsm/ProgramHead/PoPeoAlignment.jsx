@@ -1,5 +1,6 @@
 import Select from '../../../components/Select.jsx'
-import { confirmDialog } from '../../../utils/appDialog.jsx'
+import { alertDialog, confirmDialog } from '../../../utils/appDialog.jsx'
+import { toast } from '../../../utils/toast.jsx'
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Edit3, Check, X, Plus, Trash2, Upload, Zap, Download, FileText } from 'react-feather';
 import { SOURCE_LABEL } from '../../../utils/scanSource.js';
@@ -106,10 +107,10 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       const pages = await countPdfPages(await file.arrayBuffer()).catch(() => 0)
       if (!pages) throw new Error('This file is not a readable PDF.')
       await sendFile('front-pages', 'PUT', file)
-      setNotice(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}).`)
+      toast(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}).`)
       await loadFront(programId)
     } catch (err) {
-      setError(apiErrorMessage(err, err?.message || 'The front pages were not uploaded.'))
+      alertDialog(apiErrorMessage(err, err?.message || 'The front pages were not uploaded.'), { title: 'Not uploaded' })
     } finally {
       setBusy(false)
       if (frontRef.current) frontRef.current.value = ''
@@ -121,10 +122,10 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
     setBusy(true); setError(''); setNotice('')
     try {
       await fetchJson(`/api/program-outcomes/${programId}/front-pages`, { method: 'DELETE' })
-      setNotice('Front pages removed.')
+      toast('Front pages removed.')
       await loadFront(programId)
     } catch (err) {
-      setError(apiErrorMessage(err, 'The front pages were not removed.'))
+      alertDialog(apiErrorMessage(err, 'The front pages were not removed.'), { title: 'Not removed' })
     } finally {
       setBusy(false)
     }
@@ -149,7 +150,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       setEditing(true)
       setNotice(`Read ${result.peos.length} PEOs, ${result.outcomes.length} POs. Check, then Save.`)
     } catch (err) {
-      setError(apiErrorMessage(err, 'The spreadsheet could not be read.'))
+      alertDialog(apiErrorMessage(err, 'The spreadsheet could not be read.'), { title: 'Import failed' })
     } finally {
       setBusy(false)
       if (importRef.current) importRef.current.value = ''
@@ -191,7 +192,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       setEditing(true)
       setNotice(`${[...sources].join(', ')}: ${peosRead.length} PEOs, ${outcomesRead.length} POs. ${[...warnings].join(' ')} Check, then Save.`.replace(/\s+/g, ' '))
     } catch (err) {
-      setError(apiErrorMessage(err, 'The file could not be scanned.'))
+      alertDialog(apiErrorMessage(err, 'The file could not be scanned.'), { title: 'Scan failed' })
     } finally {
       setBusy(false)
       if (scanRef.current) scanRef.current.value = ''
@@ -204,7 +205,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
     try {
       setFrontCheck(await fetchJson(`/api/program-outcomes/${programId}/front-pages/check`, { method: 'POST' }))
     } catch (err) {
-      setError(apiErrorMessage(err, 'The front pages could not be read.'))
+      alertDialog(apiErrorMessage(err, 'The front pages could not be read.'), { title: 'Check failed' })
     } finally {
       setBusy(false)
     }
@@ -240,9 +241,9 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       setData(result)
       setDraft(copyData(result))
       setEditing(false)
-      setNotice('Saved.')
+      toast('Program outcomes saved.')
     } catch (err) {
-      setError(apiErrorMessage(err, 'Could not save.'))
+      alertDialog(apiErrorMessage(err, 'The program outcomes were not saved.'), { title: 'Not saved' })
     } finally {
       setBusy(false)
     }

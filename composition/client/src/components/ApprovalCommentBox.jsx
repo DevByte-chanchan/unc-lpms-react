@@ -1,6 +1,8 @@
 import Select from './Select.jsx'
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle, MessageSquare, Plus } from 'react-feather'
+import { Search, X, Maximize, Minimize2, MessageSquare, Plus } from 'react-feather'
+import { toast } from '../utils/toast.jsx'
+import { alertDialog } from '../utils/appDialog.jsx'
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import EmptyState from './EmptyState.jsx'
 import SpellCheckArea from './SpellCheckArea.jsx'
@@ -57,7 +59,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const [refTypeFilter, setRefTypeFilter] = useState('')
   const [selectedRefs, setSelectedRefs] = useState([])
   const [libraryRefs, setLibraryRefs] = useState([])
-  const [toast, setToast] = useState(null)
   const [commentedRefIds, setCommentedRefIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
@@ -70,11 +71,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       setIsFullscreen(false)
     }
   }, [show])
-
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
-  }
 
   const resolvedCourseOutcomes = (courseOutcomes && courseOutcomes.length)
     ? courseOutcomes
@@ -373,12 +369,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const submitComments = async (payload) => {
     const result = onSubmit ? await onSubmit(payload) : true
     if (result !== true) {
-      showToast(typeof result === 'string' ? result : 'The comments were not saved. Try again.', 'warning')
+      alertDialog(typeof result === 'string' ? result : 'The comments were not saved. Try again.', { title: 'Comments not saved' })
       return
     }
     clearDraft()
-    showToast('Comments submitted successfully')
-    setTimeout(() => onClose(), 1500)
+    // The toast outlives the window, so the window closes at once.
+    toast('Comments submitted.')
+    onClose()
   }
 
   const handleSubmit = () => {
@@ -434,20 +431,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   return (
     <>
-      {!readOnly && toast && (
-        <div style={{
-          position: 'fixed', bottom: 32, right: 32, zIndex: 9999,
-          background: toast.type === 'warning' ? 'var(--danger-solid)' : 'var(--good)',
-          color: 'white', padding: '14px 24px',
-          borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-          fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500,
-          display: 'flex', alignItems: 'center', gap: 10,
-          animation: 'slideIn 0.3s ease'
-        }}>
-          {toast.type === 'warning' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
-          {toast.msg}
-        </div>
-      )}
     {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2999 }} />}
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="approval-comment-title" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
       <div className="app-window-header">

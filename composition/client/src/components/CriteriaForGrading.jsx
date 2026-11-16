@@ -4,13 +4,14 @@ import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
 import { fetchJson as defaultFetchJson } from '../utils/api';
+import { toast } from '../utils/toast.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
 
 const CriteriaForGrading = ({ offeringID, revisionNum, styles, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
     const [criteriaData, setCriteriaData] = useState({ gradingSystem: [] });
     
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState([]);
-    const [showConfirm, setShowConfirm] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const [criteriaLoading, setCriteriaLoading] = useState(false);
@@ -46,7 +47,8 @@ const CriteriaForGrading = ({ offeringID, revisionNum, styles, stylesB, fetchJso
 
     const handleEditToggle = () => {
         if (isEditing) {
-            setShowConfirm(true);
+            // Saving can be undone by editing again, so no "Are you sure?" first; a toast confirms it.
+            handleSaveConfirm();
         } else {
             setEditData(JSON.parse(JSON.stringify(criteriaData.gradingSystem)));
             setIsEditing(true);
@@ -63,10 +65,10 @@ const CriteriaForGrading = ({ offeringID, revisionNum, styles, stylesB, fetchJso
             });
             setCriteriaData({ gradingSystem: editData });
             setIsEditing(false);
-            setShowConfirm(false);
+            toast('Criteria for grading saved.');
         } catch (e) {
             console.error('Failed to save criteria', e);
-            alert(`Failed to save criteria: ${e.message}`);
+            alertDialog(`The criteria for grading were not saved: ${e.message}. Try again.`, { title: 'Not saved' });
         } finally {
             setIsSaving(false);
         }
@@ -134,14 +136,14 @@ const CriteriaForGrading = ({ offeringID, revisionNum, styles, stylesB, fetchJso
             {!isReadOnly && (
                 <div className="matrix-btns-container">
                     {isEditing && (
-                        <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
+                        <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); }}>
                             Cancel
                         </button>
                     )}
                     <button 
                         className={'matrix-edit-btn ' + (isEditing ? 'save-mode' : '')} 
                         onClick={handleEditToggle}
-                        disabled={isEditing && JSON.stringify(editData) === JSON.stringify(criteriaData.gradingSystem)}
+                        disabled={isSaving || (isEditing && JSON.stringify(editData) === JSON.stringify(criteriaData.gradingSystem))}
                     >
                         {isEditing ? (
                             <>
@@ -253,24 +255,6 @@ const CriteriaForGrading = ({ offeringID, revisionNum, styles, stylesB, fetchJso
                 </table>
             </TableScrollRegion>
 
-            {showConfirm && (
-                <div className="matrix-modal-overlay">
-                    <div className="matrix-modal-content">
-                        <div className="matrix-modal-title">Confirm Changes</div>
-                        <div className="matrix-modal-text">
-                            <strong>Caution:</strong> Criteria for Grading originates from the baseline TLA Assessment mappings. Continuing will permanently override these base metrics in the source syllabus tracking configuration.
-                            <br/><br/>
-                            Are you certain you want to push these new grading criteria?
-                        </div>
-                        <div className="matrix-modal-actions">
-                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
-                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Yes, Modify Criteria'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

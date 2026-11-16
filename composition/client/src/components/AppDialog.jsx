@@ -1,11 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { X } from 'react-feather'
+import { AlertCircle, AlertTriangle, X } from 'react-feather'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import styles from '../styles/DueDateDialog.module.sass'
 
 // The app's own replacement for the browser's alert() and confirm(): the standard window (header with close, a
-// message, the app's buttons) instead of the browser's grey box. Opened by utils/appDialog.jsx.
-const AppDialog = ({ title, message, confirmLabel, cancelLabel, danger, onDone }) => {
+// message, the app's buttons) instead of the browser's grey box. Opened by utils/appDialog.jsx. `tone` puts the same
+// icon colours as the toasts (utils/toast.jsx) beside the title: 'error' for a failure, 'warning' for a step that cannot
+// be undone. It sits above every other window (they go up to 3300), so a failure inside one is never hidden behind it.
+const TONES = { error: { Icon: AlertCircle, color: 'var(--danger-solid)' }, warning: { Icon: AlertTriangle, color: 'var(--warn-solid)' } }
+const AppDialog = ({ title, message, confirmLabel, cancelLabel, danger, tone, onDone }) => {
+  const mark = TONES[tone]
   const windowRef = useRef(null)
   useDialogFocus(windowRef, true)
   useEffect(() => {
@@ -15,10 +19,12 @@ const AppDialog = ({ title, message, confirmLabel, cancelLabel, danger, onDone }
   }, [onDone])
   return (
     <>
-      <div role="presentation" className={styles.backdrop} onClick={() => onDone(false)} />
-      <div ref={windowRef} role="alertdialog" aria-modal="true" aria-label={title} className={styles.window}>
+      <div role="presentation" className={styles.backdrop} style={{ zIndex: 3500 }} onClick={() => onDone(false)} />
+      <div ref={windowRef} role="alertdialog" aria-modal="true" aria-label={title} className={styles.window} style={{ zIndex: 3501 }}>
         <div className="app-window-header">
-          <h2 className="app-window-title">{title}</h2>
+          <h2 className="app-window-title" style={mark ? { display: 'flex', alignItems: 'center', gap: 8 } : undefined}>
+            {mark && <mark.Icon size={20} color={mark.color} aria-hidden="true" />}{title}
+          </h2>
           <button type="button" className="app-icon-close" aria-label="Close" onClick={() => onDone(false)}><X size={16} strokeWidth={2} color="currentColor" /></button>
         </div>
         <div className={styles.body}>

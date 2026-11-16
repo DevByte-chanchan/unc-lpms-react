@@ -6,6 +6,8 @@ import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
 import { fetchJson as defaultFetchJson } from '../utils/api';
+import { toast } from '../utils/toast.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
 
 const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
     const [courseDetailsData, setCourseDetailsData] = useState({
@@ -14,7 +16,6 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
     });
     const [editData, setEditData] = useState({ description: '' });
     const [isEditing, setIsEditing] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
     const [courseDetailsLoading, setCourseDetailsLoading] = useState(false);
@@ -61,7 +62,8 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
 
     const handleEditToggle = () => {
         if (isEditing) {
-            setShowConfirm(true);
+            // Saving can be undone by editing again, so no "Are you sure?" first; a toast confirms it.
+            handleSaveConfirm();
         } else {
             setEditData({ description: courseDetailsData.description || '' });
             setIsEditing(true);
@@ -85,10 +87,10 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
                 description: editData.description
             }));
             setIsEditing(false);
-            setShowConfirm(false);
+            toast('Course description saved.');
         } catch (e) {
             console.error('Failed to save course description', e);
-            alert(`Failed to save course description: ${e.message}`);
+            alertDialog(`The course description was not saved: ${e.message}. Try again.`, { title: 'Not saved' });
         } finally {
             setIsSaving(false);
         }
@@ -151,7 +153,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
                         <button 
                             type="button"
                             className="matrix-cancel-btn" 
-                            onClick={() => { setIsEditing(false); setShowConfirm(false); }}
+                            onClick={() => { setIsEditing(false); }}
                         >
                             Cancel
                         </button>
@@ -160,7 +162,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
                         type="button"
                         className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                         onClick={handleEditToggle}
-                        disabled={isEditing && (!editData.description || editData.description.trim() === "" || editData.description === (courseDetailsData.description || ""))}
+                        disabled={isSaving || (isEditing && (!editData.description || editData.description.trim() === "" || editData.description === (courseDetailsData.description || "")))}
                     >
                         {isEditing ? (
                             <>
@@ -237,22 +239,6 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
                 </table>
             </TableScrollRegion>
 
-            {showConfirm && (
-                <div className="matrix-modal-overlay">
-                    <div className="matrix-modal-content">
-                        <div className="matrix-modal-title">Confirm Changes</div>
-                        <div className="matrix-modal-text">
-                            Are you sure you want to update the course description for this syllabus? Once saved, this change will be recorded in the database.
-                        </div>
-                        <div className="matrix-modal-actions">
-                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
-                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Yes, Save Description'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

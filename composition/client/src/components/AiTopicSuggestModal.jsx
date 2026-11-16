@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, Check, RefreshCw, Plus, Clock, CheckCircle, AlertTriangle, ArrowRight, Layers, BookOpen } from 'react-feather';
 import styles from '../styles/AiTopicSuggestModal.module.sass';
-import { fetchJson } from '../utils/api.js';
+import { fetchJson, apiErrorMessage } from '../utils/api.js';
+import { alertDialog } from '../utils/appDialog.jsx';
 
 // Sparkle / 4-pointed AI Star SVG
 export const GeminiStar = ({ size = 16, className, style }) => (
@@ -349,6 +350,7 @@ const AiTopicSuggestModal = ({
             }
         } catch (err) {
             console.error('Failed to generate AI topics:', err);
+            alertDialog(apiErrorMessage(err, 'The suggestions could not be made.') + ' Try again.', { title: 'No suggestions' });
             setPhase('results');
         } finally {
             if (stepTimer) clearInterval(stepTimer);

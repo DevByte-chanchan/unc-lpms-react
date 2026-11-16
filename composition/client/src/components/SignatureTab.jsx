@@ -4,6 +4,7 @@ import { API_BASE, fetchJson, apiErrorMessage } from '../utils/api.js'
 import { actingRole } from '../utils/session.js'
 import { cleanSignatureFile } from '../utils/signatureCleanup.js'
 import { confirmDialog } from '../utils/appDialog.jsx'
+import { toast } from '../utils/toast.jsx'
 import styles from '../styles/SettingsModal.module.sass'
 
 // Settings > Signature: the e-signature printed on the learning plans this person prepared or approved
@@ -26,7 +27,6 @@ const SignatureTab = () => {
   const [draft, setDraft] = useState(null) // { blob, url } of the cleaned picture
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const input = useRef(null)
 
   const loadSaved = async () => {
@@ -61,7 +61,7 @@ const SignatureTab = () => {
   }, [file, strength])
 
   const pick = (chosen) => {
-    setNotice(''); setError('')
+    setError('')
     if (!chosen) return
     if (!/^image\/(png|jpeg)$/.test(chosen.type)) { setError('Use a PNG or JPEG picture.'); return }
     setFile(chosen)
@@ -82,7 +82,7 @@ const SignatureTab = () => {
       setFile(null); setDraft(null)
       if (input.current) input.current.value = ''
       await loadSaved()
-      setNotice('Saved. It will appear on the plans you prepare or approve.')
+      toast('Signature saved. It will appear on the plans you prepare or approve.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -96,7 +96,7 @@ const SignatureTab = () => {
     try {
       await fetchJson('/api/profile/signature', { method: 'DELETE' })
       setSaved(null)
-      setNotice('Removed.')
+      toast('Signature removed.')
     } catch (err) {
       setError(apiErrorMessage(err, 'The signature was not removed.'))
     } finally {
@@ -148,7 +148,6 @@ const SignatureTab = () => {
       )}
 
       {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
-      {notice && <div role="status" style={{ color: 'var(--good)', fontSize: 13 }}>{notice}</div>}
     </div>
   )
 }

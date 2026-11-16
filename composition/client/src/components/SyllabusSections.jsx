@@ -25,6 +25,7 @@ import CriteriaForGrading from "./CriteriaForGrading";
 import CourseCoverage from "./CourseCoverage";
 import ReferenceSummary from "./ReferenceSummary";
 import Spinner from './Spinner.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
 
 
 const SyllabusSections = () => {
@@ -111,7 +112,7 @@ const SyllabusSections = () => {
         try {
             setPreviewFile(await buildReviewRecordFile({ pcId: offeringID, code: resolvedCode }))
         } catch (err) {
-            alert('Failed to generate the review record: ' + (err?.message || err))
+            alertDialog('The review record could not be made: ' + (err?.message || err) + '. Try again.', { title: 'Review record failed' })
         } finally {
             setExportingPdf(false)
         }
@@ -126,7 +127,7 @@ const SyllabusSections = () => {
             setPreviewFile(await buildSyllabusExportFile({ pcId: offeringID, revNum: revisionNum, code: resolvedCode, workflow, logoUrl }))
         } catch (err) {
             console.warn('Export generation failed:', err)
-            alert('Failed to generate export: ' + (err?.message || err))
+            alertDialog('The learning plan could not be exported: ' + (err?.message || err) + '. Try again.', { title: 'Export failed' })
         } finally {
             setExportingPdf(false)
         }
@@ -242,7 +243,7 @@ const SyllabusSections = () => {
         } catch (error) {
             console.error("Error during submission:", error);
             cancelSubmission();
-            alert(`Failed to submit the learning plan: ${apiErrorMessage(error)}`);
+            alertDialog(apiErrorMessage(error, 'Could not submit the learning plan.'), { title: 'Not submitted' });
         }
     }, [cancelSubmission, navigate, offeringID, revisionNum]);
 

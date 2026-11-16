@@ -35,6 +35,8 @@ import { typeLabel, unavailableReason, getCatalogSettings, refreshCatalogSetting
 import { healthSummary } from '../../../utils/referenceHealth.js';
 import { csvRecordToRow } from '../../../utils/referenceImportRows.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
+import { alertDialog } from '../../../utils/appDialog.jsx';
+import { toast } from '../../../utils/toast.jsx';
 import { sanitizeUrl } from '../../../utils/sanitize.js';
 import { parseReferenceCsv, MAX_CSV_BYTES } from '../../../utils/csvImport.js';
 import { nextSort, referenceLibraryColumns, sortRows } from '../../../utils/tableSort.js';
@@ -185,8 +187,6 @@ const ReferenceLibrary = () => {
   /* ── Modal states ───────────────────────────────────────────────────── */
   const [viewRef, setViewRef] = useState(null);
   const [archiveRef, setArchiveRef] = useState(null);
-  const [toast, setToast] = useState(null);
-  const toastTimerRef = useRef(null);
   const fileInputRef = useRef(null);
 
   /* ── Discovery model ───────────────────────────────────────────────── */
@@ -290,6 +290,7 @@ const ReferenceLibrary = () => {
       await reload();
       if (viewRef?.id === archiveRef.id) setViewRef(null);
       setArchiveRef(null);
+      showPageToast(`Archived "${archiveRef.title}". Restore it from the Archived view.`);
     } catch (err) {
       setArchiveRef(null);
       showPageToast(apiErrorMessage(err, 'The reference was not archived.'), 'error');
@@ -303,6 +304,7 @@ const ReferenceLibrary = () => {
       if (viewRef?.id === record.id) setViewRef(null);
       // Restoring the last archived one would leave an empty tab: go back to Active.
       if (archivedRefs.length <= 1) setTab('active');
+      showPageToast(`Restored "${record.title}".`);
     } catch (err) {
       showPageToast(apiErrorMessage(err, 'The reference was not restored.'), 'error');
     }
@@ -342,11 +344,8 @@ const ReferenceLibrary = () => {
     if (value === 'active' || value === 'recent' || value === 'archived') selectBuiltInView(value);
   };
 
-  const showPageToast = (message, type = 'success') => {
-    setToast({ message, type });
-    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setToast(null), 2500);
-  };
+  // A finished step is a toast; a failure is a window the person has to read (utils/toast.jsx says which is which).
+  const showPageToast = (message, type = 'success') => (type === 'error' ? alertDialog(message, { title: 'Something went wrong' }) : toast(message, type));
 
   const activeFilterChips = [
     filterDepartment && { key: 'department', label: filterDepartment, remove: () => setFilterDepartment('') },
@@ -376,6 +375,7 @@ const ReferenceLibrary = () => {
         : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: previewId }) });
       await Promise.all([loadPreviewCourses(previewId), loadCourseTree(), loadCourseRefs(filterCourse)]);
       if (!remove) setCourseToAdd('');
+      showPageToast(remove ? 'Removed from the course.' : 'Filed under the course.');
     } catch (err) {
       showPageToast(apiErrorMessage(err, 'The course was not updated.'), 'error');
     } finally {
@@ -472,20 +472,21 @@ const ReferenceLibrary = () => {
       </form>
 
           <div className={styles.savedViews} aria-label="Reference views" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        {/* Two different screens, so each button says which: the reference table, or one card per course. */}
-        <div className={cards.layoutToggles}>
-          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} aria-pressed={layoutMode === 'list'} style={SWITCH_BTN}><List size={16} aria-hidden="true" /> References</button>
-          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} aria-pressed={layoutMode === 'courses'} style={SWITCH_BTN}><Grid size={16} aria-hidden="true" /> Courses</button>
-        </div>
-        {/* Active / recent / archived narrows the reference list; the course cards do not use it. */}
-        {layoutMode !== 'courses' && (
-        <Select id="reference-library-view" aria-label="View" value={activeViewValue} onChange={changeView}>
+        {/* Active / recent / archived narrows the reference list; the course cards do not use it. Hidden, not removed,
+            there, so the References / Courses switch beside it stays put when it is clicked. */}
+        <div style={layoutMode === 'courses' ? { visibility: 'hidden' } : undefined} aria-hidden={layoutMode === 'courses' || undefined}>
+        <Select id="reference-library-view" aria-label="View" value={activeViewValue} onChange={changeView} disabled={layoutMode === 'courses'}>
           {activeViewValue === 'custom' && <option value="custom" disabled>Custom view</option>}
           <option value="active">All active · {activeRefs.length}</option>
           <option value="recent">Recent additions · {recentCount}</option>
           <option value="archived">Archived · {archivedRefs.length}</option>
         </Select>
-        )}
+        </div>
+        {/* Two different screens, so each button says which: the reference table, or one card per course. */}
+        <div className={cards.layoutToggles}>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} aria-pressed={layoutMode === 'list'} style={SWITCH_BTN}><List size={16} aria-hidden="true" /> References</button>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} aria-pressed={layoutMode === 'courses'} style={SWITCH_BTN}><Grid size={16} aria-hidden="true" /> Courses</button>
+        </div>
           </div>
           {layoutMode !== 'courses' && activeFilterChips.length > 0 && (
             <div className={styles.activeFilters} aria-label="Active filters">
@@ -765,19 +766,6 @@ const ReferenceLibrary = () => {
         nav={<SideNavigation mode="director-of-libraries" />}
         content={content}
       />
-      {toast && (
-        <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: toast.type === 'error' ? 'var(--danger)' : 'var(--good)',
-          color: '#fff', padding: '14px 22px', borderRadius: 8,
-          fontSize: 14, fontWeight: 500,
-          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-          fontFamily: "'Poppins', sans-serif",
-        }}>
-          {toast.message}
-        </div>
-      )}
       <AddReferenceModal
         show={addRefOpen}
         onClose={() => setAddRefOpen(false)}

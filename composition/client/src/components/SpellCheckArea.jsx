@@ -5,6 +5,7 @@ import { autoCorrect, ATTRIBUTION_URL, ONLINE_SERVICE_CONFIG } from '../utils/au
 import { findGrammarIssues } from '../utils/grammarRules.js'
 import Spinner from './Spinner.jsx'
 import styles from '../styles/SpellCheckArea.module.sass'
+import { confirmDialog } from '../utils/appDialog.jsx'
 
 /**
  * A textarea that underlines its own spelling mistakes and lets you click one
@@ -207,8 +208,9 @@ const SpellCheckArea = ({
 
     const runService = async () => {
         if (busy || disabled) return
-        const consent = !ONLINE_SERVICE_CONFIG.enabled || window.confirm(
-            'Online grammar checking sends the full text in this field to the configured LanguageTool service. Continue?'
+        const consent = !ONLINE_SERVICE_CONFIG.enabled || await confirmDialog(
+            'Online grammar checking sends the full text in this field to the configured LanguageTool service.',
+            { title: 'Send the text to the grammar service?', confirmLabel: 'Continue' }
         )
         if (!consent) return
         setBusy(true)

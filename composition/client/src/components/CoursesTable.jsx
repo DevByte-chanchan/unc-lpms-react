@@ -15,6 +15,7 @@ import SortableTh from './SortableTh.jsx';
 import ApprovalDetailsPopup from './ApprovalDetailsPopup.jsx';
 import { instructorCourseColumns, nextSort, sortRows } from '../utils/tableSort.js';
 import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
+import { alertDialog } from '../utils/appDialog.jsx';
 
 const SEM_OPTIONS = ['1st Sem', '2nd Sem'];
 const STATUS_OPTIONS = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
@@ -137,7 +138,7 @@ const CoursesTable = () => {
             const result = await fetchJson(`/api/offerings/${getOfferingID(row)}/start-revision`, { method: 'POST' });
             navigate(offeringPath(result.offeringId, null, 'draft'));
         } catch (error) {
-            alert(apiErrorMessage(error, 'Could not start a revision.'));
+            alertDialog(apiErrorMessage(error, 'Could not start a revision.'), { title: 'Revision not started' });
         } finally {
             setStartingId(null);
         }
@@ -161,7 +162,7 @@ const CoursesTable = () => {
             });
         } catch (err) {
             console.warn('Export failed:', err);
-            alert('Export error: ' + (err?.message || err || 'unknown'));
+            alertDialog('The learning plan could not be exported: ' + (err?.message || err || 'unknown error') + '. Try again.', { title: 'Export failed' });
         } finally {
             setExporting(false);
         }

@@ -409,7 +409,6 @@ test('icon-only surface close controls share the outlined red treatment', () => 
     'components/Revisions.jsx',
     'components/SpellCheckArea.jsx',
     'components/SyllabusPreview.jsx',
-    'pages/ILOForm.jsx',
     'pages/ReferenceForm.jsx',
     'pages/TopicForm.jsx',
     'pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx',
