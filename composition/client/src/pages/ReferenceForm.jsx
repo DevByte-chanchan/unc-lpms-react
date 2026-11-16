@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } f
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
 import Dropdown from '../components/Dropdown.jsx';
-import { X, AlertCircle } from 'react-feather';
+import { X } from 'react-feather';
+import { confirmDialog } from '../utils/appDialog.jsx';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import { offeringKey } from '../utils/offeringKey.js';
 import { normalizeReference } from "../utils/referenceCatalog.js";
@@ -81,8 +82,6 @@ const ReferenceForm = forwardRef(({
         link: '',
         publication_year: ''
     });
-    const [refSpellWarnings, setRefSpellWarnings] = useState([]);
-    const [showRefSpellModal, setShowRefSpellModal] = useState(false);
 
     // Course and topic context of this week (the week id comes in as iloId).
     useEffect(() => {
@@ -200,8 +199,6 @@ const ReferenceForm = forwardRef(({
             publication_year: ''
         });
         setValidationError(null);
-        setRefSpellWarnings([]);
-        setShowRefSpellModal(false);
         setIsModalOpen(true);
     };
 
@@ -229,8 +226,6 @@ const ReferenceForm = forwardRef(({
             publication_year: cleanYear
         });
         setValidationError(null);
-        setRefSpellWarnings([]);
-        setShowRefSpellModal(false);
         setIsModalOpen(true);
     };
 
@@ -352,26 +347,27 @@ const ReferenceForm = forwardRef(({
             setSelectedRefs(prev => [newOption, ...prev]);
         }
 
-        setShowRefSpellModal(false);
         setIsModalOpen(false);
         setIsEditing(false);
         setEditingRef(null);
         setValidationError(null);
     };
 
-    const handleSaveDraft = () => {
+    const handleSaveDraft = async () => {
         const error = validateDraft(newRefDraft);
         if (error) {
             setValidationError(error);
             return;
         }
 
+        // Possible misspellings: the app's confirm window lists them; Save anyway or go back and edit.
         const prefix = isEditing ? 'Edit Reference' : 'Add Reference';
         const warnings = getDraftSpellWarnings(newRefDraft, prefix);
         if (warnings.length > 0) {
-            setRefSpellWarnings(warnings);
-            setShowRefSpellModal(true);
-            return;
+            const list = warnings.map(item => `• ${item.field}: ${item.words.join(', ')}`).join('\n');
+            const ok = await confirmDialog(`These words were flagged by the spell checker:\n${list}\n\nRight-click an underlined word to replace it or add it to the dictionary.`,
+                { title: 'Possible misspellings', confirmLabel: 'Save anyway', cancelLabel: 'Review and edit' });
+            if (!ok) return;
         }
 
         commitDraftLocal();
@@ -623,48 +619,6 @@ const ReferenceForm = forwardRef(({
                 </div>
             </InlineModal>
 
-            {/* Soft-Warning Pre-Save Spell Check Modal for Reference Pop-up Title */}
-            <InlineModal
-                isOpen={showRefSpellModal}
-                title="Spelling Check Warning"
-                onClose={() => setShowRefSpellModal(false)}
-                actions={
-                    <>
-                        <button type="button" className={styles.modalCancelBtn} onClick={() => setShowRefSpellModal(false)}>
-                            Review & Edit
-                        </button>
-                        <button type="button" className={styles.modalConfirmBtn} onClick={commitDraftLocal}>
-                            Save Anyway
-                        </button>
-                    </>
-                }
-            >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <AlertCircle size={22} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
-                            Potential Misspellings Detected in Title
-                        </p>
-                        <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
-                            The following words in the reference title were flagged by the spell checker. You can right-click underlined words to replace or whitelist them, or proceed anyway:
-                        </p>
-                        <div className={styles.spellWarningList}>
-                            {refSpellWarnings.map((item, idx) => (
-                                <div key={idx} className={styles.spellWarningCategory}>
-                                    <div className={styles.spellWarningFieldTitle}>{item.field}</div>
-                                    <div className={styles.spellWarningWordPills}>
-                                        {item.words.map((w, wIdx) => (
-                                            <span key={`${w}-${wIdx}`} className={styles.spellWarningWordBadge}>
-                                                {w}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </InlineModal>
         </div>
     );
 });

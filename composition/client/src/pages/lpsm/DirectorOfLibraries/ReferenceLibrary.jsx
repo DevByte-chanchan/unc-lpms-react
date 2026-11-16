@@ -186,7 +186,6 @@ const ReferenceLibrary = () => {
 
   /* ── Modal states ───────────────────────────────────────────────────── */
   const [viewRef, setViewRef] = useState(null);
-  const [archiveRef, setArchiveRef] = useState(null);
   const fileInputRef = useRef(null);
 
   /* ── Discovery model ───────────────────────────────────────────────── */
@@ -283,16 +282,15 @@ const ReferenceLibrary = () => {
   const handleSort = (key) => setSort(current => nextSort(current, key));
 
   /* ── Handlers ──────────────────────────────────────────────────────── */
-  const confirmArchive = async () => {
-    if (!archiveRef) return;
+  // Archiving can be undone (Restore in the Archived view), so it happens at once; the toast says where it went.
+  const archiveReference = async (record) => {
+    if (!record) return;
     try {
-      await setArchived(archiveRef, true);
+      await setArchived(record, true);
       await reload();
-      if (viewRef?.id === archiveRef.id) setViewRef(null);
-      setArchiveRef(null);
-      showPageToast(`Archived "${archiveRef.title}". Restore it from the Archived view.`);
+      if (viewRef?.id === record.id) setViewRef(null);
+      showPageToast(`Archived "${record.title}". Restore it from the Archived view.`);
     } catch (err) {
-      setArchiveRef(null);
       showPageToast(apiErrorMessage(err, 'The reference was not archived.'), 'error');
     }
   };
@@ -716,7 +714,7 @@ const ReferenceLibrary = () => {
                 {previewReference.archived ? (
                   <button className="btn btn-secondary" type="button" onClick={() => confirmUnarchive(previewReference)}><RotateCcw size={13} /> Restore</button>
                 ) : (
-                  <button className={`btn btn-secondary ${styles.rowActionDanger}`} type="button" onClick={() => setArchiveRef(previewReference)}><Archive size={13} /> Archive</button>
+                  <button className={`btn btn-secondary ${styles.rowActionDanger}`} type="button" onClick={() => archiveReference(previewReference)}><Archive size={13} /> Archive</button>
                 )}
               </div>
             </>
@@ -724,25 +722,6 @@ const ReferenceLibrary = () => {
         </aside>
         </div>
       </div>
-
-      {/* ── ARCHIVE CONFIRMATION MODAL ──────────────────────────────────── */}
-      {archiveRef && (
-        <div className={styles.modalOverlay} onClick={() => setArchiveRef(null)}>
-          <div className={styles.deleteModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.deleteIcon}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 4H3" /><path d="M8 2v2" /><path d="M16 2v2" /><rect x="5" y="6" width="14" height="16" rx="2" /><line x1="10" y1="11" x2="14" y2="11" />
-              </svg>
-            </div>
-            <h3 className={styles.deleteTitle}>Archive Reference</h3>
-            <p className={styles.deleteText}>Are you sure you want to archive <strong>"{archiveRef.title}"</strong>? Only the Director of Libraries sees archived references.</p>
-            <div className={styles.deleteActions}>
-              <button className="btn btn-secondary" onClick={() => setArchiveRef(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={confirmArchive}>Archive</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {importSource && (
         <ImportPreviewModal source={importSource} onClose={() => setImportSource(null)} onImported={handleImported} />

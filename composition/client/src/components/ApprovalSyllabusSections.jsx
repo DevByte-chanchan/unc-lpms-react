@@ -1,5 +1,5 @@
 import Select from './Select.jsx'
-import { alertDialog } from '../utils/appDialog.jsx'
+import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
 import { toast } from '../utils/toast.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
@@ -141,7 +141,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [approvePhase, setApprovePhase] = useState('IDLE')
   const [approveTimeLeft, setApproveTimeLeft] = useState(5)
   const approveTimerRef = useRef(null)
-  const [showSubmitModal, setShowSubmitModal] = useState(false)
   // After a return and resubmission: what the instructor changed (server/utils/planChanges.js).
   const [planChanges, setPlanChanges] = useState(null)
   const [planChangesOpen, setPlanChangesOpen] = useState(false)
@@ -602,15 +601,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const cancelApprove = () => { setApprovePhase('IDLE'); setApproveTimeLeft(5) }
 
-  const handleSubmitForReview = () => {
+  // Submitting hands the plan to the reviewers, so the app's confirm window asks first.
+  const handleSubmitForReview = async () => {
+    const isReturned = (workflowState.currentStage || 'submitted') === 'returned'
+    const ok = await confirmDialog(isReturned
+      ? `Your revision of ${codeToUse} goes back to the Director of Libraries and the Program Head for review.`
+      : `${codeToUse} goes to the Director of Libraries and the Program Head, who review it at the same time.`,
+      { title: isReturned ? 'Submit the revision?' : 'Submit for review?', confirmLabel: isReturned ? 'Submit revision' : 'Submit' })
+    if (!ok) return
     recordWorkflowAction('SUBMITTED').then(() => {
       reloadWorkflow()
       setRefreshKey(k => k + 1)
-      setShowSubmitModal(false)
       showToastMsg('Learning plan submitted for review.')
       navigate(backPath)
     }).catch(e => {
-      setShowSubmitModal(false)
       alertDialog(apiErrorMessage(e, 'Could not submit the learning plan.'), { title: 'Not submitted' })
     })
   }
@@ -1003,7 +1007,7 @@ ${suggestionLine}` : text,
                     showToastMsg('Please address all reviewer comments first before submitting your revision.', 'warning')
                     return
                   }
-                  setShowSubmitModal(true)
+                  handleSubmitForReview()
                 }}>
                   {isReturned ? 'Submit Revision' : 'Submit for Review'}
                 </div>
@@ -1416,31 +1420,6 @@ ${suggestionLine}` : text,
           )}
         </div>
       )}
-
-      {/* ── SUBMIT / REVISION MODAL ────────────────────────────────────── */}
-      {showSubmitModal && (() => {
-        const stage = workflowState.currentStage || 'submitted'
-        const isReturned = stage === 'returned'
-        return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowSubmitModal(false)}>
-          <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', width: 420, maxWidth: '90vw', padding: 32, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ marginBottom: 16 }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-            </div>
-            <h3 style={{ fontSize: 20, fontWeight: 600, color: 'black', margin: '0 0 10px' }}>{isReturned ? 'Submit Revision' : 'Submit for Review'}</h3>
-            <p style={{ fontSize: 14, color: '#6b7280', fontWeight: 300, margin: '0 0 24px', lineHeight: 1.5 }}>
-              {isReturned
-                ? `Are you sure you want to re-submit your revision for ${codeToUse}? It will be re-sent to the Director of Libraries and the Program Head for review.`
-                : `Are you sure you want to submit ${codeToUse} for review? It will be sent to the Director of Libraries and the Program Head, who review it at the same time.`}
-            </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button className="btn btn-secondary" onClick={() => setShowSubmitModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSubmitForReview}>{isReturned ? 'Submit Revision' : 'Submit'}</button>
-            </div>
-          </div>
-        </div>
-        )
-      })()}
 
       <PlanChangesDialog open={planChangesOpen} onClose={() => setPlanChangesOpen(false)} data={planChanges} courseCode={codeToUse} />
 

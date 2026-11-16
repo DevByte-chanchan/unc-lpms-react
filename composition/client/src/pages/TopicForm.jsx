@@ -8,9 +8,9 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import TopicSelector from "../components/TopicSelector.jsx";
 import AiTopicSuggestModal from "../components/AiTopicSuggestModal.jsx";
 import { checkSpelling } from "../utils/spellChecker.js";
-import { X, MessageSquare, AlertCircle, ChevronsRight, ChevronDown } from 'react-feather';
+import { MessageSquare, ChevronsRight, ChevronDown } from 'react-feather';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
-import { alertDialog } from "../utils/appDialog.jsx";
+import { alertDialog, confirmDialog } from "../utils/appDialog.jsx";
 import { toast } from "../utils/toast.jsx";
 import CommentMessage from "../components/CommentMessage.jsx";
 
@@ -55,24 +55,6 @@ const STAKEHOLDER_NAME_BY_ROLE = {
     VPAA: 'Carlos Garcia',
     INSTRUCTOR: 'Monica Norton'
 };
-
-export function InlineModal({ isOpen, title, onClose, children, actions }) {
-    if (!isOpen) return null;
-    return (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-            <div className={styles.modal}>
-                <div className={styles.modalHeader}>
-                    <h3>{title}</h3>
-                    <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
-                        <X size={16} />
-                    </button>
-                </div>
-                <div className={styles.modalBody}>{children}</div>
-                {actions && <div className={styles.modalActions}>{actions}</div>}
-            </div>
-        </div>
-    );
-}
 
 // Custom Approver Role Filter Dropdown with Returned Comment Badges
 function RoleFilterDropdown({ options, value, onChange }) {
@@ -665,10 +647,6 @@ const TopicForm = () => {
 
     // Main Operation / Global Validations & Spell Check States
     const [, setIsSaving] = useState(false);
-    const [showValidationModal, setShowValidationModal] = useState(false);
-    const [validationErrors, setValidationErrors] = useState({});
-    const [showSpellCheckModal, setShowSpellCheckModal] = useState(false);
-    const [spellCheckWarnings, setSpellCheckWarnings] = useState([]);
 
     useEffect(() => {
         setIsOrientation(initialIsOrientation);
@@ -1047,18 +1025,20 @@ const TopicForm = () => {
         }
 
         // If hard validation errors or no changes, block save completely
+        // Shown in the app's own windows: what blocks the save (alert), and possible misspellings (confirm: Save anyway).
         if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            setShowValidationModal(true);
+            const lines = Object.entries(errors).flatMap(([section, msg]) => (Array.isArray(msg) ? msg : [msg]).map(m => `• ${section}: ${m}`));
+            alertDialog(`Fix these before saving:\n${lines.join('\n')}`, { title: 'Not saved' });
             return;
         }
 
         // 5. Soft-Warning Pre-Save Spell Check across Topics, TLAs, and References (Save Anyway is allowed only for spellings)
         const warnings = collectAllSpellWarnings();
         if (warnings.length > 0) {
-            setSpellCheckWarnings(warnings);
-            setShowSpellCheckModal(true);
-            return;
+            const lines = warnings.map(item => `• ${item.section} · ${item.field}: ${item.words.join(', ')}`);
+            const ok = await confirmDialog(`These words were flagged by the spell checker:\n${lines.join('\n')}\n\nRight-click an underlined word to replace it or add it to the dictionary.`,
+                { title: 'Possible misspellings', confirmLabel: 'Save anyway', cancelLabel: 'Review and edit' });
+            if (!ok) return;
         }
 
         // 6. Clean Save
@@ -1066,8 +1046,6 @@ const TopicForm = () => {
     };
 
     const executeGlobalSave = async () => {
-        setShowValidationModal(false);
-        setShowSpellCheckModal(false);
         setIsSaving(true);
         try {
             syncLiveTopicsToFrontendMap();
@@ -1511,85 +1489,6 @@ const TopicForm = () => {
                         onUpdateWeekAiCache={handleUpdateWeekAiCache}
                     />
 
-                    {/* --- Validation Requirements Modal (No Save Anyway for Hard Requirements) --- */}
-                    <InlineModal
-                        isOpen={showValidationModal}
-                        title="Validation Notice"
-                        onClose={() => setShowValidationModal(false)}
-                        actions={
-                            <button type="button" className={styles.modalCancelBtn} onClick={() => setShowValidationModal(false)}>
-                                Review & Edit
-                            </button>
-                        }
-                    >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <AlertCircle size={22} color="#E53E3E" style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <div>
-                                <p style={{ margin: '0 0 8px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
-                                    Requirements Not Met
-                                </p>
-                                <p style={{ margin: 0, fontSize: '12.5px', color: '#64748B', lineHeight: 1.5 }}>
-                                    Please review and address the following requirements before saving:
-                                </p>
-                                <ul className={styles.errorList} style={{ maxHeight: '260px', overflowY: 'auto' }}>
-                                    {Object.entries(validationErrors).map(([section, msg]) => {
-                                        if (Array.isArray(msg)) {
-                                            return msg.map((m, idx) => (
-                                                <li key={`${section}-${idx}`}><strong>{section}:</strong> {m}</li>
-                                            ));
-                                        }
-                                        return <li key={section}><strong>{section}:</strong> {msg}</li>;
-                                    })}
-                                </ul>
-                            </div>
-                        </div>
-                    </InlineModal>
-
-                    {/* --- Soft-Warning Pre-Save Spell Check Confirmation Modal --- */}
-                    <InlineModal
-                        isOpen={showSpellCheckModal}
-                        title="Spelling Check Warning"
-                        onClose={() => setShowSpellCheckModal(false)}
-                        actions={
-                            <>
-                                <button type="button" className={styles.modalCancelBtn} onClick={() => setShowSpellCheckModal(false)}>
-                                    Review & Edit
-                                </button>
-                                <button type="button" className={styles.modalConfirmBtn} onClick={executeGlobalSave}>
-                                    Save Anyway
-                                </button>
-                            </>
-                        }
-                    >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <AlertCircle size={22} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
-                                    Potential Misspellings Detected
-                                </p>
-                                <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
-                                    The following words were flagged across your form fields. Right-click any underlined word to view suggestions or add it to your whitelist:
-                                </p>
-                                <div className={styles.spellWarningList}>
-                                    {spellCheckWarnings.map((item, idx) => (
-                                        <div key={idx} className={styles.spellWarningCategory}>
-                                            <div className={styles.spellWarningHeaderRow}>
-                                                <span className={styles.spellWarningSectionTag}>{item.section}</span>
-                                                <span className={styles.spellWarningFieldTitle}>{item.field}</span>
-                                            </div>
-                                            <div className={styles.spellWarningWordPills}>
-                                                {item.words.map((w, wIdx) => (
-                                                    <span key={`${w}-${wIdx}`} className={styles.spellWarningWordBadge}>
-                                                        {w}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </InlineModal>
 
 
                 </div>

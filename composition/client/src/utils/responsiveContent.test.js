@@ -410,7 +410,6 @@ test('icon-only surface close controls share the outlined red treatment', () => 
     'components/SpellCheckArea.jsx',
     'components/SyllabusPreview.jsx',
     'pages/ReferenceForm.jsx',
-    'pages/TopicForm.jsx',
     'pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx',
   ]) {
     assert.match(read(file), /app-icon-close/, `${file} must use the shared close treatment`)
