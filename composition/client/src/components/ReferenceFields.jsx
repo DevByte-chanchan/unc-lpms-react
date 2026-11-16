@@ -11,7 +11,18 @@ import { fetchJson, apiErrorMessage } from '../utils/api.js';
 //
 // props: value { type, title, authors, isbn, year, link, publisher }, errors { field: message },
 //        onChange(field, value)
-const PLACEHOLDERS = { year: 'YYYY', link: 'https://...', copies: 'Leave empty if not known', received: 'YYYY-MM-DD' };
+// An example in every empty box, so the form does not read as a column of blank fields.
+const PLACEHOLDERS = {
+  title: 'e.g. Operating System Concepts (10th Edition)',
+  authors: 'e.g. Silberschatz, Galvin & Gagne',
+  isbn: 'e.g. 978-1-119-80036-1',
+  year: 'YYYY',
+  link: 'e.g. https://openstax.org/books/...',
+  publisher: 'e.g. Pearson, OpenStax, Mozilla',
+  category: 'e.g. Programming, Statistics',
+  copies: 'Leave empty if not known',
+  received: 'YYYY-MM-DD',
+};
 
 // Text fields checked as you type, with the same checker as the comment boxes. Not the authors: surnames are not
 // dictionary words, and a checker that underlines every name is one people learn to ignore.
