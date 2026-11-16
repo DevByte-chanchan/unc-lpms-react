@@ -62,6 +62,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const [commentedRefIds, setCommentedRefIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  // Director of Libraries: commenting on the plan's references and suggesting library ones are two separate tabs.
+  const [directorTab, setDirectorTab] = useState('comment')
   const firstTextareaRef = useRef(null)
 
   useEffect(() => {
@@ -290,73 +292,45 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     )
   }
 
-  const getTypeBadgeStyle = (type) => {
-    switch (type) {
-      case 'Textbook': return { background: 'var(--good-soft)', color: 'var(--good)' }
-      case 'Open Educational Resources': return { background: '#e0f2fe', color: '#0284c7' }
-      case 'Online Resources': return { background: '#f3e8ff', color: '#7c3aed' }
-      default: return { background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }
-    }
-  }
 
+  // "Suggest from library": filter and search the library, tick the references the instructor should add.
   const renderRefBrowser = () => (
-    <div style={{ border: '1px solid var(--line)', borderRadius: 6, padding: 16, background: 'var(--surface-muted)', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
-      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--ink)' }}>Suggest References from Library</div>
-      <Select
-        value={refTypeFilter}
-        onChange={(e) => setRefTypeFilter(e.target.value)}
-        block
-      >
-        <option value="">All Types</option>
-        {libraryTypes.map(type => <option key={type} value={type}>{type}</option>)}
-      </Select>
-      <div className={styles.searchBox}>
-        <Search size={16} aria-hidden="true" />
-        <input
-          type="text"
-          placeholder="Search by title, author, or type..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.searchInput}
-        />
+    <div className={styles.tabPanel}>
+      <p className={styles.tabIntro}>Pick library references for the instructor to add to this plan.</p>
+      <div className={styles.filterRow}>
+        <Select value={refTypeFilter} onChange={(e) => setRefTypeFilter(e.target.value)} aria-label="Reference type">
+          <option value="">All types</option>
+          {libraryTypes.map(type => <option key={type} value={type}>{type}</option>)}
+        </Select>
+        <div className={styles.searchBox}>
+          <Search size={16} aria-hidden="true" />
+          <input type="text" placeholder="Search by title, author or type" value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInput} aria-label="Search the library" />
+        </div>
       </div>
-      <div style={{ overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 18, ...(isFullscreen ? { flex: 1, minHeight: 0 } : { maxHeight: 300 }) }}>
+      <div className={styles.refList}>
         {filteredLibraryRefs.length > 0 ? filteredLibraryRefs.map(ref => {
-          const badgeStyle = getTypeBadgeStyle(ref.type)
           const deprecated = isDeprecated(ref)
           const isSelected = selectedRefs.some(r => r.id === ref.id)
           return (
-            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 6, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid var(--primary)' : '1px solid var(--line)', transition: 'all 0.15s ease' }}>
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggleRefSelection(ref)}
-                style={{ accentColor: 'var(--primary)', width: 18, height: 18, marginTop: 3, flexShrink: 0 }}
-              />
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, ...badgeStyle, whiteSpace: 'nowrap' }}>{ref.type}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{ref.title}</span>
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--ink-muted)' }}>{ref.authors} &middot; {ref.year || 'N/A'}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {deprecated && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'var(--warn-soft)', color: 'var(--warn)' }}>Deprecated</span>}
-                </div>
-              </div>
+            <label key={ref.id} className={`${styles.refCard} ${isSelected ? styles.refCardSelected : ''}`}>
+              <input type="checkbox" checked={isSelected} onChange={() => toggleRefSelection(ref)} className={styles.refCheck} />
+              <span className={styles.refInfo}>
+                <span className={styles.refTitle}>{ref.title}</span>
+                <span className={styles.refMeta}>{[ref.authors, ref.year].filter(Boolean).join(' · ') || 'No author or year'}</span>
+                <span className={styles.refTags}>
+                  <span className={styles.refType}>{ref.type}</span>
+                  {deprecated && <span className={styles.refOld}>Outdated</span>}
+                </span>
+              </span>
             </label>
           )
         }) : (
-          <div style={{ padding: 30, textAlign: 'center', color: 'var(--ink-faint)', fontSize: 14 }}>
-            {searchTerm ? 'No matching references found.' : 'No references in library yet. Add references first in the Reference Library page.'}
-          </div>
+          <EmptyState icon={<Search size={22} strokeWidth={1.6} />}
+            title={searchTerm ? 'No matching references' : 'The library is empty'}
+            hint={searchTerm ? 'Try another word or type.' : 'Add references in the Reference Library first.'} />
         )}
       </div>
-      {selectedRefs.length > 0 && (
-        <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--good-soft)', borderRadius: 6, fontSize: 13, color: 'var(--good)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-          {selectedRefs.length} reference{selectedRefs.length > 1 ? 's' : ''} selected to suggest
-        </div>
-      )}
     </div>
   )
 
@@ -465,60 +439,71 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
               />
             )
           ) : isDirector ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
-              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                <div className={styles.directorWorkspace}>
-              <div className={styles.directorPlan}>
-              {syllabusReferences.length > 0 && (
-                <div style={{ border: '1px solid var(--line)', borderRadius: 6, padding: 16, background: 'var(--surface-muted)', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--ink)' }}>Learning Plan References</div>
-                  <div style={{ overflow: 'auto', flex: 1, minHeight: 0, paddingRight: 18 }}>
-                  {comments.map((c, idx) => (
-                    <div key={c.id} style={{ marginBottom: idx < comments.length - 1 ? 12 : 0, paddingBottom: idx < comments.length - 1 ? 12 : 0, borderBottom: idx < comments.length - 1 ? '1px solid var(--line)' : 'none' }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                        <Select
-                          value={c.commentedRefId}
-                          onChange={(e) => updateComment(c.id, { commentedRefId: e.target.value })}
-                          block
-                        >
-                          <option value="">Select a reference</option>
-                          {syllabusReferences.map(ref => (
-                            <option key={ref.id} value={ref.id}>{ref.title} ({ref.year || 'N/A'}){isDeprecated(ref) ? ' [Deprecated]' : ''}</option>
-                          ))}
-                        </Select>
-                        {comments.length > 1 && (
-                          <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
-                            <X size={16} strokeWidth={2} color="currentColor" />
-                          </button>
-                        )}
-                      </div>
-                      <SpellCheckArea
-                        knownWords={planTerms}
-                        value={c.text || ''}
-                        onChange={(next) => updateCommentText(c.id, next)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDirectorSubmit() } }}
-                        placeholder={'Describe the issue or suggestion...'}
-                        disabled={readOnly}
-                        padding="14px 10px"
-                        minHeight={140}
-                      />
-                    </div>
-                  ))}
-                  </div>
-                  <div className={styles.addCommentRow}>
-                    <button type="button" onClick={addCommentSection} className={styles.addCommentBtn}>
-                      <Plus size={16} aria-hidden="true" /> Add another comment
-                    </button>
-                  </div>
-                </div>
-              )}
-              </div>
-              <div className={styles.directorLibrary}>
-              {renderRefBrowser()}
-              </div>
-                </div>
+            <div className={styles.directorWrap}>
+              <div className={styles.tabs} role="tablist" aria-label="What to do">
+                <button type="button" role="tab" aria-selected={directorTab === 'comment'} className={`${styles.tab} ${directorTab === 'comment' ? styles.tabActive : ''}`} onClick={() => setDirectorTab('comment')}>
+                  <MessageSquare size={15} aria-hidden="true" /> Comment on references
+                  {directorFilled > 0 && <span className={styles.tabCount}>{directorFilled}</span>}
+                </button>
+                <button type="button" role="tab" aria-selected={directorTab === 'suggest'} className={`${styles.tab} ${directorTab === 'suggest' ? styles.tabActive : ''}`} onClick={() => setDirectorTab('suggest')}>
+                  <Plus size={15} aria-hidden="true" /> Suggest from library
+                  {directorSuggested > 0 && <span className={styles.tabCount}>{directorSuggested}</span>}
+                </button>
               </div>
 
+              {directorTab === 'comment' ? (
+                <div className={styles.tabPanel}>
+                  <p className={styles.tabIntro}>Point out a problem with a reference that is already in this plan.</p>
+                  {syllabusReferences.length === 0 ? (
+                    <EmptyState icon={<MessageSquare size={22} strokeWidth={1.6} />}
+                      title="This plan has no references yet"
+                      hint="Use Suggest from library to propose some." />
+                  ) : (
+                    <>
+                      <div className={styles.directorCards}>
+                        {comments.map((c, idx) => (
+                          <div key={c.id} className={styles.directorCard}>
+                            <div className={styles.directorCardHead}>
+                              <span>Comment {idx + 1}</span>
+                              {comments.length > 1 && (
+                                <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
+                                  <X size={16} strokeWidth={2} color="currentColor" />
+                                </button>
+                              )}
+                            </div>
+                            <div className={styles.field}>
+                              <label className={styles.label}>Reference</label>
+                              <Select value={c.commentedRefId} onChange={(e) => updateComment(c.id, { commentedRefId: e.target.value })} block placeholder="Select a reference in the plan">
+                                <option value="">Select a reference in the plan</option>
+                                {syllabusReferences.map(ref => (
+                                  <option key={ref.id} value={ref.id}>{ref.title} ({ref.year || 'no year'}){isDeprecated(ref) ? ' · outdated' : ''}</option>
+                                ))}
+                              </Select>
+                            </div>
+                            <div className={styles.field}>
+                              <label className={styles.label}>Comment</label>
+                              <SpellCheckArea
+                                knownWords={planTerms}
+                                value={c.text || ''}
+                                onChange={(next) => updateCommentText(c.id, next)}
+                                placeholder="What should change, and why?"
+                                disabled={readOnly}
+                                padding="10px 12px"
+                                minHeight={110}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={styles.addCommentRow}>
+                        <button type="button" onClick={addCommentSection} className={styles.addCommentBtn}>
+                          <Plus size={16} aria-hidden="true" /> Add another comment
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : renderRefBrowser()}
             </div>
           ) : (
             <div className={styles.commentListWrapper}>
@@ -539,39 +524,31 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         {(c.courseOutcome || c.ilo || c.coverageType || hasCoverageDetail(c)) && (() => {
                           const details = Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])
                           const ct = c.coverageType || 'Topic'
-                          const chipBase = { padding: '2px 8px', borderRadius: 4, fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }
+                          // What the comment is about, as plain tags: the outcome and week in grey, the targets in the
+                          // colour of their kind (topic blue, TLA violet, reference amber). Long names end in "…".
+                          const chipBase = { display: 'inline-block', padding: '3px 8px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 500, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }
+                          const grey = { background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-soft)' }
                           const typeColors = ct === 'Topic'
-                            ? { background: '#e0f2fe', color: '#0369a1' }
+                            ? { background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', color: '#1d4ed8' }
                             : ct === 'TLA'
-                              ? { background: '#ede9fe', color: '#6d28d9' }
-                              : { background: 'var(--warn-soft)', color: 'var(--warn)' }
+                              ? { background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#6d28d9' }
+                              : { background: 'var(--warn-soft)', border: '1px solid var(--warn-line)', color: 'var(--warn)' }
+                          const kind = ct === 'TLA' ? 'TLA' : ct === 'Topic' ? 'Topic' : 'Reference'
                           return (
                             <div style={{
-                              display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center',
-                              marginBottom: 14, padding: '8px 12px',
-                              background: 'var(--surface-muted)', border: '1px solid var(--line)', borderRadius: 8
+                              display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center',
+                              marginBottom: 16, padding: '10px 12px',
+                              background: 'var(--surface-muted)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)'
                             }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: 2 }}>
                                 Commenting on
                               </span>
-                              {c.courseOutcome && (
-                                <span style={{ ...chipBase, background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }}>
-                                  [CO: {c.courseOutcome}]
-                                </span>
-                              )}
-                              {c.ilo && (
-                                <span style={{ ...chipBase, background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }}>
-                                  [{iloLabel(c.ilo)}]
-                                </span>
-                              )}
+                              {c.courseOutcome && <span style={{ ...chipBase, ...grey }}>{c.courseOutcome}</span>}
+                              {c.ilo && <span style={{ ...chipBase, ...grey }}>{iloLabel(c.ilo)}</span>}
                               {details.length > 0 ? details.map((d, di) => (
-                                <span key={di} style={{ ...chipBase, ...typeColors }}>
-                                  [{ct.toUpperCase()}: {d}]
-                                </span>
+                                <span key={di} style={{ ...chipBase, ...typeColors }} title={`${kind}: ${d}`}>{kind}: {d}</span>
                               )) : c.coverageType ? (
-                                <span style={{ ...chipBase, ...typeColors }}>
-                                  [{ct.toUpperCase()}]
-                                </span>
+                                <span style={{ ...chipBase, ...typeColors }}>{kind}</span>
                               ) : null}
                             </div>
                           )
@@ -679,13 +656,15 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         </div>
 
         {!readOnly && (() => {
-          const blocked = isDirector ? (!comments[0]?.text?.trim() && selectedRefs.length === 0) : saveDisabled
+          const blocked = isDirector ? (directorFilled === 0 && directorSuggested === 0) : saveDisabled
           const why = isDirector
-            ? `Write a comment on a reference, or pick a reference to suggest, ${outcome}.`
+            ? `Comment on a reference, or pick a library reference to suggest, ${outcome}.`
             : `Fill in a comment, with its course outcome, week, coverage type and target, ${outcome}.`
           return (
             <div className={styles.actions}>
-              {blocked && <span className={styles.actionsHint}>{why}</span>}
+              {blocked
+                ? <span className={styles.actionsHint}>{why}</span>
+                : isDirector && <span className={styles.actionsHint}>{[directorFilled && `${directorFilled} comment${directorFilled > 1 ? 's' : ''}`, directorSuggested && `${directorSuggested} suggestion${directorSuggested > 1 ? 's' : ''}`].filter(Boolean).join(' · ')} ready to send</span>}
               <button type="button" onClick={handleClose} className="btn btn-secondary">Cancel</button>
               <button type="button" onClick={isDirector ? handleDirectorSubmit : handleSubmit} disabled={blocked || submitting} className="btn btn-primary">
                 {isDirector ? directorLabel : normalLabel}

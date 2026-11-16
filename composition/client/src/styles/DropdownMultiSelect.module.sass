@@ -1,3 +1,5 @@
+// A pick-several list (components/DropdownMultiSelect.jsx) in the same look as the single Select (Select.module.sass):
+// an 8px control, the chosen items as small one-line tags, and a 12px list with 6px rows.
 .container
   display: flex
   padding: 0 0 0 20px
@@ -13,176 +15,184 @@
   font-size: 16px
   font-weight: 500
 
-// Unified container for single and multiselect fields
+// the field
 .dropdown, .dropdownContainer
-  font-size: 16px
   display: flex
   align-items: center
   align-self: stretch
-  border-radius: 4px
-  border: 1px solid #DCE2F0
-  transition: border-color 0.2s ease-in-out
-  box-sizing: border-box
-  background: #FFFFFF // 👈 FIX: Changed from transparent to solid white so text underneath doesn't show through
   width: 100%
-  position: relative // Required for absolute positioning context
-  z-index: 10       // 👈 NEW: Low stack base to isolate this specific control field
+  position: relative
+  box-sizing: border-box
+  background: #fff
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  font-family: var(--font-ui)
+  font-size: var(--fs-sm)
+  transition: border-color var(--t-fast), box-shadow var(--t-fast)
+
+  &:hover:not(.disabled-style)
+    border-color: oklch(20.77% 0.0398 265.8 / 0.35)
+
+  &:focus-within
+    border-color: var(--accent)
+    box-shadow: 0 0 0 3px var(--accent-soft)
 
   &.error
-    border: 1px solid #FF5252 !important
-    background-color: #FFF4F4
+    border-color: var(--danger-line)
+    background-color: var(--danger-soft)
 
-// ... Keep .dropdown select, .dropdownField, .pillsContainer, .pill, and .chevronIcon as they are
-
-// Floating absolute popover options menu container
-.optionsMenu
-  position: absolute
-  top: 100% // Snaps cleanly right against the bottom edge of the input box
-  left: 0
-  min-width: 100%
-  width: max-content
-  max-width: 480px
-  max-height: 220px
-  overflow-y: auto
-  background: #FFFFFF
-  border: 1px solid #DCE2F0
-  border-radius: 4px
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) // Slightly deeper shadow for modern separation look
-  z-index: 99999 !important // 👈 FIX: Forces the list overlay to sit on top of any lower rows or buttons
-
-// Structural settings for your old select layout
 .dropdown select
   width: 100%
   height: 100%
-  padding: 8px 15px
+  padding: 8px 12px
   outline: none
-  border-radius: 4px
   border: 0
+  border-radius: var(--control-radius)
   font-size: 14px
   background: transparent
 
 .dropdown select option
   font-size: 14px
 
-// Fix: Match the single select height limits but let pills wrap vertically
 .dropdownField
   display: flex
   align-items: center
   justify-content: space-between
+  gap: 8px
   width: 100%
-  min-height: 37px // Snaps cleanly to match standard dropdown height
-  padding: 4px 15px
+  min-height: 36px
+  padding: 4px 8px 4px 10px
   cursor: pointer
   user-select: none
   box-sizing: border-box
-  position: relative
 
-// Pill positioning box within field limits
 .pillsContainer
   display: flex
   flex-wrap: wrap
-  gap: 6px
+  gap: 4px
   align-items: center
-  width: calc(100% - 20px)
+  flex: 1
+  min-width: 0
 
 .placeholder
-  color: #757575
-  font-size: 14px
-  font-family: Manrope, sans-serif
+  color: var(--ink-faint)
+  font-size: var(--fs-sm)
 
-// Pill styling matching your visual palette
+// a chosen item: one line, cut with an ellipsis (the full text is its tooltip)
 .pill
   display: inline-flex
   align-items: center
   gap: 4px
-  background-color: #E0E6ED
-  color: #1C2833
-  padding: 2px 8px
-  border-radius: var(--radius-pill)
-  font-size: 13px
-  font-family: Manrope, sans-serif
-  font-weight: 500
+  max-width: 100%
+  min-width: 0
+  padding: 3px 4px 3px 8px
+  background: var(--surface-sunken)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-sm)
+  color: var(--ink-soft)
+  font-size: var(--fs-xs)
+  font-weight: var(--fw-medium)
+  line-height: 1.3
+
+  span
+    min-width: 0
+    overflow: hidden
+    text-overflow: ellipsis
+    white-space: nowrap
 
 .pillRemoveBtn
-  background: transparent
-  border: none
-  padding: 0
+  flex: 0 0 auto
   display: inline-flex
   align-items: center
+  padding: 1px
+  border: 0
+  border-radius: 4px
+  background: transparent
+  color: var(--ink-muted)
   cursor: pointer
-  color: #5D6D7E
 
   &:hover
-    color: #FF5252
+    background: var(--hover-tint)
+    color: var(--danger)
 
-// Dropdown arrow matching alignment offsets
 .chevronIcon
-  color: #5D6D7E
-  transition: transform 0.2s ease
-  margin-left: auto
+  flex: 0 0 auto
+  color: var(--ink-muted)
+  transition: transform .2s ease-in-out
 
 .chevronOpen
   transform: rotate(180deg)
 
-// Floating absolute popover options menu container
+// the list: like the Select list
 .optionsMenu
   position: absolute
-  top: 105%
+  top: calc(100% + 6px)
   left: 0
+  z-index: 3400
   min-width: 100%
   width: max-content
-  max-width: 480px
-  max-height: 220px
+  max-width: min(520px, calc(100vw - 32px))
+  max-height: 280px
   overflow-y: auto
-  background: #FFFFFF
-  border: 1px solid #DCE2F0
-  border-radius: 4px
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08)
-  z-index: 100
+  padding: 6px
+  box-sizing: border-box
+  background: #fff
+  border: 1px solid var(--line)
+  // concentric: the 6px rows inside plus this 6px padding
+  border-radius: calc(var(--radius-sm) + 6px)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18)
+  transform-origin: top left
+  animation: popIn .16s ease-out
 
 .menuOptionItem
   display: flex
-  align-items: center
+  align-items: flex-start
   gap: 10px
-  padding: 10px 15px
-  font-family: Manrope, sans-serif
-  font-size: 14px
-  color: #333333
+  padding: 8px 10px
+  border-radius: var(--radius-sm)
+  color: var(--ink)
+  font-size: var(--fs-sm)
+  line-height: 1.4
   cursor: pointer
   user-select: none
-  white-space: nowrap
-  transition: background-color 0.15s ease
+  transition: background-color var(--t-fast)
 
   &:hover
-    background-color: #F4F6F9
+    background: var(--hover-tint)
 
 .selectedOption
-  background-color: #ECF0F1
-  font-weight: 500
+  font-weight: var(--fw-medium)
 
 .optionCheckbox
+  flex: 0 0 auto
+  width: 15px
+  height: 15px
+  margin: 1px 0 0
+  accent-color: var(--primary)
   cursor: pointer
-  width: 14px
-  height: 14px
 
 .noOptions
-  padding: 12px 15px
-  font-family: Manrope, sans-serif
-  font-size: 14px
-  color: #757575
+  padding: 12px
+  color: var(--ink-faint)
+  font-size: var(--fs-sm)
   text-align: center
 
 .disabled-style
-  background: #F8F9F9
+  background: var(--surface-muted)
   pointer-events: none
   cursor: not-allowed
+  opacity: .75
 
 .errorMessage
-  color: #FF5252
+  color: var(--danger)
   font-size: 12px
   font-weight: 500
   margin-top: 5px
-  font-family: Manrope, sans-serif
+
+@keyframes popIn
+  from
+    opacity: 0
+    transform: scale(.95)
 
 @media (max-width: 720px)
   .optionsMenu

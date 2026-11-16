@@ -56,12 +56,13 @@ const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = 
                     <span className={styles.placeholder}>{placeholder}</span>
                 ) : (
                     value.map((item, index) => (
-                        <div key={index} className={styles.pill}>
+                        <div key={index} className={styles.pill} title={item}>
                             <span>{item}</span>
                             {!disabled && (
                                 <button
                                     type="button"
                                     className={styles.pillRemoveBtn}
+                                    aria-label={`Remove ${item}`}
                                     onClick={(e) => handleRemoveItem(e, item)}
                                 >
                                     <X size={12} />
