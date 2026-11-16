@@ -25,9 +25,13 @@ const NAVIGATION_ICON_COMPONENTS = {
     Users,
 }
 
+// Optical nudges: the folder's tab makes it read right-heavy beside the other glyphs, so it moves 1px left.
+const OPTICAL_SHIFT = { Folder: 'translateX(-1px)' }
+
 const NavigationIcon = ({ label }) => {
-    const Icon = NAVIGATION_ICON_COMPONENTS[navigationIconName(label)] || FileText
-    return <Icon size={18} />
+    const name = navigationIconName(label)
+    const Icon = NAVIGATION_ICON_COMPONENTS[name] || FileText
+    return <Icon size={18} style={OPTICAL_SHIFT[name] ? { transform: OPTICAL_SHIFT[name] } : undefined} />
 }
 
 const SideNavigation = ({ mode = 'instructor' }) => {

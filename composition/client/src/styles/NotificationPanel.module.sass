@@ -30,9 +30,9 @@
 
 .newCount
   padding: 1px 8px
-  border-radius: 999px
-  background: #fdecec
-  color: #c62828
+  border-radius: var(--radius-pill)
+  background: var(--accent-soft)
+  color: var(--accent)
   font-size: 11px
   font-weight: 600
 
@@ -52,84 +52,101 @@
     color: var(--ink-faint)
     cursor: default
 
+// All / Unread: the segmented look of the page tabs (Pending / Returned / ...)
 .tabs
   display: flex
-  gap: 6px
-  padding: 10px 16px
-  border-bottom: 1px solid var(--line)
+  align-self: flex-start
+  gap: 3px
+  margin: 10px 16px
+  padding: 3px
+  border-radius: var(--control-radius)
+  background: var(--surface-sunken)
 
 .tab
-  height: 28px
+  height: 26px
   padding: 0 12px
   border: 0
-  border-radius: var(--control-radius)
+  // concentric: the 8px track minus its 3px padding
+  border-radius: 5px
   background: transparent
-  color: var(--ink-soft)
-  font: var(--fw-medium) 12px var(--font-ui)
+  color: var(--ink-muted)
+  font: var(--fw-medium) var(--fs-xs) var(--font-ui)
   cursor: pointer
 
   &:hover
-    background: var(--hover-tint)
+    color: var(--ink)
 
 .tabOn
-  background: #19282c
-  color: #fff
-
-  &:hover
-    background: #263c43
+  background: #fff
+  color: var(--ink)
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08)
 
 .list
   flex: 1
   min-height: 0
   overflow-y: auto
+  border-top: 1px solid var(--line)
 
+// one notification: an icon tile in its colour, then the title and time, the sentence and where it leads
 .item
-  display: flex
-  flex-direction: column
-  gap: 4px
+  display: grid
+  grid-template-columns: 32px minmax(0, 1fr)
+  gap: 12px
   width: 100%
   padding: 12px 16px
   border: 0
-  border-bottom: 1px solid var(--line)
+  border-bottom: 1px solid var(--line-soft)
   background: #fff
   color: inherit
   font: inherit
   text-align: left
   cursor: pointer
+  transition: background var(--t-fast)
 
   &:hover
-    background: #f8fafc
+    background: var(--surface-muted)
 
   &:focus-visible
     outline: 2px solid var(--accent)
     outline-offset: -2px
 
-// Not read yet: a light blue row with a dot before its tag.
+  // a long list item: no press shrink
+  &:active
+    transform: none
+
+// not read yet: a faint tint and a dot after the time; the title stays bold either way
 .unread
-  background: #f0f6ff
+  background: oklch(97.05% 0.0142 254.6 / .55)
 
   &:hover
-    background: #e6effd
+    background: var(--accent-soft)
+
+.icon
+  width: 32px
+  height: 32px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  border-radius: var(--control-radius)
+
+.body
+  display: flex
+  flex-direction: column
+  gap: 3px
+  min-width: 0
 
 .itemTop
   display: flex
-  align-items: center
+  align-items: baseline
   gap: 8px
 
 .dot
   flex: 0 0 auto
+  align-self: center
   width: 7px
   height: 7px
   border-radius: 50%
-  background: #2563eb
-
-.tag
-  padding: 2px 7px
-  border-radius: var(--radius-pill)
-  font-size: 10px
-  font-weight: 700
-  letter-spacing: .04em
-  text-transform: uppercase
+  background: var(--accent)
 
 .blue
   background: #e8edff
@@ -159,31 +176,35 @@
   background: #eef2f5
   color: #475569
 
+.heading
+  min-width: 0
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  color: var(--ink)
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-semibold)
+
 .time
   margin-left: auto
   color: var(--ink-muted)
   font-size: 11px
   white-space: nowrap
 
-.heading
-  color: #1e293b
-  font-size: 13px
-  font-weight: 600
-
 .sentence
-  color: #475569
-  font-size: 12px
+  color: var(--ink-muted)
+  font-size: var(--fs-xs)
   line-height: 1.45
   overflow-wrap: anywhere
 
 .link
   display: inline-flex
   align-items: center
-  align-self: flex-end
   gap: 2px
-  color: #2563eb
-  font-size: 12px
-  font-weight: 500
+  margin-top: 2px
+  color: var(--accent)
+  font-size: var(--fs-xs)
+  font-weight: var(--fw-medium)
 
 .note
   padding: 16px
@@ -203,14 +224,6 @@
     color: var(--ink-soft)
     font-weight: 600
 
-@media (prefers-reduced-motion: no-preference)
-  .panel
-    animation: drop .14s ease-out
-
-@keyframes drop
-  from
-    opacity: 0
-    transform: translateY(-4px)
 
 @keyframes popIn
   from

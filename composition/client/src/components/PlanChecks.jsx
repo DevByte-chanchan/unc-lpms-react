@@ -29,7 +29,7 @@ const PlanChecks = ({ pcId }) => {
   const failing = graded.filter(c => !c.ok)
   const clean = failing.length === 0
   return (
-    <details open={open ?? !clean}
+    <details className="info-line" open={open ?? !clean}
       onToggle={(e) => {
         const next = e.currentTarget.open
         if (next === (open ?? !clean)) return // the page set it, not the reviewer
@@ -37,11 +37,11 @@ const PlanChecks = ({ pcId }) => {
         try { localStorage.setItem(OPEN_KEY, next ? '1' : '0') } catch { /* private window */ }
       }}
       // All passing is a plain line, not a box: the box (and its colour) is kept for when something needs a look, so it stands out.
-      style={clean ? { margin: '0 0 12px', padding: '0 2px', fontSize: 13 } : { margin: '0 0 12px', border: '1px solid var(--warn-solid)', borderRadius: 8, padding: '8px 12px', background: '#FFFBEB' }}>
-      <summary style={{ cursor: 'pointer', fontWeight: clean ? 500 : 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+      // All passing is a plain info line; something to look at keeps an amber box so it stands out.
+      style={clean ? undefined : { border: '1px solid var(--warn-line)', borderRadius: 'var(--radius-lg)', padding: '6px 12px 10px', background: 'var(--warn-soft)' }}>
+      <summary style={clean ? undefined : { fontWeight: 600, color: 'var(--warn)' }}>
         {clean ? <CheckCircle size={16} color="var(--good-solid)" aria-hidden="true" /> : <AlertTriangle size={16} color="var(--warn-solid)" aria-hidden="true" />}
         {clean ? `Plan checks: all ${graded.length} pass` : `Plan checks: ${failing.length} of ${graded.length} need a look`}
-        <span style={{ marginLeft: 'auto', color: 'var(--ink-muted)', fontSize: 12, fontWeight: 500 }}>{(open ?? !clean) ? 'Hide' : 'Show'}</span>
       </summary>
       <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 6 }}>
         {checks.map(check => (

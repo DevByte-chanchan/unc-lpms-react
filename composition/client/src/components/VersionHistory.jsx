@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { History } from 'lucide-react'
 import { fetchJson } from '../utils/api.js'
 
 // Every version of this course's plan, newest first, with who did what and when (server: utils/versionHistory.js).
@@ -20,9 +21,10 @@ const VersionHistory = ({ pcId }) => {
   // One version has no history to look back on, and its submit / approve dates are already on the approval strip.
   if (!versions || versions.length < 2) return null
   return (
-    <details style={{ margin: '0 0 12px', border: '1px solid var(--line)', borderRadius: 8, padding: '8px 12px', background: 'var(--surface)' }}>
-      <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-        Version history ({versions.length} version{versions.length === 1 ? '' : 's'})
+    <details className="info-line">
+      <summary>
+        <History size={16} color="var(--ink-muted)" aria-hidden="true" />
+        Version history · {versions.length} version{versions.length === 1 ? '' : 's'}
       </summary>
       {versions.map(version => (
         <div key={version.id} style={{ marginTop: 10 }}>

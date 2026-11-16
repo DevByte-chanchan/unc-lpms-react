@@ -2,6 +2,8 @@ import React from 'react'
 import styles from '../styles/CoursesTable.module.sass'
 import { BellRing } from 'lucide-react'
 import TableScrollRegion from './TableScrollRegion.jsx'
+import SortableTh from './SortableTh.jsx'
+import { nextSort, sortRows } from '../utils/tableSort.js'
 import { shortDay, statusLabel, lastReminderShort, courseSubline, programCode, niceName } from '../utils/missingSubmissions.js'
 
 // The plans still waiting on their instructor. One row per plan, with a tick to pick it for "Remind
@@ -34,20 +36,31 @@ const Switch = ({ on, disabled, label, onClick }) => (
 // A person reminded this plan today: "Remind now" waits until tomorrow (the server allows one a day).
 const remindedToday = (row, today) => row.lastReminderBy === 'a person' && String(row.lastReminderAt || '').slice(0, 10) === today
 
-const MissingSubmissionsTable = ({ rows = [], onPause, onRemind = null, busyId = null, today = '' }) => {
-  const showProgram = new Set(rows.map(row => row.programId)).size > 1
+// The columns, sortable like the other lists (SortableTh + utils/tableSort.js). No column picked: the page's own
+// order (most urgent first).
+const columnsFor = (showProgram) => [
+  { key: 'course', label: 'COURSE', width: 330, sortValue: r => r.courseCode },
+  { key: 'instructor', label: 'INSTRUCTOR', width: 170, sortValue: r => r.instructorName || '' },
+  ...(showProgram ? [{ key: 'program', label: 'PROGRAM', width: 80, sortValue: r => r.programName || '' }] : []),
+  { key: 'due', label: 'DUE', width: 90, type: 'date', sortValue: r => r.syllabusDue },
+  { key: 'standing', label: 'STANDING', width: 170, type: 'number', sortValue: r => (r.daysLeft == null ? Number.MAX_SAFE_INTEGER : r.daysLeft) },
+  { key: 'last', label: 'LAST REMINDER', width: 170, type: 'date', sortValue: r => r.lastReminderAt },
+  { key: 'reminders', label: 'REMINDERS', sortable: false, className: styles.fill }
+]
+
+const MissingSubmissionsTable = ({ rows: given = [], onPause, onRemind = null, busyId = null, today = '' }) => {
+  const showProgram = new Set(given.map(row => row.programId)).size > 1
+  const columns = columnsFor(showProgram)
+  const [sort, setSort] = React.useState({ sortKey: null, sortDir: 'asc' })
+  const rows = sort.sortKey ? sortRows(given, columns, sort.sortKey, sort.sortDir) : given
   return (
     <TableScrollRegion label="Learning plans not yet submitted" minWidth={1000} className={styles['table-container']}>
       <table>
         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1, whiteSpace: 'nowrap' }}>
           <tr>
-            <th width={330}>COURSE</th>
-            <th width={170}>INSTRUCTOR</th>
-            {showProgram && <th width={80}>PROGRAM</th>}
-            <th width={90}>DUE</th>
-            <th width={170}>STANDING</th>
-            <th width={170}>LAST REMINDER</th>
-            <th className={styles.fill}>REMINDERS</th>
+            {columns.map(col => (
+              <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={(key) => setSort(current => nextSort(current, key))} />
+            ))}
           </tr>
         </thead>
         <tbody>

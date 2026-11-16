@@ -4,7 +4,7 @@ import { toast } from '../utils/toast.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, EllipsisVertical as MoreVertical, Check, Clock, FileText, UserPlus, Lock, TriangleAlert as AlertTriangle, X, PenLine as PenTool } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, EllipsisVertical as MoreVertical, Check, Clock, FileText, UserPlus, Lock, TriangleAlert as AlertTriangle, X, PenLine as PenTool, CircleCheck as CheckCircle } from 'lucide-react'
 import EmptyState from './EmptyState.jsx'
 import CommentsSidebar from './CommentsSidebar.jsx'
 import { useCommentFocus, useCommentFromLink, useWeekCommentsLink, sectionOfComment } from '../utils/useCommentFocus.js'
@@ -677,8 +677,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const closeReview = React.useCallback(() => setReviewOpen(false), [])
   const closeSuggestions = React.useCallback(() => setSuggestionsOpen(false), [])
   const signedLine = signoffs.length > 0 && (
-    <div role="note" style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-      <PenTool size={14} aria-hidden="true" />
+    <div role="note" className="info-line">
+      <CheckCircle size={16} color="var(--good-solid)" aria-hidden="true" />
       Industry Consultant review signed by {signoffs.map(s => `${s.name} (${new Date(s.signedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })})`).join(', ')}
     </div>
   )

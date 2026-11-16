@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronRight } from 'lucide-react'
+import { Bell, BellRing, BookOpen, CheckCheck, ChevronRight, CircleCheck, GitBranch, Hourglass, ListTodo, MessageSquare, RotateCcw, Send, ShieldCheck, UserMinus, UserPlus } from 'lucide-react'
 import { getSession } from '../utils/session.js'
 import { POLL_MS, loadUnreadCount, loadNotifications, markRead, markAllRead } from '../utils/notificationsApi.js'
 import { notificationPath, timeAgo } from '../utils/notificationLinks.js'
@@ -16,29 +16,29 @@ import styles from '../styles/NotificationPanel.module.sass'
 
 // What happened, by notification type: the tag, its colour and the title's first words.
 const KIND = {
-  course_assigned: { tag: 'Assigned', tone: 'blue', title: 'New Assignment' },
-  course_unassigned: { tag: 'Unassigned', tone: 'grey', title: 'Assignment Removed' },
-  plan_submitted: { tag: 'Submitted', tone: 'blue', title: 'Plan Submitted' },
-  plan_returned: { tag: 'Returned', tone: 'red', title: 'Plan Returned' },
-  plan_ready_for_dean: { tag: 'Endorsed', tone: 'teal', title: 'Ready for the Dean' },
-  plan_approved: { tag: 'Approved', tone: 'green', title: 'Learning Plan Approved' },
-  comment_added: { tag: 'Comment', tone: 'violet', title: 'New Comment' },
-  comment_resolved: { tag: 'Resolved', tone: 'green', title: 'Comments Resolved' },
-  revision_started: { tag: 'Revision', tone: 'blue', title: 'Revision Started' },
-  poke: { tag: 'Reminder', tone: 'amber', title: 'Reminder' },
-  reminder: { tag: 'Reminder', tone: 'amber', title: 'Reminder' },
-  missing_digest: { tag: 'Reminder', tone: 'amber', title: 'Plans Not Submitted' },
-  approval_waiting: { tag: 'Waiting', tone: 'amber', title: 'Waiting for Your Review' },
-  returned_waiting: { tag: 'Waiting', tone: 'amber', title: 'Returned Plan Waiting' },
-  reference_health: { tag: 'Library', tone: 'teal', title: 'Reference Check' },
-  reference_flags: { tag: 'Library', tone: 'teal', title: 'References Flagged' },
-  reference_unavailable: { tag: 'Library', tone: 'teal', title: 'Reference Unavailable' },
+  course_assigned: { tag: 'Assigned', tone: 'blue', title: 'New Assignment', Icon: UserPlus },
+  course_unassigned: { tag: 'Unassigned', tone: 'grey', title: 'Assignment Removed', Icon: UserMinus },
+  plan_submitted: { tag: 'Submitted', tone: 'blue', title: 'Plan Submitted', Icon: Send },
+  plan_returned: { tag: 'Returned', tone: 'red', title: 'Plan Returned', Icon: RotateCcw },
+  plan_ready_for_dean: { tag: 'Endorsed', tone: 'teal', title: 'Ready for the Dean', Icon: ShieldCheck },
+  plan_approved: { tag: 'Approved', tone: 'green', title: 'Learning Plan Approved', Icon: CircleCheck },
+  comment_added: { tag: 'Comment', tone: 'violet', title: 'New Comment', Icon: MessageSquare },
+  comment_resolved: { tag: 'Resolved', tone: 'green', title: 'Comments Resolved', Icon: CheckCheck },
+  revision_started: { tag: 'Revision', tone: 'blue', title: 'Revision Started', Icon: GitBranch },
+  poke: { tag: 'Reminder', tone: 'amber', title: 'Reminder', Icon: BellRing },
+  reminder: { tag: 'Reminder', tone: 'amber', title: 'Reminder', Icon: BellRing },
+  missing_digest: { tag: 'Reminder', tone: 'amber', title: 'Plans Not Submitted', Icon: ListTodo },
+  approval_waiting: { tag: 'Waiting', tone: 'amber', title: 'Waiting for Your Review', Icon: Hourglass },
+  returned_waiting: { tag: 'Waiting', tone: 'amber', title: 'Returned Plan Waiting', Icon: Hourglass },
+  reference_health: { tag: 'Library', tone: 'teal', title: 'Reference Check', Icon: BookOpen },
+  reference_flags: { tag: 'Library', tone: 'teal', title: 'References Flagged', Icon: BookOpen },
+  reference_unavailable: { tag: 'Library', tone: 'teal', title: 'Reference Unavailable', Icon: BookOpen },
 }
 
 // "BIT321L — submitted for review by Instructor" -> title "Plan Submitted: BIT321L", sentence "Submitted for review by
 // Instructor." A message without a course code stays whole as the sentence.
 const describe = (item) => {
-  const kind = KIND[item.type] || { tag: 'Update', tone: 'grey', title: 'Update' }
+  const kind = KIND[item.type] || { tag: 'Update', tone: 'grey', title: 'Update', Icon: Bell }
   const [code, ...rest] = String(item.message || '').split(' — ')
   const hasCode = rest.length > 0 && /^[A-Za-z0-9 ._-]{2,30}$/.test(code)
   const text = hasCode ? rest.join(' — ') : String(item.message || '')
@@ -160,6 +160,7 @@ const NotificationBell = () => {
           </div>
 
           <div className={styles.tabs} role="tablist" aria-label="Show">
+            {/* the page tabs' segmented look (Pending / Returned / ...) */}
             <button type="button" role="tab" aria-selected={filter === 'all'} className={`${styles.tab} ${filter === 'all' ? styles.tabOn : ''}`} onClick={() => setFilter('all')}>
               All ({items.length})
             </button>
@@ -185,15 +186,19 @@ const NotificationBell = () => {
               const info = describe(item)
               const target = notificationPath(role, item)
               return (
-                <button key={item.id} type="button" className={`${styles.item} ${item.isRead ? '' : styles.unread}`} onClick={() => openItem(item)}>
-                  <span className={styles.itemTop}>
-                    {!item.isRead && <span className={styles.dot} aria-label="unread" />}
-                    <span className={`${styles.tag} ${styles[info.tone]}`}>{info.tag}</span>
-                    <time className={styles.time} dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()}>{when(item.createdAt)}</time>
+                // An icon tile in the colour of what happened, the title and time, the sentence, and where it leads.
+                <button key={item.id} type="button" className={`${styles.item} ${item.isRead ? '' : styles.unread}`} onClick={() => openItem(item)}
+                  aria-label={`${item.isRead ? '' : 'Unread. '}${info.tag}: ${info.heading}`}>
+                  <span className={`${styles.icon} ${styles[info.tone]}`} aria-hidden="true"><info.Icon size={16} /></span>
+                  <span className={styles.body}>
+                    <span className={styles.itemTop}>
+                      <span className={styles.heading}>{info.heading}</span>
+                      <time className={styles.time} dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()}>{when(item.createdAt)}</time>
+                      {!item.isRead && <span className={styles.dot} aria-hidden="true" />}
+                    </span>
+                    {info.sentence && <span className={styles.sentence}>{info.sentence}</span>}
+                    {target && <span className={styles.link}>{linkLabel(target)} <ChevronRight size={14} aria-hidden="true" /></span>}
                   </span>
-                  <span className={styles.heading}>{info.heading}</span>
-                  {info.sentence && <span className={styles.sentence}>{info.sentence}</span>}
-                  {target && <span className={styles.link}>{linkLabel(target)} <ChevronRight size={14} aria-hidden="true" /></span>}
                 </button>
               )
             })}

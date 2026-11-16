@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CircleAlert as AlertCircle, CircleCheck as CheckCircle, Maximize, Minimize2, X } from 'lucide-react'
-import { changePassword, getSession } from '../utils/session.js'
+import { CircleAlert as AlertCircle, CircleCheck as CheckCircle, Lock, Maximize, Minimize2, PenLine, User, X } from 'lucide-react'
+import { changePassword, getSession, roleMeta } from '../utils/session.js'
 import styles from '../styles/SettingsModal.module.sass'
 import SignatureTab from './SignatureTab.jsx'
 
@@ -11,11 +11,17 @@ import SignatureTab from './SignatureTab.jsx'
 // Signing in with a temporary password still uses the full-page /change-password screen, which blocks everything
 // else until it is done.
 const TABS = [
-  { key: 'account', label: 'Account' },
-  { key: 'security', label: 'Security' },
+  { key: 'account', label: 'Account', Icon: User, about: 'Who is signed in.' },
+  { key: 'security', label: 'Security', Icon: Lock, about: 'Change your password.' },
   // Only roles with a box on the plan's signature block (Prepared, Reviewed, Resources Certified, Approved, Noted by).
-  { key: 'signature', label: 'Signature', roles: ['instructor', 'industry-consultant', 'program-head', 'director-of-libraries', 'dean'] }
+  { key: 'signature', label: 'Signature', Icon: PenLine, about: 'The signature printed on the plans you prepare or approve.', roles: ['instructor', 'industry-consultant', 'program-head', 'director-of-libraries', 'dean'] }
 ]
+
+// "DANILA, JUNAR" -> "JD": the first letters of the given and the family name, like the account button.
+const initialsOf = (name) => {
+  const [family = '', given = ''] = String(name || '').split(',').map(part => part.trim())
+  return ((given[0] || '') + (family[0] || '')).toUpperCase() || '?'
+}
 
 const Row = ({ label, hint, children }) => (
   <div className={styles.row}>
@@ -112,6 +118,8 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
   }, [open, expanded, close])
 
   if (!open) return null
+  const visibleTabs = TABS.filter(item => !item.roles || (session?.roles || [session?.role]).some(role => item.roles.includes(role)))
+  const current = visibleTabs.find(item => item.key === tab) || visibleTabs[0]
 
   return createPortal(
     <>
@@ -133,24 +141,43 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
           </div>
         </div>
 
-        <div className={styles.tabs} role="tablist" aria-label="Settings">
-          {TABS.filter(item => !item.roles || (session?.roles || [session?.role]).some(role => item.roles.includes(role))).map(item => (
-            <button key={item.key} type="button" role="tab" aria-selected={tab === item.key}
-              className={`${styles.tab} ${tab === item.key ? styles.tabOn : ''}`} onClick={() => setTab(item.key)}>{item.label}</button>
-          ))}
-        </div>
-
-        <div className={styles.content}>
-          {tab === 'account' && (
-            <>
-              <Row label="Name">{session?.name || '—'}</Row>
-              <Row label="E-mail">{session?.email || '—'}</Row>
-              <Row label="Role">{session?.roleLabel || '—'}</Row>
-              <div className={styles.footnote}>Only a superuser can change these.</div>
-            </>
-          )}
-          {tab === 'security' && <SecurityTab />}
-          {tab === 'signature' && <SignatureTab />}
+        {/* Tabs down the left like the app's own side navigation; the chosen one's title and purpose head the page. */}
+        <div className={styles.layout}>
+          <nav className={styles.tabs} role="tablist" aria-label="Settings" aria-orientation="vertical">
+            {visibleTabs.map(item => (
+              <button key={item.key} type="button" role="tab" aria-selected={tab === item.key}
+                className={`${styles.tab} ${tab === item.key ? styles.tabOn : ''}`} onClick={() => setTab(item.key)}>
+                <item.Icon size={16} aria-hidden="true" /> {item.label}
+              </button>
+            ))}
+          </nav>
+          <div className={styles.content}>
+            <div className={styles.pageHead}>
+              <h3>{current.label}</h3>
+              <p>{current.about}</p>
+            </div>
+            {tab === 'account' && (
+              <>
+                <div className={styles.profile}>
+                  <span className={styles.avatar} aria-hidden="true">{initialsOf(session?.name)}</span>
+                  <div className={styles.profileText}>
+                    <strong>{session?.name || '—'}</strong>
+                    <span>{session?.email || '—'}</span>
+                  </div>
+                </div>
+                <Row label="Roles" hint="Switch between them from the account menu.">
+                  <span className={styles.roleChips}>
+                    {(session?.roles?.length ? session.roles : [session?.role]).filter(Boolean).map(key => (
+                      <span key={key} className={`${styles.roleChip} ${key === session?.role ? styles.roleChipOn : ''}`}>{roleMeta(key)?.label || key}</span>
+                    ))}
+                  </span>
+                </Row>
+                <div className={styles.footnote}>Your name, e-mail and roles are set by a superuser.</div>
+              </>
+            )}
+            {tab === 'security' && <SecurityTab />}
+            {tab === 'signature' && <SignatureTab />}
+          </div>
         </div>
       </div>
     </>,

@@ -64,7 +64,8 @@ const YEAR_LABELS = {
 };
 
 // The References / Courses switch: an icon and its word, so it does not read as a list / grid toggle of the same items.
-const SWITCH_BTN = { gap: 6, padding: '6px 10px', fontSize: 13, fontWeight: 500 };
+// Icon-only (the names are the tooltip and the accessible label), square like the other toolbar icons.
+const SWITCH_BTN = { width: 30, height: 28, padding: 0 };
 
 // The badge in a narrow column: the abbreviation when the name ends in one, "Open Educational Resource (OER)" -> "OER".
 const shortTypeLabel = type => { const label = typeLabel(type); return label.match(/\(([^)]+)\)\s*$/)?.[1] || label; };
@@ -482,8 +483,8 @@ const ReferenceLibrary = () => {
         </div>
         {/* Two different screens, so each button says which: the reference table, or one card per course. */}
         <div className={cards.layoutToggles}>
-          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} aria-pressed={layoutMode === 'list'} style={SWITCH_BTN}><List size={16} aria-hidden="true" /> References</button>
-          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} aria-pressed={layoutMode === 'courses'} style={SWITCH_BTN}><Grid size={16} aria-hidden="true" /> Courses</button>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} aria-pressed={layoutMode === 'list'} aria-label="References (table)" title="References" style={SWITCH_BTN}><List size={16} aria-hidden="true" /></button>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} aria-pressed={layoutMode === 'courses'} aria-label="Courses (cards)" title="Courses" style={SWITCH_BTN}><Grid size={16} aria-hidden="true" /></button>
         </div>
           </div>
           {/* Always there, one line high: adding or removing a filter never moves the table below it. */}

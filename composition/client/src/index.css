@@ -949,3 +949,34 @@ table, [role="table"], [class*="count" i], [class*="Count"], [class*="badge" i] 
 .chevron-turn[data-open] {
     transform: rotate(180deg);
 }
+
+/* The plan's info lines above the plan (Plan checks, Version history, Earlier consultant suggestions, the consultant's
+   sign-off): one look for all of them. An icon, the line, and "Show" / "Hide" on the right when it opens; no browser
+   triangle, no box. What opens is indented under the text. A failing plan check adds its own amber box. */
+details.info-line, div.info-line {
+    margin: 0 0 8px;
+    font-size: var(--fs-sm);
+    color: var(--ink-soft);
+}
+.info-line > summary, div.info-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    font-weight: var(--fw-medium);
+    list-style: none;
+}
+.info-line > summary { cursor: pointer; border-radius: var(--radius-sm); padding: 0 2px; }
+.info-line > summary::-webkit-details-marker { display: none; }
+.info-line > summary:hover { color: var(--ink); }
+.info-line > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.info-line > summary::after {
+    content: 'Show';
+    margin-left: auto;
+    color: var(--ink-muted);
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-medium);
+}
+.info-line[open] > summary::after { content: 'Hide'; }
+.info-line > summary svg, div.info-line svg { flex: none; }
+.info-line > :not(summary) { margin-left: 26px; }
