@@ -26,8 +26,26 @@ const validateDeadline = (raw) => {
     if (!isRealDate(due)) errors.syllabus_due = 'The due date must be a real date written YYYY-MM-DD.';
     else if (years && (due < `${years[1]}-01-01` || due > `${Number(years[2]) + 1}-12-31`)) errors.syllabus_due = 'The due date must fall in or near the school year.';
 
+    // The reminder schedule, both optional (empty: the defaults). remind_before: 0-60 days before (0 = on the day),
+    // at most 6 different days, given as a list or "7,3,1,0"; overdue_every: 0 (none) to 30 days.
+    let remindBefore = null;
+    if (input.remind_before != null && input.remind_before !== '') {
+        const list = (Array.isArray(input.remind_before) ? input.remind_before : String(input.remind_before).split(','))
+            .map(v => String(v).trim()).filter(v => v !== '');
+        const days = [...new Set(list.map(Number))];
+        if (list.length === 0 || days.some(d => !Number.isInteger(d) || d < 0 || d > 60)) errors.remind_before = 'Reminder days must be whole numbers from 0 to 60.';
+        else if (days.length > 6) errors.remind_before = 'Choose at most 6 reminder days.';
+        else remindBefore = days.sort((a, b) => b - a).join(',');
+    }
+    let overdueEvery = null;
+    if (input.overdue_every != null && input.overdue_every !== '') {
+        const every = Number(input.overdue_every);
+        if (!Number.isInteger(every) || every < 0 || every > 30) errors.overdue_every = 'Repeat every 0 (never) to 30 days.';
+        else overdueEvery = every;
+    }
+
     if (Object.keys(errors).length) return { ok: false, errors, values: null };
-    return { ok: true, errors: {}, values: { school_year: schoolYear, semester, program_id: programId, syllabus_due: due } };
+    return { ok: true, errors: {}, values: { school_year: schoolYear, semester, program_id: programId, syllabus_due: due, remind_before: remindBefore, overdue_every: overdueEvery } };
 };
 
 module.exports = { SEMESTERS, isRealDate, validateDeadline };

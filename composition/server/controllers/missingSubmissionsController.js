@@ -5,10 +5,13 @@
 // Everything is limited to the programs the person heads (deadline:manage).
 
 const { Op } = require('sequelize');
-const { sequelize, Notification, ReminderPause } = require('../models');
+const { sequelize, Notification, ReminderPause, ReminderLog } = require('../models');
 const { programsFor } = require('./termDeadlineController');
 const { findAwaiting, standing } = require('../utils/missingSubmissions');
-const { schoolClock, timezoneOf, asDate, daysUntil } = require('../utils/reminderRules');
+const { schoolClock, timezoneOf, asDate, daysUntil, reminderText } = require('../utils/reminderRules');
+const { claim } = require('../utils/reminderJob');
+const { notify } = require('../utils/notify');
+const { mailer } = require('../utils/mailer');
 const { record: audit } = require('../utils/audit');
 
 const asId = (value) => (/^[0-9]+$/.test(String(value ?? '')) ? Number(value) : null);
@@ -86,4 +89,36 @@ const setPaused = async (req, res, next) => {
     }
 };
 
-module.exports = { listMissing, setPaused };
+// POST /api/missing-submissions/:offeringId/remind — the Program Head reminds the instructor now, in the app and by
+// e-mail when mail is set up. Once per plan per day (ReminderLog "manual:offering:<id>"), so a person cannot flood an
+// instructor; it counts as "reminded by a person", which also keeps the automatic one quiet for the day.
+const remindNow = async (req, res, next) => {
+    try {
+        const id = asId(req.params.offeringId);
+        if (!id) return res.status(400).json({ error: 'Give an offering.' });
+        const programs = await programsFor(req.user);
+        const row = (await findAwaiting({ sequelize, programIds: programs.map(p => p.program_id) })).find(r => r.offeringId === id);
+        if (!row) return res.status(404).json({ error: 'That plan is not waiting on its instructor, or is not in a program you head.' });
+        if (!row.instructorId || !row.instructorActive) return res.status(409).json({ error: 'This course has no active instructor to remind.' });
+        const today = schoolClock(new Date(), timezoneOf()).day;
+        if (!(await claim(ReminderLog, `manual:offering:${id}`, 'manual', today))) {
+            return res.status(409).json({ error: `${row.courseCode}'s instructor was already reminded today. Try again tomorrow.` });
+        }
+        const days = row.syllabusDue ? daysUntil(row.syllabusDue, today) : null;
+        const text = days == null ? `reminder: ${row.state === 'Returned' ? 'resubmit' : 'submit'} your learning plan`
+            : reminderText(row.courseCode, days, row.state === 'Returned');
+        await notify([row.instructorId], 'poke', id, `${row.courseCode} — ${text} (from your Program Head)`, null);
+        if (mailer.configured() && row.instructorEmail) {
+            await mailer.send({ to: row.instructorEmail, subject: `LPMS reminder: ${row.courseCode}`,
+                text: `${row.courseCode} - ${text}.
+
+Your Program Head sent this reminder. Open LPMS and submit it from your assigned course offerings.` });
+        }
+        await audit({ actor: req.user, action: 'REMINDER_SENT_MANUALLY', entityType: 'offerings', entityId: id, ip: req.ip });
+        return res.json({ offeringId: id, lastReminderAt: new Date().toISOString(), lastReminderBy: 'a person' });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+module.exports = { listMissing, setPaused, remindNow };

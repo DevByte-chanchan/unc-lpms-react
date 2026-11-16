@@ -49,16 +49,17 @@ const saveDeadline = async (req, res, next) => {
         if (!allowed.some(p => p.program_id === result.values.program_id)) {
             return res.status(403).json({ error: 'You can set a deadline only for a program you head.' });
         }
-        const { program_id, school_year, semester, syllabus_due } = result.values;
+        const { program_id, school_year, semester, syllabus_due, remind_before, overdue_every } = result.values;
         const existing = await TermDeadline.findOne({ where: { program_id, school_year, semester } });
         let row;
         if (existing) {
-            if (existing.syllabus_due !== syllabus_due) await existing.update({ syllabus_due, set_by: req.user.id });
+            const changed = existing.syllabus_due !== syllabus_due || existing.remind_before !== remind_before || existing.overdue_every !== overdue_every;
+            if (changed) await existing.update({ syllabus_due, remind_before, overdue_every, set_by: req.user.id });
             row = existing;
         } else {
-            row = await TermDeadline.create({ program_id, school_year, semester, syllabus_due, set_by: req.user.id });
+            row = await TermDeadline.create({ program_id, school_year, semester, syllabus_due, remind_before, overdue_every, set_by: req.user.id });
         }
-        await audited(req, existing ? 'TERM_DEADLINE_CHANGED' : 'TERM_DEADLINE_SET', row.id, { program_id, school_year, semester, syllabus_due });
+        await audited(req, existing ? 'TERM_DEADLINE_CHANGED' : 'TERM_DEADLINE_SET', row.id, { program_id, school_year, semester, syllabus_due, remind_before, overdue_every });
         return res.status(existing ? 200 : 201).json(row);
     } catch (error) {
         return next(error);

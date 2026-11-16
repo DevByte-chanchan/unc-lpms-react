@@ -3,6 +3,7 @@ import { X, Calendar, CircleCheck as CheckCircle, Plus, TriangleAlert as AlertTr
 import MissingSubmissionsTable from './MissingSubmissionsTable.jsx'
 import EmptyState from './EmptyState.jsx'
 import DatePicker from './DatePicker.jsx'
+import Select from './Select.jsx'
 import { Loading, TableSkeleton } from './LoadingSkeleton.jsx'
 import styles from '../styles/DueDateDialog.module.sass'
 import dueStyles from '../styles/DueDates.module.sass'
@@ -11,8 +12,14 @@ import { alertDialog } from '../utils/appDialog.jsx'
 import { toast } from '../utils/toast.jsx'
 import { dayLabel, programCode, sortMissing } from '../utils/missingSubmissions.js'
 
-// When the system reminds the instructors for a due date: 7, 3 and 1 days before, on the day, then every third day.
-const REMINDER_OFFSETS = [[-7, '7 days before'], [-3, '3 days before'], [-1, '1 day before'], [0, 'On the day']]
+// The reminder schedule of a due date: which days before it (0 = on the day), then every N days once overdue.
+// The defaults match the server's config/reminders.js; a Program Head can change both per program and term.
+const DEFAULT_BEFORE = [7, 3, 1, 0]
+const DEFAULT_EVERY = 3
+const BEFORE_CHOICES = [14, 7, 5, 3, 2, 1, 0]
+const EVERY_CHOICES = [[0, 'Never'], [1, 'Every day'], [2, 'Every 2nd day'], [3, 'Every 3rd day'], [5, 'Every 5th day'], [7, 'Every week']]
+const beforeLabel = (d) => (d === 0 ? 'On the day' : `${d} day${d === 1 ? '' : 's'} before`)
+const parseBefore = (raw) => (raw ? String(raw).split(',').map(Number).filter(Number.isInteger) : DEFAULT_BEFORE)
 // Whole days from `from` to `to` (both YYYY-MM-DD); null when either is missing.
 const daysFrom = (from, to) => {
   const a = Date.parse(`${String(from || '').slice(0, 10)}T00:00:00Z`)
@@ -41,6 +48,8 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
   const [busyId, setBusyId] = React.useState(null)
   const [dialog, setDialog] = React.useState(null)
   const [dueText, setDueText] = React.useState('')
+  const [beforeDays, setBeforeDays] = React.useState(DEFAULT_BEFORE)
+  const [everyDays, setEveryDays] = React.useState(DEFAULT_EVERY)
   const [saving, setSaving] = React.useState(false)
   const [dialogError, setDialogError] = React.useState('')
 
@@ -84,7 +93,15 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
 
   // ---- the due date of a program for the chosen term ----
   const termDeadline = (program) => deadlines.deadlines.find(d => d.program_id === program.program_id && d.school_year === schoolYear && d.semester === semester)
-  const openDialog = (program) => { setDialog(program); setDueText(termDeadline(program)?.syllabus_due || ''); setDialogError('') }
+  const openDialog = (program) => {
+    const found = termDeadline(program)
+    setDialog(program); setDueText(found?.syllabus_due || ''); setDialogError('')
+    setBeforeDays(parseBefore(found?.remind_before)); setEveryDays(found?.overdue_every ?? DEFAULT_EVERY)
+  }
+  // A reminder day on or off (at most 6, at least one).
+  const toggleBefore = (day) => setBeforeDays(list => (list.includes(day)
+    ? (list.length > 1 ? list.filter(d => d !== day) : list)
+    : (list.length < 6 ? [...list, day].sort((a, b) => b - a) : list)))
   const closeDialog = () => { setDialog(null); setDialogError('') }
 
   const saveDeadline = async () => {
@@ -92,7 +109,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
     try {
       await fetchJson('/api/term-deadlines', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ program_id: dialog.program_id, school_year: schoolYear, semester, syllabus_due: dueText })
+        body: JSON.stringify({ program_id: dialog.program_id, school_year: schoolYear, semester, syllabus_due: dueText, remind_before: beforeDays.join(','), overdue_every: everyDays })
       })
       closeDialog()
       await load()
@@ -101,6 +118,20 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
       setDialogError(apiErrorMessage(err, 'The due date could not be saved.'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  // The Program Head reminds one instructor now (once a day per plan; the server refuses a second one).
+  const remindNow = async (row) => {
+    setBusyId(row.offeringId)
+    try {
+      await fetchJson(`/api/missing-submissions/${row.offeringId}/remind`, { method: 'POST' })
+      await load()
+      toast(`${row.instructorName ? 'The instructor of ' : ''}${row.courseCode} was reminded.`)
+    } catch (err) {
+      alertDialog(apiErrorMessage(err, 'The reminder was not sent.'), { title: 'Not sent' })
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -178,7 +209,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
           hint={rows.length === 0 ? 'Plans that are not submitted, or were returned and not resubmitted, appear here until the instructor submits them.' : 'Change the school year, the semester or the search.'}
         />
       ) : !error && (
-        <MissingSubmissionsTable rows={visible} onPause={readOnly ? null : pause} busyId={busyId} today={data?.today} />
+        <MissingSubmissionsTable rows={visible} onPause={readOnly ? null : pause} onRemind={readOnly ? null : remindNow} busyId={busyId} today={data?.today} />
       )}
 
       {dialog && (
@@ -209,12 +240,27 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
 
               <div className={styles.schedule} aria-live="polite">
                 <div className={styles.scheduleTitle}>Automatic reminders</div>
+                {/* Which days before the due date, then how often once it has passed. */}
+                <div className={styles.scheduleChoices} role="group" aria-label="Remind on">
+                  {BEFORE_CHOICES.map(day => (
+                    <button key={day} type="button" aria-pressed={beforeDays.includes(day)}
+                      className={`${styles.dayChip} ${beforeDays.includes(day) ? styles.dayChipOn : ''}`} onClick={() => toggleBefore(day)}>
+                      {day === 0 ? 'On the day' : `${day}d before`}
+                    </button>
+                  ))}
+                </div>
+                <div className={styles.scheduleEvery}>
+                  <span>After the due date</span>
+                  <Select value={String(everyDays)} onChange={(e) => setEveryDays(Number(e.target.value))} aria-label="After the due date">
+                    {EVERY_CHOICES.map(([value, label]) => <option key={value} value={String(value)}>{label}</option>)}
+                  </Select>
+                </div>
                 {dueText ? (
                   <ul>
-                    {REMINDER_OFFSETS.map(([offset, label]) => (
-                      <li key={label}><span>{label}</span><strong>{dayLabel(shiftDay(dueText, offset))}</strong></li>
+                    {beforeDays.map(day => (
+                      <li key={day}><span>{beforeLabel(day)}</span><strong>{dayLabel(shiftDay(dueText, -day))}</strong></li>
                     ))}
-                    <li><span>After that</span><strong>every 3rd day</strong></li>
+                    <li><span>After that</span><strong>{everyDays === 0 ? 'no more reminders' : EVERY_CHOICES.find(([v]) => v === everyDays)?.[1].toLowerCase()}</strong></li>
                   </ul>
                 ) : (
                   <div className={styles.scheduleEmpty}>Pick a date to see when the reminders go out.</div>

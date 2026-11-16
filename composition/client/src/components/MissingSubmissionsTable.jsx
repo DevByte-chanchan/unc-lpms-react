@@ -1,5 +1,6 @@
 import React from 'react'
 import styles from '../styles/CoursesTable.module.sass'
+import { BellRing } from 'lucide-react'
 import TableScrollRegion from './TableScrollRegion.jsx'
 import { shortDay, statusLabel, lastReminderShort, courseSubline, programCode, niceName } from '../utils/missingSubmissions.js'
 
@@ -30,7 +31,10 @@ const Switch = ({ on, disabled, label, onClick }) => (
   </button>
 )
 
-const MissingSubmissionsTable = ({ rows = [], onPause, busyId = null, today = '' }) => {
+// A person reminded this plan today: "Remind now" waits until tomorrow (the server allows one a day).
+const remindedToday = (row, today) => row.lastReminderBy === 'a person' && String(row.lastReminderAt || '').slice(0, 10) === today
+
+const MissingSubmissionsTable = ({ rows = [], onPause, onRemind = null, busyId = null, today = '' }) => {
   const showProgram = new Set(rows.map(row => row.programId)).size > 1
   return (
     <TableScrollRegion label="Learning plans not yet submitted" minWidth={1000} className={styles['table-container']}>
@@ -66,9 +70,19 @@ const MissingSubmissionsTable = ({ rows = [], onPause, busyId = null, today = ''
               <td width={170}><Standing row={row} /></td>
               <td width={170}><div style={clip}>{lastReminderShort(row, today)}</div></td>
               <td className={styles.fill}>
-                {row.status === 'no-deadline'
-                  ? <span style={{ color: 'var(--ink-muted)', fontSize: 'var(--fs-xs)' }}>No due date</span>
-                  : <Switch on={!row.remindersPaused} disabled={!onPause || busyId === row.offeringId} label={`Automatic reminders for ${row.courseCode}`} onClick={() => onPause(row)} />}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14 }}>
+                  {onRemind && (
+                    <button type="button" className="btn btn-secondary btn-sm" style={{ height: 30, padding: '0 10px' }}
+                      disabled={busyId === row.offeringId || !row.instructorActive || remindedToday(row, today)}
+                      title={!row.instructorActive ? 'No active instructor to remind' : remindedToday(row, today) ? 'Already reminded today' : `Remind the instructor of ${row.courseCode} now`}
+                      onClick={() => onRemind(row)}>
+                      <BellRing size={14} aria-hidden="true" /> {remindedToday(row, today) ? 'Reminded' : 'Remind now'}
+                    </button>
+                  )}
+                  {row.status === 'no-deadline'
+                    ? <span style={{ color: 'var(--ink-muted)', fontSize: 'var(--fs-xs)' }}>No due date</span>
+                    : <Switch on={!row.remindersPaused} disabled={!onPause || busyId === row.offeringId} label={`Automatic reminders for ${row.courseCode}`} onClick={() => onPause(row)} />}
+                </div>
               </td>
             </tr>
           ))}

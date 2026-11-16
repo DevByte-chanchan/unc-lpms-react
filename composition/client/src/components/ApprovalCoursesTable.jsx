@@ -309,7 +309,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     // is the normal way to use this screen, and a button that calls navigate()
     // cannot be middle-clicked or copied.
     const rowActions = (row) => (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
             <Link className={`actionLink ${styles.rowAction}`} to={getCourseLink(row)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 View <ChevronRight size={16} />

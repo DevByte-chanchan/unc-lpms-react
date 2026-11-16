@@ -80,7 +80,8 @@ const good = { program_id: 3, school_year: '2026-2027', semester: '1st', syllabu
 test('a valid deadline is accepted and normalised', () => {
     const result = validateDeadline({ ...good, program_id: '3', syllabus_due: ' 2026-11-15 ' });
     assert.equal(result.ok, true);
-    assert.deepEqual(result.values, good);
+    // no schedule given: both empty, so the defaults apply
+    assert.deepEqual(result.values, { ...good, remind_before: null, overdue_every: null });
 });
 
 test('each field is checked', () => {
@@ -100,4 +101,27 @@ test('the due date must fall in or near the school year', () => {
 
 test('missing or non-object input is refused without throwing', () => {
     for (const input of [null, undefined, 'x', 5, []]) assert.equal(validateDeadline(input).ok, false);
+});
+
+test('a due date can have its own reminder schedule; empty keeps the defaults', () => {
+    const own = rules.scheduleOf({ remindBefore: '14,5,0', overdueEvery: 2 });
+    assert.deepEqual(own, { before: [14, 5, 0], every: 2 });
+    assert.equal(rules.reminderKindFor(14, own), 'before-14');
+    assert.equal(rules.reminderKindFor(7, own), null, 'not on the default 7 any more');
+    assert.equal(rules.reminderKindFor(0, own), 'due');
+    assert.equal(rules.reminderKindFor(-2, own), 'overdue');
+    assert.equal(rules.reminderKindFor(-3, own), null);
+    assert.equal(rules.reminderKindFor(-6, rules.scheduleOf({ remindBefore: '1', overdueEvery: 0 })), null, 'every 0: none once overdue');
+    assert.deepEqual(rules.scheduleOf({}), rules.DEFAULT_SCHEDULE);
+});
+
+test('the schedule is validated with the due date', () => {
+    const base = { program_id: 1, school_year: '2026-2027', semester: '1st', syllabus_due: '2026-11-19' };
+    assert.equal(validateDeadline(base).values.remind_before, null, 'none given: the defaults');
+    assert.equal(validateDeadline({ ...base, remind_before: [1, 7, 3, 7] }).values.remind_before, '7,3,1', 'sorted, no repeats');
+    assert.equal(validateDeadline({ ...base, remind_before: '10, 0' }).values.remind_before, '10,0');
+    assert.ok(validateDeadline({ ...base, remind_before: '61' }).errors.remind_before);
+    assert.ok(validateDeadline({ ...base, remind_before: '1,2,3,4,5,6,7' }).errors.remind_before, 'at most 6');
+    assert.equal(validateDeadline({ ...base, overdue_every: 0 }).values.overdue_every, 0);
+    assert.ok(validateDeadline({ ...base, overdue_every: 31 }).errors.overdue_every);
 });

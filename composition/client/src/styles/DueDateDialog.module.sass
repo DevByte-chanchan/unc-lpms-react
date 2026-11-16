@@ -114,6 +114,48 @@
   text-transform: uppercase
   color: var(--ink-muted)
 
+// the reminder days, as on / off chips (up to 6), then how often once the date has passed
+.scheduleChoices
+  display: flex
+  flex-wrap: wrap
+  gap: 6px
+  margin-top: 10px
+
+.dayChip
+  height: 28px
+  padding: 0 10px
+  border: 1px solid var(--control-border)
+  border-radius: var(--radius-pill)
+  background: #fff
+  color: var(--ink-muted)
+  font: var(--fw-medium) var(--fs-xs) var(--font-ui)
+  cursor: pointer
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast)
+
+  &:hover
+    color: var(--ink)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+.dayChipOn
+  background: var(--primary)
+  border-color: var(--primary)
+  color: #fff
+
+  &:hover
+    color: #fff
+
+.scheduleEvery
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 10px
+  margin-top: 10px
+  font-size: var(--fs-sm)
+  color: var(--ink-soft)
+
 .scheduleEmpty
   margin-top: 8px
   font-size: 13px

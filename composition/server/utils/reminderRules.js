@@ -24,13 +24,24 @@ const schoolClock = (now, timeZone = DEFAULT_TIMEZONE) => {
 // Whole days from `today` to `due` (both YYYY-MM-DD): 3 = due in three days, 0 = due today, -2 = two days overdue.
 const daysUntil = (due, today) => Math.round((Date.parse(`${due}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / DAY_MS);
 
+// A due date's reminder schedule: { before: [7, 3, 1, 0], every: 3 }. Its own (TermDeadlines.remind_before /
+// overdue_every) when set, otherwise the defaults in config/reminders.js. every 0: no reminders once overdue.
+const DEFAULT_SCHEDULE = Object.freeze({ before: [...BEFORE_DUE], every: OVERDUE_EVERY_DAYS });
+const scheduleOf = (row = {}) => {
+    const raw = row.remindBefore ?? row.remind_before;
+    const every = row.overdueEvery ?? row.overdue_every;
+    const before = raw == null || raw === '' ? DEFAULT_SCHEDULE.before
+        : String(raw).split(',').map(Number).filter(n => Number.isInteger(n) && n >= 0);
+    return { before, every: every == null || every === '' ? DEFAULT_SCHEDULE.every : Number(every) };
+};
+
 // The kind of reminder due on a day that is `days` from the due date, or null when none is due that day.
-//   before-7, before-3, before-1, due, then overdue on every 3rd day past the due date.
-const reminderKindFor = (days) => {
+//   before-N on the schedule's days, due on the day itself, then overdue on every Nth day past the due date.
+const reminderKindFor = (days, schedule = DEFAULT_SCHEDULE) => {
     if (!Number.isInteger(days)) return null;
-    if (days >= 0) return BEFORE_DUE.includes(days) ? (days === 0 ? 'due' : `before-${days}`) : null;
+    if (days >= 0) return schedule.before.includes(days) ? (days === 0 ? 'due' : `before-${days}`) : null;
     const overdue = -days;
-    return overdue % OVERDUE_EVERY_DAYS === 0 ? 'overdue' : null;
+    return schedule.every > 0 && overdue % schedule.every === 0 ? 'overdue' : null;
 };
 
 // The words of a reminder: the course, how long is left, and what to do. No names, no personal data.
@@ -84,4 +95,4 @@ const waitingText = ({ waiting, long, stalled = 0 }) => {
     return parts.join('; ');
 };
 
-module.exports = { returnedText, returnedHeadText, waitLimitFor, isWaitingTrigger, asDate, waitingText, timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };
+module.exports = { DEFAULT_SCHEDULE, scheduleOf, returnedText, returnedHeadText, waitLimitFor, isWaitingTrigger, asDate, waitingText, timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };

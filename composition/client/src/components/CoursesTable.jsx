@@ -452,7 +452,7 @@ const CoursesTable = () => {
                                 <td width={350}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
                                 <td className={styles.fill}>
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
                                         <Link
                                             className={'actionLink'}
                                             to={offeringPath(getOfferingID(row), getRevNum(row), selectedStatus.toLowerCase())}
@@ -526,7 +526,7 @@ const CoursesTable = () => {
                                     <td width={350}>{getName(row)}</td>
 
                                     <td className={styles.fill}>
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
                                             {overallStatus === 'Returned' ? (
                                                 <Link className={'actionLink'}
                                                       to={offeringPath(getOfferingID(row), getRevNum(row), selectedStatus.toLowerCase())}

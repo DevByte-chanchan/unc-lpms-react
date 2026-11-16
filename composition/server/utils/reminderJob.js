@@ -150,7 +150,8 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
     for (const row of waiting) {
         if (!row.syllabusDue || !row.instructorId || !row.instructorActive) continue;
         const days = rules.daysUntil(row.syllabusDue, clock.day);
-        const kind = rules.reminderKindFor(days);
+        // the program's own schedule for this term, or the defaults
+        const kind = rules.reminderKindFor(days, rules.scheduleOf(row));
         if (!kind) continue;
         if (pausedIds.has(row.offeringId)) { result.paused += 1; continue; }
 

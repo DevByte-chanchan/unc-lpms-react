@@ -388,6 +388,10 @@ select option
   border: none
   display: flex
   padding: 0
+  // pinned to the right end of the actions cell: the same spot on every row, whether or not Export or
+  // Start revision come before it
+  margin-left: auto
+  flex: 0 0 auto
   // The icon draws in currentColor; the global button text colour is white, which vanished on this white background.
   color: var(--ink-soft)
   cursor: pointer

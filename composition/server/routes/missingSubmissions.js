@@ -7,5 +7,6 @@ const { requirePermission } = require('../middleware/auth');
 // only the Program Head pauses reminders (deadline:manage).
 router.get('/', requirePermission('deadline:view'), controller.listMissing);
 router.put('/:offeringId/pause', requirePermission('deadline:manage'), controller.setPaused);
+router.post('/:offeringId/remind', requirePermission('deadline:manage'), controller.remindNow);
 
 module.exports = router;
