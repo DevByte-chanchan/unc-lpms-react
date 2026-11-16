@@ -119,7 +119,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   ].filter(Boolean), [syllabusTopics, syllabusReferences])
 
   // "CO1 — Implement the core concepts…": the number once, not "1 — CO1: Implement…".
-  const courseOutcomeLabel = (co, idx) => `CO${idx + 1} — ${String(co.description || '').replace(/^\s*CO\s*\d+\s*[:.\-–]\s*/i, '').slice(0, 70)}`
+  const courseOutcomeLabel = (co, idx) => `CO${idx + 1} — ${String(co.description || '').replace(/^\s*CO\s*\d+\s*[:.\-–]\s*/i, '')}`
 
   useEffect(() => {
     let live = true
@@ -701,7 +701,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           const blocked = isDirector ? (!comments[0]?.text?.trim() && selectedRefs.length === 0) : saveDisabled
           const why = isDirector
             ? `Write a comment on a reference, or pick a reference to suggest, ${outcome}.`
-            : `Fill in a comment, with its course outcome, ILO, type and target, ${outcome}.`
+            : `Fill in a comment, with its course outcome, week, coverage type and target, ${outcome}.`
           return (
             <div className={styles.actions}>
               {blocked && <span className={styles.actionsHint}>{why}</span>}

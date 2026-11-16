@@ -129,7 +129,7 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
 
       {open && createPortal(
         <ul ref={list} id={listId} role="listbox" aria-label={rest['aria-label']} className={styles.list}
-          style={{ left: pos.left, minWidth: pos.width, maxWidth: 'calc(100vw - 24px)', ...(pos.up ? { bottom: window.innerHeight - pos.top } : { top: pos.top }) }}>
+          style={{ left: pos.left, minWidth: pos.width, maxWidth: 'min(560px, calc(100vw - 24px))', ...(pos.up ? { bottom: window.innerHeight - pos.top } : { top: pos.top }) }}>
           {options.map((option, index) => (
             <li key={`${option.value}-${index}`} role="option" title={option.label} aria-selected={current === option} aria-disabled={option.disabled || undefined}
               data-active={index === active} className={`${styles.option} ${index === active ? styles.active : ''} ${option.disabled ? styles.off : ''} ${option.clear ? styles.clear : ''}`}
