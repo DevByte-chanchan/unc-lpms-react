@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, ChevronRight } from 'react-feather';
+import { ExternalLink, ChevronRight } from 'lucide-react';
 import styles from '../styles/Dashboard.module.sass';
 
 const MiniAssignedTOS = () => {

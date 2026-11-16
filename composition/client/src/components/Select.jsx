@@ -1,6 +1,6 @@
 import { Children, Fragment, isValidElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown, X } from 'react-feather'
+import { Check, ChevronDown, X } from 'lucide-react'
 import styles from '../styles/Select.module.sass'
 
 // A drop-down list in the app's look, in place of the browser's own <select> popup (which cannot be styled). It is a

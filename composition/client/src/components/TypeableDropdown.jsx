@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/TypeableDropdown.module.sass';
-import { ChevronDown } from 'react-feather';
+import { ChevronDown } from 'lucide-react';
 
 const TypeableDropdown = ({ label, disabled, value, initialValue, options = [], inline = false, onChange, error }) => {
     const isControlled = value !== undefined;

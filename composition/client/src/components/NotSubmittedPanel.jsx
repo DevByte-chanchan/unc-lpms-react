@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, Calendar, CheckCircle, Plus, AlertTriangle } from 'react-feather'
+import { X, Calendar, CircleCheck as CheckCircle, Plus, TriangleAlert as AlertTriangle } from 'lucide-react'
 import MissingSubmissionsTable from './MissingSubmissionsTable.jsx'
 import EmptyState from './EmptyState.jsx'
 import DatePicker from './DatePicker.jsx'

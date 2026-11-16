@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Download, FileText, File, Columns, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
+import { X, Download, FileText, File, Columns2 as Columns, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from '../styles/PDFViewerModal.module.sass';
 import useDialogFocus from '../utils/useDialogFocus.js';
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { WEEK_COMMENTS_EVENT } from '../utils/useCommentFocus.js'
 import { offeringKey } from '../utils/offeringKey.js'
 import HeadBodyTable from './HeadBodyTable.jsx';
-import { AlertTriangle } from 'react-feather';
+import { TriangleAlert as AlertTriangle } from 'lucide-react';
 import EmptyState from './EmptyState.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
 

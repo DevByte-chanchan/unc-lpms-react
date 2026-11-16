@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'react-feather'
+import { X } from 'lucide-react'
 import Select from './Select.jsx'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { toast } from '../utils/toast.jsx'

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useDialogFocus from '../utils/useDialogFocus.js';
-import { X, Maximize, Minimize2 } from 'react-feather';
+import { X, Maximize, Minimize2 } from 'lucide-react';
 import ReferenceFields from './ReferenceFields.jsx';
 import { useReferenceForm } from './useReferenceForm.js';
 import styles from '../styles/AddReferenceModal.module.sass';

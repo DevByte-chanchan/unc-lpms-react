@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle } from 'react-feather'
+import { CircleCheck as CheckCircle } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   lookupAccountLink, acceptInvitation, resetPassword, requestInvitation, fetchPrivacyNotice, getSession, logout,

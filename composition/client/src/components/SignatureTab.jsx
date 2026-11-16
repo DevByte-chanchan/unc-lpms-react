@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Trash2, Upload } from 'react-feather'
+import { Trash as Trash2, Upload } from 'lucide-react'
 import { API_BASE, fetchJson, apiErrorMessage } from '../utils/api.js'
 import { actingRole } from '../utils/session.js'
 import { cleanSignatureFile } from '../utils/signatureCleanup.js'

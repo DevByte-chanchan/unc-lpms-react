@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'react-feather'
+import { X } from 'lucide-react'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import styles from '../styles/DueDateDialog.module.sass'

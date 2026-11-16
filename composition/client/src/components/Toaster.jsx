@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle, Info, X } from 'react-feather'
+import { TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Info, X } from 'lucide-react'
 import styles from '../styles/Toast.module.sass'
 
 // The stack of toasts in the bottom-right corner. Mounted once by utils/toast.jsx, which hands it `connect`: the

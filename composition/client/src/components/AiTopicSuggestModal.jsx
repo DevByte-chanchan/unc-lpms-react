@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, Check, RefreshCw, Plus, Clock, CheckCircle, AlertTriangle, ArrowRight, Layers, BookOpen } from 'react-feather';
+import { X, Check, RefreshCw, Plus, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, ArrowRight, Layers, BookOpen } from 'lucide-react';
 import styles from '../styles/AiTopicSuggestModal.module.sass';
 import { fetchJson, apiErrorMessage } from '../utils/api.js';
 import { alertDialog } from '../utils/appDialog.jsx';

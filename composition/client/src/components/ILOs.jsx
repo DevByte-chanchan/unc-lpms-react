@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Inbox, Search, Edit2, Clock, Flag } from "react-feather";
+import { ChevronRight, Inbox, Search, Pen as Edit2, Clock, Flag } from "lucide-react";
 import { offeringKey, revisionOf } from '../utils/offeringKey.js'
 
 const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {

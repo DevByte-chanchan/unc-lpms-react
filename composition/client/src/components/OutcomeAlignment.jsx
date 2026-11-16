@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { offeringKey } from '../utils/offeringKey.js'
-import { Inbox, Grid, AlertTriangle } from "react-feather";
+import { Inbox, LayoutGrid as Grid, TriangleAlert as AlertTriangle } from "lucide-react";
 import EmptyState from './EmptyState.jsx';
 import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';

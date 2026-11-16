@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Upload } from 'react-feather';
+import { X, Upload } from 'lucide-react';
 import { apiErrorMessage } from '../utils/api.js';
 import { importReferences } from '../utils/referenceStore.js';
 import useDialogFocus from '../utils/useDialogFocus.js';

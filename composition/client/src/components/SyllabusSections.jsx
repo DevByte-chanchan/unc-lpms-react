@@ -1,7 +1,7 @@
 import styles from '../styles/SyllabusSections.module.sass'
 import { offeringKey } from '../utils/offeringKey.js'
 import stylesB from '../styles/SyllabusPreview.module.sass'; // Ensure this has the new modal CSS classes
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical, Download, Clock, MessageSquare} from 'react-feather';
+import { ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, EllipsisVertical as MoreVertical, Download, Clock, MessageSquare } from 'lucide-react';
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {Link, useNavigate, useParams, useSearchParams, useLocation} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";

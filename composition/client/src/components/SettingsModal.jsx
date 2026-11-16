@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertCircle, CheckCircle, Maximize, Minimize2, X } from 'react-feather'
+import { CircleAlert as AlertCircle, CircleCheck as CheckCircle, Maximize, Minimize2, X } from 'lucide-react'
 import { changePassword, getSession } from '../utils/session.js'
 import styles from '../styles/SettingsModal.module.sass'
 import SignatureTab from './SignatureTab.jsx'

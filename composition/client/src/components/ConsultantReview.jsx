@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { confirmDialog } from '../utils/appDialog.jsx'
 import { createPortal } from 'react-dom'
-import { X, Edit2, Trash2, PenTool } from 'react-feather'
+import { X, Pen as Edit2, Trash as Trash2, PenLine as PenTool } from 'lucide-react'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import styles from '../styles/DueDateDialog.module.sass'

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'react-feather'
+import { X } from 'lucide-react'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import frame from '../styles/DueDateDialog.module.sass'
 import styles from '../styles/PlanChanges.module.sass'

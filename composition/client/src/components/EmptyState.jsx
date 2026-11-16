@@ -1,5 +1,5 @@
 import React from 'react'
-import { Inbox } from 'react-feather'
+import { Inbox } from 'lucide-react'
 import styles from '../styles/EmptyState.module.sass'
 
 /**
@@ -14,7 +14,7 @@ import styles from '../styles/EmptyState.module.sass'
  * Props:
  * - title   the one-line statement ("No learning plans pending review")
  * - hint    optional second line explaining why it is empty or what to do
- * - icon    optional react-feather element; defaults to an inbox
+ * - icon    optional lucide-react element; defaults to an inbox
  * - action  optional node (a button/link) under the hint
  * - inline  true renders a shorter block for use inside a card or a table cell
  * - colSpan when set, the block is wrapped in <tr><td colSpan=…> so it can be

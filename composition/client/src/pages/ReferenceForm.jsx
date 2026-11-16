@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } f
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
 import Dropdown from '../components/Dropdown.jsx';
-import { X } from 'react-feather';
+import { X } from 'lucide-react';
 import { confirmDialog } from '../utils/appDialog.jsx';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import { offeringKey } from '../utils/offeringKey.js';

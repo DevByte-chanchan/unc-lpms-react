@@ -4,7 +4,7 @@ import Spinner from './Spinner.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import Reveal from './Reveal.jsx';
-import { ChevronRight, Edit, XCircle, HelpCircle, Download, FileText, Clock, RotateCcw, CheckCircle, List, Grid, ChevronDown, Search } from 'react-feather';
+import { ChevronRight, Pencil as Edit, CircleX as XCircle, CircleQuestionMark as HelpCircle, Download, FileText, Clock, RotateCcw, CircleCheck as CheckCircle, List, LayoutGrid as Grid, ChevronDown, Search } from 'lucide-react';
 import EmptyState from './EmptyState.jsx';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import { revisionLabel } from '../utils/offeringLabels.js';

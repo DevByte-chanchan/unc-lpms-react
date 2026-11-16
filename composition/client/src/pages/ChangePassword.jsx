@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertCircle, Info } from 'react-feather'
+import { CircleAlert as AlertCircle, Info } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { changePassword, getSession, homeRouteForRole, logout } from '../utils/session'
 import styles from '../styles/Login.module.sass'

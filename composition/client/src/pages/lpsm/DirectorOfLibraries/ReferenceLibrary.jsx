@@ -5,18 +5,18 @@ import {
   Archive,
   BookOpen,
   ChevronLeft,
-  Edit2,
+  Pen as Edit2,
   ChevronRight,
-  Filter,
-  Grid,
+  Funnel as Filter,
+  LayoutGrid as Grid,
   List,
   Plus,
   RotateCcw,
   Search,
-  Sliders,
+  SlidersHorizontal as Sliders,
   Upload,
-  X,
-} from 'react-feather';
+  X
+} from 'lucide-react';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';

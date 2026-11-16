@@ -1,6 +1,6 @@
 
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight } from 'react-feather';
+import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TableScrollRegion from './TableScrollRegion.jsx';
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, Clock, RotateCcw, Eye, PenTool } from 'react-feather'
+import { Check, Clock, RotateCcw, Eye } from 'lucide-react'
 import { consolidatedStatus, verifySignature, canAcceptOnStage } from '../utils/reviewGate.js'
 import styles from '../styles/ApprovalChainStatus.module.sass'
 
@@ -80,13 +80,13 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
                     actionable ? styles.actionable : ''
                 ].filter(Boolean).join(' ')
 
+                // One icon and the label: a sign-off reads like any approval (a check); who signed is in the tooltip.
                 const body = (
                     <>
-                        {signoff ? <PenTool size={14} /> : iconFor(step)}
+                        {signoff ? <Check size={14} /> : iconFor(step)}
                         {step.label}
                         {signoff && <span className={styles.date}>· {shortDate(signoff.signedAt)}</span>}
                         {step.final && step.completedAt && <span className={styles.date}>· {shortDate(step.completedAt)}</span>}
-                        {signed && <PenTool size={12} />}
                     </>
                 )
 

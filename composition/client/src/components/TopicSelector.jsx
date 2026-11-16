@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styles from '../styles/TopicSelector.module.sass';
-import { Search, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock } from 'react-feather';
+import { Search, Plus, Trash as Trash2, Copy, X, ChevronDown, Pen as Edit2, CornerDownRight, Lock } from 'lucide-react';
 import { GeminiStar } from './AiTopicSuggestModal.jsx';
 import SpellCheckInput from './SpellCheckInput.jsx';
 

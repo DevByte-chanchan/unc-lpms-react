@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Calendar, ChevronLeft, ChevronRight } from 'react-feather'
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import styles from '../styles/DatePicker.module.sass'
 
 // A date field with a calendar that looks like the rest of the app, in place of the browser's own date popup (which

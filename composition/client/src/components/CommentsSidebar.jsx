@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronRight, ChevronDown, ChevronUp, MessageSquare, Check, Crosshair } from 'react-feather'
+import { ChevronRight, ChevronDown, ChevronUp, MessageSquare, Check, Crosshair } from 'lucide-react'
 import EmptyState from './EmptyState.jsx'
 import Select from './Select.jsx'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'

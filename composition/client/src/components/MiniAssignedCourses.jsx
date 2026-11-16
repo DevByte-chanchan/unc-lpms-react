@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, ChevronRight, Edit, ChevronDown } from 'react-feather';
+import { ExternalLink, ChevronRight, Pencil as Edit, ChevronDown } from 'lucide-react';
 import Reveal from './Reveal.jsx';
 import styles from '../styles/Dashboard.module.sass';
 

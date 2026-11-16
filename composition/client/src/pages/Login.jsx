@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Eye, EyeOff } from 'react-feather'
+import { Eye, EyeOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   DEMO_MODE, DEMO_PASSWORD, listAccounts, login, logout, chooseRole, getSession, homeRouteForRole, roleMeta, authMode,

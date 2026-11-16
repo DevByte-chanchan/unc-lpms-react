@@ -3,7 +3,7 @@ import { alertDialog } from '../utils/appDialog.jsx';
 import { historyRevisionLabel } from "../utils/offeringLabels.js";
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Clock, X, Maximize, Minimize2 } from "react-feather";
+import { Clock, X, Maximize, Minimize2 } from "lucide-react";
 import { fetchJson } from "../utils/api";
 import EmptyState from "./EmptyState.jsx";
 import PDFViewerModal from "./PDFViewerModal.jsx";

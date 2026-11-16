@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle, AlertTriangle, Info } from 'react-feather'
+import { CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Info } from 'lucide-react'
 import { fetchJson } from '../utils/api.js'
 
 // The checks the Program Head used to do by hand (server: utils/planChecks.js): hours per week, weeks with topics,

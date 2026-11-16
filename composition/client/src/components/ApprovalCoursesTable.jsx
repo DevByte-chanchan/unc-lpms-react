@@ -3,7 +3,7 @@ import { alertDialog } from "../utils/appDialog.jsx";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, ChevronDown, XCircle, HelpCircle, Download, Clock, RotateCcw, CheckCircle, Search, List, Grid } from 'react-feather';
+import { ChevronRight, ChevronDown, CircleX as XCircle, CircleQuestionMark as HelpCircle, Download, Clock, RotateCcw, CircleCheck as CheckCircle, Search, List, LayoutGrid as Grid } from 'lucide-react';
 import SortableTh from './SortableTh.jsx';
 import { sortRows, nextSort } from '../utils/tableSort.js';
 import { fetchJson } from "../utils/api.js";

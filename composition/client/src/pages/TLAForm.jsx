@@ -4,7 +4,7 @@ import Dropdown from "../components/Dropdown.jsx";
 import TextArea from "../components/TextArea.jsx";
 import SpellCheckInput from "../components/SpellCheckInput.jsx";
 import { checkSpelling } from "../utils/spellChecker.js";
-import { Plus, Award, X, Edit2 } from "react-feather";
+import { Plus, Award, X, Pen as Edit2 } from "lucide-react";
 import { fetchJson } from "../utils/api.js";
 import { PERIODS, periodLabel, periodCode, parseWeight } from "../utils/assessmentWeights.js";
 import { IED_LEVELS } from "../utils/iedLevels.js";

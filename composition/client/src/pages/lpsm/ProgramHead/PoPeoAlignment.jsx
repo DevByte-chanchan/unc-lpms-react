@@ -2,7 +2,7 @@ import Select from '../../../components/Select.jsx'
 import { alertDialog, confirmDialog } from '../../../utils/appDialog.jsx'
 import { toast } from '../../../utils/toast.jsx'
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Edit3, Check, X, Plus, Trash2, Upload, Zap, Download, FileText } from 'react-feather';
+import { PenLine as Edit3, Check, X, Plus, Trash as Trash2, Upload, Zap, Download, FileText } from 'lucide-react';
 import { SOURCE_LABEL } from '../../../utils/scanSource.js';
 import { DocumentBar, TemplateButton } from '../../../components/CourseDocumentBar.jsx';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';

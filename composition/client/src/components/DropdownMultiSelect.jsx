@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/DropdownMultiSelect.module.sass';
-import { ChevronDown, X } from 'react-feather';
+import { ChevronDown, X } from 'lucide-react';
 
 const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = [], inline = false, error, style, placeholder = 'Select options...' }) => {
     const [isOpen, setIsOpen] = useState(false);

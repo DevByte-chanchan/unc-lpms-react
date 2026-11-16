@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Columns, Download, File, Maximize, Minimize2, Printer, ZoomIn, ZoomOut } from 'react-feather'
+import { ChevronLeft, ChevronRight, Columns2 as Columns, Download, File, Maximize, Minimize2, Printer, ZoomIn, ZoomOut } from 'lucide-react'
 import styles from '../styles/PdfViewer.module.sass'
 import { Bone, Loading } from './LoadingSkeleton.jsx'
 

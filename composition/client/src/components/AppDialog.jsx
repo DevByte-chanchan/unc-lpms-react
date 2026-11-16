@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { AlertCircle, AlertTriangle, X } from 'react-feather'
+import { CircleAlert as AlertCircle, TriangleAlert as AlertTriangle, X } from 'lucide-react'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import styles from '../styles/DueDateDialog.module.sass'
 

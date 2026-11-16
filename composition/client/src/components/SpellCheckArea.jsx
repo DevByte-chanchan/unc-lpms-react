@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { Zap, Check, AlertCircle, X } from 'react-feather'
+import { Zap, Check, CircleAlert as AlertCircle, X } from 'lucide-react'
 import { findIssues, mergeIssues, segmentText, applySuggestion, issueAt, isReady, loadWordList, termWords } from '../utils/spellSuggest.js'
 import { autoCorrect, ATTRIBUTION_URL, ONLINE_SERVICE_CONFIG } from '../utils/autoCorrect.js'
 import { findGrammarIssues } from '../utils/grammarRules.js'

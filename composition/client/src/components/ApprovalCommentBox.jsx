@@ -1,6 +1,6 @@
 import Select from './Select.jsx'
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, X, Maximize, Minimize2, MessageSquare, Plus } from 'react-feather'
+import { Search, X, Maximize, Minimize2, MessageSquare, Plus } from 'lucide-react'
 import { toast } from '../utils/toast.jsx'
 import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
 import styles from '../styles/ApprovalCommentBox.module.sass'

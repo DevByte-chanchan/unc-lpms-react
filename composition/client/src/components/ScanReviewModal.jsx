@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, Trash2, X, Zap } from 'react-feather'
+import { Plus, Trash as Trash2, X, Zap } from 'lucide-react'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import styles from '../styles/ScanReviewModal.module.sass'
 import { SOURCE_LABEL } from '../utils/scanSource.js'

@@ -1,6 +1,6 @@
 import Select from '../../../components/Select.jsx'
 import { useEffect, useState } from 'react';
-import { Download, FileText } from 'react-feather';
+import { Download, FileText } from 'lucide-react';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, ChevronDown, Key, Settings } from 'react-feather'
+import { Check, ChevronDown, Key, Settings } from 'lucide-react'
 import styles from '../styles/Header.module.sass'
 import { getSession, setActiveRole, homeRouteForRole, roleMeta } from '../utils/session'
 import { ROLE_DESCRIPTIONS } from '../utils/accountAuth.js'

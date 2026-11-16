@@ -1,4 +1,4 @@
-import { X } from 'react-feather'
+import { X } from 'lucide-react'
 import styles from '../styles/CoursesTable.module.sass'
 
 // "View details" of a plan's approval, opened by the ? in a course row (the instructor's list and the approvers'):

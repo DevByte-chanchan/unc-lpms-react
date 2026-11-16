@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, RotateCw, CheckCircle, Clock, AlertTriangle } from 'react-feather';
+import { Calendar, RotateCw, CircleCheck as CheckCircle, Clock, TriangleAlert as AlertTriangle } from 'lucide-react';
 import styles from '../styles/Dashboard.module.sass';
 import { fmtDate, formatSemester } from '../services/periodLabel.js';
 import {

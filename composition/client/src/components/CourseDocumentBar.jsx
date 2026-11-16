@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
 import { toast } from '../utils/toast.jsx'
-import { Download, FileText, Upload, Zap } from 'react-feather'
+import { Download, FileText, Upload, Zap } from 'lucide-react'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { downloadFromApi, openCourseDocument } from '../utils/courseDocuments.js'
 import { getSession } from '../utils/session.js'

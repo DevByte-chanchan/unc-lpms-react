@@ -8,7 +8,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import TopicSelector from "../components/TopicSelector.jsx";
 import AiTopicSuggestModal from "../components/AiTopicSuggestModal.jsx";
 import { checkSpelling } from "../utils/spellChecker.js";
-import { MessageSquare, ChevronsRight, ChevronDown } from 'react-feather';
+import { MessageSquare, ChevronsRight, ChevronDown } from 'lucide-react';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import { alertDialog, confirmDialog } from "../utils/appDialog.jsx";
 import { toast } from "../utils/toast.jsx";

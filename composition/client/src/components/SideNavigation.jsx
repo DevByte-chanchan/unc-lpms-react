@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, Folder, GitMerge, Grid, Layers, LogOut, Sidebar, Target, UserCheck, Users } from 'react-feather'
+import { BookOpen, Briefcase, CircleCheck as CheckCircle, Clipboard, Clock, FileText, Folder, GitMerge, LayoutGrid as Grid, Layers, LogOut, PanelLeft as Sidebar, Target, UserCheck, Users } from 'lucide-react'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'

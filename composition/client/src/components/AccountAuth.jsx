@@ -1,7 +1,7 @@
 // The pieces of the sign-in screens of feature/course-assignment, shared by Login, Forgot password and the
 // e-mailed link pages (set / reset password): the brand header, the "Continue as..." role picker, and the
 // password fields with their live checklist. Styles: styles/AccountAuth.module.sass.
-import { ChevronRight, Eye, EyeOff, AlertCircle, Check, Circle } from 'react-feather'
+import { ChevronRight, Eye, EyeOff, CircleAlert as AlertCircle, Check, Circle } from 'lucide-react'
 import styles from '../styles/AccountAuth.module.sass'
 import unclogo from '../assets/unclogo.png'
 import { roleMeta } from '../utils/session'

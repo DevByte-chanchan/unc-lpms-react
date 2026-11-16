@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import styles from '../styles/ReferencePicker.module.sass';
 import EmptyState from './EmptyState.jsx';
-import { Search, Book, Globe, Unlock, ExternalLink, Plus, X, AlertTriangle, Star, Lock, FileText } from 'react-feather';
+import { Search, Book, Globe, LockOpen as Unlock, ExternalLink, Plus, X, TriangleAlert as AlertTriangle, Star, Lock, FileText } from 'lucide-react';
 import {
     buildCatalogView,
     getCatalogSettings,

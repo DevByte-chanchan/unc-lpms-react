@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass'
-import { ChevronRight } from 'react-feather'
-import { UserPlus } from 'react-feather'
+import { ChevronRight } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 import TableScrollRegion from './TableScrollRegion.jsx'
 
 const mockPrograms = [

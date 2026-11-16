@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowDown } from 'react-feather'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import styles from '../styles/SortableHeader.module.sass'
 
 /**

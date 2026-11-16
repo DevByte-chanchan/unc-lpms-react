@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { offeringKey } from '../utils/offeringKey.js'
-import { BookOpen } from 'react-feather';
+import { BookOpen } from 'lucide-react';
 import { unresolvedCountsByReference } from '../utils/referenceComments.js';
 import EmptyState from './EmptyState.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';

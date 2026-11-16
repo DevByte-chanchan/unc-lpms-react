@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle } from 'react-feather'
+import { CircleCheck as CheckCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { requestPasswordReset } from '../utils/session'
 import styles from '../styles/AccountAuth.module.sass'

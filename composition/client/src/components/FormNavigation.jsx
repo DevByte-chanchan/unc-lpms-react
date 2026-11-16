@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import {
-    CheckCircle,
-    ChevronLeft,
-    ChevronDown,
-    ChevronUp,
-    BookOpen,
-    Activity,
-    Bookmark,
-    Layers
-} from "react-feather";
+  CircleCheck as CheckCircle,
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  BookOpen,
+  Activity,
+  Bookmark,
+  Layers
+} from "lucide-react";
 import styles from "../styles/FormNavigation.module.sass";
 
 const FormNavigation = ({

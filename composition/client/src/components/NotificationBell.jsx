@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronRight } from 'react-feather'
+import { Bell, ChevronRight } from 'lucide-react'
 import { getSession } from '../utils/session.js'
 import { POLL_MS, loadUnreadCount, loadNotifications, markRead, markAllRead } from '../utils/notificationsApi.js'
 import { notificationPath, timeAgo } from '../utils/notificationLinks.js'
