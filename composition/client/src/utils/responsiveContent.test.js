@@ -446,7 +446,7 @@ test('reference preview only shows close controls when they dismiss a compact ov
   assert.match(css, /button\.previewClose\.previewClose\s*\{[^}]*display:\s*none;/)
   assert.match(css, /@media \(max-width:\s*1400px\)[\s\S]*?\.previewSheet button\.previewClose\.previewClose\s*\{[^}]*display:\s*inline-flex;/)
   assert.match(css, /@media \(max-width:\s*1400px\)[\s\S]*?\.previewSheet\s*\{[\s\S]*?bottom:\s*auto;[\s\S]*?max-height:\s*calc\(100dvh - 88px\);[\s\S]*?overflow-y:\s*auto;/)
-  assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.previewSheet\s*\{[\s\S]*?top:\s*auto;[\s\S]*?right:\s*auto;[\s\S]*?bottom:\s*16px;[\s\S]*?left:\s*50%;[\s\S]*?width:\s*min\(420px, calc\(100vw - 32px\)\);[\s\S]*?height:\s*auto;[\s\S]*?max-height:\s*calc\(100dvh - 32px\);[\s\S]*?overflow-y:\s*auto;[\s\S]*?border-radius:\s*16px;[\s\S]*?transform:\s*translateX\(-50%\);/)
+  assert.match(css, /@media \(max-width:\s*720px\)[\s\S]*?\.previewSheet\s*\{[\s\S]*?top:\s*auto;[\s\S]*?right:\s*auto;[\s\S]*?bottom:\s*16px;[\s\S]*?left:\s*50%;[\s\S]*?width:\s*min\(420px, calc\(100vw - 32px\)\);[\s\S]*?height:\s*auto;[\s\S]*?max-height:\s*calc\(100dvh - 32px\);[\s\S]*?overflow-y:\s*auto;[\s\S]*?border-radius:\s*var\(--radius-lg\);[\s\S]*?transform:\s*translateX\(-50%\);/)
 })
 
 test('reference record titles and names use restrained font weights', () => {

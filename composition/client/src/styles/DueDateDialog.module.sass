@@ -4,6 +4,7 @@
   inset: 0
   z-index: 2999
   background: var(--backdrop)
+  animation: backdropIn .15s ease-out
 
 .window
   position: fixed
@@ -17,9 +18,11 @@
   flex-direction: column
   overflow: hidden
   background: #fff
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
   font-family: var(--font-ui)
+  // opens with a short ease-out from 96% (everyday UI: no bounce)
+  animation: windowIn .18s ease-out
 
 .sub
   margin-top: 2px
@@ -159,3 +162,13 @@
   font-size: 13px
   line-height: 1.55
   color: var(--ink-soft)
+
+
+@keyframes windowIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(.96)
+
+@keyframes backdropIn
+  from
+    opacity: 0

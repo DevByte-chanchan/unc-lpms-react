@@ -374,12 +374,12 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
                     width: 'min(580px, 100%)',
                     background: '#FFFFFF',
                     border: '1px solid ' + SLATE_200,
-                    borderRadius: 12, padding: 40,
+                    borderRadius: 'var(--radius-lg)', padding: 40,
                     boxShadow: '0 6px 18px rgba(15,23,42,0.06)',
                     textAlign: 'center',
                   }}>
                     <div style={{
-                      width: 64, height: 64, borderRadius: 14,
+                      width: 64, height: 64, borderRadius: 'var(--radius-lg)',
                       background: '#FEE2E2', color: ACCENT,
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       marginBottom: 14,
@@ -395,7 +395,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
                     <div style={{
                       marginTop: 22, padding: '10px 14px',
                       background: SLATE_50, border: '1px dashed ' + SLATE_200, borderRadius: 8,
-                      fontSize: 12, color: SLATE_700, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                      fontSize: 12, color: SLATE_700,
                     }}>
                       {file.file_url || '(no file_url on this mock record)'}
                     </div>

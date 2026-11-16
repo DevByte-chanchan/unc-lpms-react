@@ -84,7 +84,7 @@
   height: 100%
   backface-visibility: hidden
   -webkit-backface-visibility: hidden
-  border-radius: 14px
+  border-radius: var(--radius-lg)
   background: #FFFFFF
   border: 1px solid var(--line)
   display: flex
@@ -106,7 +106,7 @@
   top: -5px
   width: 14px
   height: 18px
-  border-radius: 5px
+  border-radius: 6px
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FAF7 12.5%, #EFF5F3 25%, #E7EFF1 37.5%, #E2E8F0 50%, #DCE3EC 62.5%, #D6DEE9 75%, #D1DAE5 87.5%, #CBD5E1 100%)
   border: 1.5px solid #94A3B8
   box-shadow: 0 2px 3px rgba(15, 23, 42, 0.12), inset 0 1px 1px #FFFFFF
@@ -172,7 +172,7 @@
   align-items: center
   gap: 5px
   padding: 2px 8px
-  border-radius: 9999px
+  border-radius: var(--radius-pill)
   background: #FEF2F2
   border: 1px solid #FECACA
   color: #DC2626
@@ -223,7 +223,7 @@
   align-items: center
   justify-content: center
   padding: 5px 16px
-  border-radius: 9999px
+  border-radius: var(--radius-pill)
   background: #FEF2F2
   color: #DC2626
   border: 1px solid #FEE2E2
@@ -240,7 +240,7 @@
 .nextMilestoneBox
   background: #F8FAFC
   border: 1px solid rgba(226, 232, 240, 0.85)
-  border-radius: 12px
+  border-radius: var(--radius-lg)
   padding: 10px 14px
   display: flex
   flex-direction: column
@@ -277,7 +277,7 @@
   justify-content: center
   gap: 8px
   padding: 9px 16px
-  border-radius: 10px
+  border-radius: var(--control-radius)
   background: #F8FAFC
   border: 1px solid var(--line)
   color: #334155
@@ -371,7 +371,7 @@
 
 .daysLeftBadge
   padding: 2px 8px
-  border-radius: 9999px
+  border-radius: var(--radius-pill)
   background: #FFFFFF
   border: 1px solid var(--line)
   font-size: 11.5px
@@ -482,7 +482,7 @@
   min-width: 0
   background: rgba(254, 242, 242, 0.6)
   border: 1px solid #FECACA
-  border-radius: 12px
+  border-radius: var(--radius-lg)
   padding: 10px 12px
   display: flex
   flex-direction: column
@@ -503,7 +503,7 @@
   display: inline-flex
   align-items: center
   padding: 1px 7px
-  border-radius: 9999px
+  border-radius: var(--radius-pill)
   background: #DC2626
   color: #FFFFFF
   font-size: 10px
@@ -554,13 +554,12 @@
 .unsetItalic
   font-size: 12px
   color: #94A3B8
-  font-style: italic
 
 .doneTag
   display: inline-flex
   align-items: center
   padding: 1px 7px
-  border-radius: 9999px
+  border-radius: var(--radius-pill)
   background: #F1F5F9
   color: #64748B
   font-size: 10px
@@ -571,7 +570,7 @@
 .calendarChecksNote
   margin-top: 8px
   padding: 8px 12px
-  border-radius: 10px
+  border-radius: var(--radius-lg)
   background: #FFFBEB
   border: 1px solid #FDE68A
   color: #92400E
@@ -584,7 +583,7 @@
 .termCardLoading
   background: #FFFFFF
   border: 1px solid var(--line)
-  border-radius: 14px
+  border-radius: var(--radius-lg)
   height: 100%
   flex: 1
   min-height: 0
@@ -618,7 +617,7 @@
 .blockCard
   background: #FFFFFF
   border: 1px solid var(--line)
-  border-radius: 14px
+  border-radius: var(--radius-lg)
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04)
   display: flex
   flex-direction: column
@@ -657,7 +656,7 @@
   font-size: 11.5px
   font-weight: 600
   padding: 2px 8px
-  border-radius: 20px
+  border-radius: var(--radius-pill)
   border: 1px solid var(--line)
 
 .headerActions
@@ -711,7 +710,7 @@
 .itemBadge
   font-size: 11px
   padding: 1px 6px
-  border-radius: 10px
+  border-radius: var(--radius-pill)
   background: #f1f5f9
   color: #64748b
 
@@ -779,7 +778,7 @@
   display: flex
   flex-direction: column
   background: #FFFFFF
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   border: 1px solid #ebebeb
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03)
   transition: box-shadow 0.2s, transform 0.2s
@@ -812,7 +811,7 @@
   color: #DC2626
   background: rgba(220, 38, 38, 0.08)
   padding: 3px 8px
-  border-radius: 20px
+  border-radius: var(--radius-pill)
 
 .miniCardDate
   font-size: 12px
@@ -844,7 +843,7 @@
   background: #f8f9fa
   border: 1px solid #e9ecef
   padding: 4px 12px
-  border-radius: 20px
+  border-radius: var(--control-radius)
   font-size: 12px
   font-weight: 500
   color: #444 !important
@@ -918,7 +917,6 @@
 
 .pendingText
   color: #f59e0b
-  font-style: italic
 
 .emptyState
   flex: 1
@@ -932,13 +930,13 @@
   text-align: center
   background: #f8fafc
   border: 1px dashed var(--line)
-  border-radius: 8px
+  border-radius: var(--radius-lg)
 
 // ───── Empty Assigned TOS Block ─────
 .emptyTosCard
   background: #FFFFFF
   border: 1px solid var(--line)
-  border-radius: 12px
+  border-radius: var(--radius-lg)
   padding: 20px
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04)
   display: flex

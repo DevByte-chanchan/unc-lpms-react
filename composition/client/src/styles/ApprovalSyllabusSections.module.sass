@@ -21,7 +21,7 @@
 
   select
     border: 0
-    border-radius: 5px
+    border-radius: var(--control-radius)
     width: 100%
     height: 100%
     outline: none
@@ -82,7 +82,7 @@
 
   select
     border: 0
-    border-radius: 5px
+    border-radius: var(--control-radius)
     width: 100%
     height: 100%
     outline: none
@@ -219,7 +219,7 @@
 .commentCard
   padding: 12px 14px
   border: 1px solid var(--line)
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   background: #fff
   color: #334155
 
@@ -345,7 +345,7 @@
   min-height: 28px
   padding: 4px 10px
   border: 1px solid var(--control-border)
-  border-radius: 5px
+  border-radius: var(--control-radius)
   background: #fff
   color: #334155
   font-family: inherit
@@ -518,7 +518,7 @@
 // ponytail: direct copy of instructor's .draft/.submit from SyllabusSections.module.sass
 .draft, .submit
   padding: 0 14px
-  border-radius: 5px
+  border-radius: var(--control-radius)
   font-size: 14px
   font-weight: 500
   background: #dbdfe3
@@ -626,7 +626,7 @@
   gap: 10px
   text-align: left
   padding: 12px 14px
-  border-radius: 6px
+  border-radius: var(--control-radius)
   font-size: 14px
   font-weight: 500
   color: #334155
@@ -968,7 +968,6 @@
 .descText
   font-size: 13px
   color: #333
-  font-style: italic
   line-height: 1.3
 
 .assessItem
@@ -984,7 +983,7 @@
   background: #f0f0f0
   display: inline-block
   padding: 2px 4px
-  border-radius: 3px
+  border-radius: var(--radius-pill)
   margin-top: 2px
   border: 1px solid #ccc
 
@@ -1100,7 +1099,6 @@
 .refEmpty
   text-align: center
   padding: 40px
-  font-style: italic
 
 /* =========================
    CRITERIA FOR GRADING
@@ -1472,7 +1470,7 @@
   height: 28px
   padding: 0 12px
   border: 1px solid var(--control-border)
-  border-radius: 999px
+  border-radius: var(--control-radius)
   background: #fff
   color: var(--ink-soft)
   font: var(--fw-medium) 12px var(--font-ui)
@@ -1497,7 +1495,7 @@
   min-height: 28px
   padding: 4px 10px
   border: 1px solid var(--line)
-  border-radius: 5px
+  border-radius: 6px
   background: #fff
   color: var(--ink)
   font: var(--fw-medium) 12px var(--font-ui)

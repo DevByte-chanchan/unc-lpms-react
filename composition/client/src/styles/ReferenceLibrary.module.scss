@@ -141,7 +141,7 @@
   height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
   background: transparent;
   color: #65777e;
   cursor: pointer;
@@ -208,7 +208,7 @@
   align-items: center;
   flex: 0 0 auto;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
   background: transparent;
 
   .viewChip {
@@ -309,7 +309,7 @@
   height: 30px;
   padding: 0;
   border: 1px solid #cbd5d8;
-  border-radius: 7px;
+  border-radius: var(--control-radius);
   background: #fff;
   color: #40555c;
   cursor: pointer;
@@ -528,7 +528,7 @@ button.previewClose.previewClose {
 }
 
 .courseLink {
-  border-radius: 3px;
+  border-radius: 4px;
   color: #0f5f74;
   font-weight: 400;
   text-decoration: underline;
@@ -633,7 +633,7 @@ button.previewClose.previewClose {
   align-items: flex-start;
   padding: 20px 24px;
   background: white;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   min-width: 0;
@@ -647,7 +647,7 @@ button.previewClose.previewClose {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   flex-shrink: 0;
 }
 
@@ -707,7 +707,7 @@ button.previewClose.previewClose {
   height: 36px;
   background: transparent;
   border: 1px solid #A4A9AF;
-  border-radius: 20px;
+  border-radius: var(--control-radius);
   color: black;
   font-size: 14px;
   font-weight: 500;
@@ -1046,7 +1046,7 @@ button.previewClose.previewClose {
 .deprecatedBadge {
   display: inline-block;
   padding: 3px 10px;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -1057,7 +1057,7 @@ button.previewClose.previewClose {
 .issueBadge {
   display: inline-block;
   padding: 3px 10px;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -1069,7 +1069,7 @@ button.previewClose.previewClose {
 .goodBadge {
   display: inline-block;
   padding: 3px 10px;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -1082,7 +1082,7 @@ button.previewClose.previewClose {
 .warningBanner {
   background: var(--warn-soft);
   border: 1px solid #fde68a;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 12px 16px;
   font-size: 13px;
   color: #b45309;
@@ -1095,7 +1095,7 @@ button.previewClose.previewClose {
 .errorBanner {
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 12px 16px;
   font-size: 13px;
   color: var(--danger-solid);
@@ -1215,7 +1215,7 @@ button.previewClose.previewClose {
 
 .viewModal {
   background: white;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   width: 720px;
   max-width: 90vw;
   max-height: 85vh;
@@ -1248,7 +1248,7 @@ button.previewClose.previewClose {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 500;
   margin-right: 6px;
@@ -1269,7 +1269,7 @@ button.previewClose.previewClose {
 .modalProgramBadge {
   display: inline-block;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -1288,13 +1288,12 @@ button.previewClose.previewClose {
 .courseCodeBadge {
   display: inline-block;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
   background: var(--warn-soft);
   color: #b45309;
-  font-family: 'Courier New', monospace;
 }
 
 .modalLink {
@@ -1309,7 +1308,7 @@ button.previewClose.previewClose {
 
 .modal {
   background: white;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   width: 560px;
   max-width: 90vw;
   max-height: 85vh;
@@ -1340,7 +1339,7 @@ button.previewClose.previewClose {
   color: #9ca3af;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
 
   &:hover {
     background: #f3f4f6;
@@ -1399,7 +1398,7 @@ button.previewClose.previewClose {
   background: black;
   color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--control-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1413,7 +1412,7 @@ button.previewClose.previewClose {
   background: transparent;
   color: black;
   border: 1px solid #A4A9AF;
-  border-radius: 20px;
+  border-radius: var(--control-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1426,7 +1425,7 @@ button.previewClose.previewClose {
 
 .deleteModal {
   background: white;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   width: 420px;
   max-width: 90vw;
   padding: 32px;
@@ -1465,7 +1464,7 @@ button.previewClose.previewClose {
   background: transparent;
   color: black;
   border: 1px solid #A4A9AF;
-  border-radius: 20px;
+  border-radius: var(--control-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1479,7 +1478,7 @@ button.previewClose.previewClose {
   background: var(--danger-solid);
   color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--control-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1635,7 +1634,7 @@ button.previewClose.previewClose {
     height: auto;
     max-height: calc(100dvh - 32px);
     overflow-y: auto;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     transform: translateX(-50%);
   }
 
@@ -1847,7 +1846,7 @@ button.previewClose.previewClose {
   gap: 6px;
   padding: 14px 16px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: #fff;
   color: var(--ink);
   font: inherit;

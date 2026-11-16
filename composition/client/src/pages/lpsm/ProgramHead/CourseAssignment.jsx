@@ -132,7 +132,7 @@ const CourseAssignment = () => {
   const inProgram = (r) => !program || String(r.program_id) === String(program.programId)
   const yearLevels = [...new Set((data?.rows || []).filter(inProgram).map(r => r.year_lvl).filter(Boolean))].sort()
   const rows = sortRows((data?.rows || []).filter(r => inProgram(r) && matches(r) && (!yearLevel || r.year_lvl === yearLevel)), COLUMNS, sort.sortKey, sort.sortDir)
-  const pill = { display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', border: '1px solid #D1D5DB', borderRadius: 9999, background: '#FFFFFF' }
+  const pill = { display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', border: '1px solid #D1D5DB', borderRadius: 'var(--control-radius)', background: '#FFFFFF' }
 
   const content = (
     <div className={`${table['courses-table']}`}>

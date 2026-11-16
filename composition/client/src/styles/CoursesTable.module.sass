@@ -112,7 +112,7 @@ $cell-inset: 18px
       .itemBadge
         font-size: 11px
         padding: 1px 6px
-        border-radius: 10px
+        border-radius: var(--radius-pill)
         background: #f1f5f9
         color: var(--ink-muted)
 
@@ -175,7 +175,7 @@ $cell-inset: 18px
   min-width: 22px
   height: 20px
   padding: 0 6px
-  border-radius: 6px
+  border-radius: var(--radius-pill)
   background: #eef0f2
   color: var(--ink-soft)
   font-size: 12px
@@ -199,7 +199,7 @@ $cell-inset: 18px
   align-items: center
   margin-right: 20px
   border: 1px solid #A4A9AF
-  border-radius: 20px
+  border-radius: var(--control-radius)
   height: 40px
   padding: 0 15px
   background: white
@@ -521,7 +521,7 @@ table.approvalTable
   border: none
   gap: 5px
   cursor: pointer
-  border-radius: 6px
+  border-radius: var(--control-radius)
   transition: background 0.2s ease, opacity 0.2s ease
   outline: none
   font-size: 15px
@@ -545,7 +545,7 @@ table.approvalTable
   display: flex
   flex-direction: column
   background: #fff
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   border: 1px solid #ebebeb
   box-shadow: 0 2px 6px rgba(0,0,0,0.04)
   transition: box-shadow 0.2s, transform 0.2s
@@ -574,7 +574,7 @@ table.approvalTable
   color: #DC2626
   background: rgba(220, 38, 38, 0.08)
   padding: 4px 10px
-  border-radius: 20px
+  border-radius: var(--radius-pill)
 
 .cardDate
   font-size: 13px
@@ -611,7 +611,7 @@ table.approvalTable
   background: #f8f9fa
   border: 1px solid #e9ecef
   padding: 6px 14px
-  border-radius: 20px
+  border-radius: var(--control-radius)
   font-size: 13px
   font-weight: 400
   color: #444 !important
@@ -630,7 +630,7 @@ table.approvalTable
   background: #f8f9fa
   border: 1px solid #e9ecef
   padding: 6px 14px
-  border-radius: 20px
+  border-radius: var(--control-radius)
   font-size: 13px
   font-weight: 400
   color: #444 !important
@@ -700,7 +700,6 @@ table.approvalTable
 
 .pendingText
   color: #f59e0b
-  font-style: italic
 
 // The approver's "Export all as ZIP" and its Stop: as tall and round as the search box beside them
 // (under .tableControlsOuter so it outranks the global button.btn-sm.btn-sm in index.css).
@@ -711,7 +710,7 @@ table.approvalTable
   height: 40px
   padding: 0 16px
   margin-right: 20px
-  border-radius: 20px
+  border-radius: var(--control-radius)
   white-space: nowrap
 
 // Phone width: the search takes its own line, Export and the view toggles share the next.

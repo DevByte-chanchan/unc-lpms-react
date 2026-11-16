@@ -24,7 +24,7 @@
   width: 100%
   max-width: 980px
   max-height: 90vh
-  border-radius: 16px
+  border-radius: var(--radius-lg)
   box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.8)
   display: flex
   flex-direction: column
@@ -57,7 +57,7 @@
 .geminiBadge
   width: 36px
   height: 36px
-  border-radius: 10px
+  border-radius: var(--radius-pill)
   background: linear-gradient(135deg, #3B82F6 0%, #5479FA 12.5%, #6970FB 25%, #7B66FA 37.5%, #8B5CF6 50%, #AA55E7 62.5%, #C44ED2 75%, #DA4AB7 87.5%, #EC4899 100%)
   display: flex
   align-items: center
@@ -224,7 +224,7 @@
   flex-direction: column
   align-items: flex-end
   padding: 5px 12px
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   background: rgba(255, 255, 255, 0.75)
   border: 1px solid rgba(148, 163, 184, 0.3)
 
@@ -254,7 +254,7 @@
 
 .resetBudgetBtn
   padding: 6px 11px
-  border-radius: 6px
+  border-radius: var(--control-radius)
   border: 1px solid rgba(15, 23, 42, 0.18)
   background: #FFFFFF
   color: #1E293B
@@ -288,7 +288,7 @@
 .confirmChangeCard
   background: #FFFFFF
   border: 1.5px solid #FDE68A
-  border-radius: 14px
+  border-radius: var(--radius-lg)
   padding: 28px 32px
   max-width: 620px
   width: 100%
@@ -328,7 +328,7 @@
   background: #F8FAFC
   border: 1px solid var(--line)
   border-left: 3px solid #F59E0B
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   padding: 12px 14px
   margin-bottom: 22px
   box-sizing: border-box
@@ -391,7 +391,7 @@
 .contextInfoCard
   background: #FFFFFF
   border: 1px solid var(--line)
-  border-radius: 10px
+  border-radius: var(--radius-lg)
   padding: 12px 14px
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03)
 
@@ -432,7 +432,7 @@
   padding: 6px 12px
   background: #EFF6FF
   border: 1px solid #BFDBFE
-  border-radius: 6px
+  border-radius: var(--radius-pill)
   font-size: 12px
   color: #1E40AF
 
@@ -445,7 +445,7 @@
   background: #FFFFFF
   border: 1px solid var(--line)
   border-left: 3px solid #8B5CF6
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   padding: 10px 14px
 
 .prevWeeksHeader
@@ -473,7 +473,7 @@
   color: #6D28D9
   background: #EDE9FE
   padding: 1px 7px
-  border-radius: 4px
+  border-radius: var(--radius-pill)
   white-space: nowrap
   flex-shrink: 0
 
@@ -485,7 +485,7 @@
 .iloSelectSection
   background: #FFFFFF
   border: 1px solid var(--line)
-  border-radius: 12px
+  border-radius: var(--radius-lg)
   padding: 16px
   display: flex
   flex-direction: column
@@ -515,7 +515,7 @@
   font-size: 12px
   font-weight: 700
   padding: 5px 11px
-  border-radius: 6px
+  border-radius: var(--control-radius)
   cursor: pointer
   white-space: nowrap
   transition: all 0.15s
@@ -533,7 +533,7 @@
   gap: 12px
   padding: 11px 14px
   border: 1.5px solid var(--line)
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   background: #F8FAFC
   cursor: pointer
   transition: all 0.16s ease
@@ -560,7 +560,7 @@
   font-size: 10.5px
   font-weight: 800
   padding: 2px 7px
-  border-radius: 4px
+  border-radius: var(--radius-pill)
   background: #DBEAFE
   color: #1E40AF
   letter-spacing: 0.03em
@@ -571,7 +571,7 @@
   color: #64748B
   background: #E2E8F0
   padding: 2px 7px
-  border-radius: 4px
+  border-radius: var(--radius-pill)
 
 .iloOptionDesc
   margin: 0
@@ -826,7 +826,7 @@
 .topicCard
   background: #FFFFFF
   border: 1.5px solid var(--line)
-  border-radius: 10px
+  border-radius: var(--radius-lg)
   overflow: hidden
   display: flex
   flex-direction: column
@@ -892,7 +892,7 @@
 .topicNumberBadge
   width: 24px
   height: 24px
-  border-radius: 6px
+  border-radius: var(--radius-pill)
   background: #E2E8F0
   color: #475569
   font-size: 12px
@@ -1065,7 +1065,7 @@
   font-size: 11px
   font-weight: 700
   padding: 2px 7px
-  border-radius: 4px
+  border-radius: var(--radius-pill)
   white-space: nowrap
 
 .subtopicWeightActive
@@ -1088,7 +1088,7 @@
   align-items: center
   gap: 8px
   padding: 9px 20px
-  border-radius: 30px
+  border-radius: var(--control-radius)
   font-size: 12.5px
   font-weight: 700
   color: #6D28D9
@@ -1140,7 +1140,7 @@
   font-weight: 700
   cursor: pointer
   padding: 5px 10px
-  border-radius: 6px
+  border-radius: var(--control-radius)
   transition: background 0.15s
   &:hover
     background: #EDE9FE
@@ -1156,7 +1156,7 @@
   font-weight: 700
   cursor: pointer
   padding: 6px 12px
-  border-radius: 6px
+  border-radius: var(--control-radius)
   transition: all 0.15s ease
   &:hover
     background: #EDE9FE
@@ -1169,7 +1169,7 @@
 
 .cancelBtn
   padding: 9px 18px
-  border-radius: 6px
+  border-radius: var(--control-radius)
   border: 1px solid var(--control-border)
   background: white
   color: #475569
@@ -1185,7 +1185,7 @@
   align-items: center
   gap: 8px
   padding: 9px 20px
-  border-radius: 6px
+  border-radius: var(--control-radius)
   border: none
   background: linear-gradient(135deg, #2563EB 0%, #4861F1 12.5%, #625FF5 25%, #775EF6 37.5%, #8B5CF6 50%, #AA55E7 62.5%, #C44ED2 75%, #DA4AB7 87.5%, #EC4899 100%)
   color: white

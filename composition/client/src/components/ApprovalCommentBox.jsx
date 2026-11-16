@@ -698,7 +698,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       </div>
       {showDiscardConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }} onClick={cancelDiscard}>
-          <div style={{ background: 'white', borderRadius: 16, width: 380, maxWidth: '90vw', padding: 28, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', width: 380, maxWidth: '90vw', padding: 28, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>Discard unsaved changes?</div>
             <div style={{ fontSize: 14, color: 'var(--ink-muted)', marginBottom: 24 }}>You have unsaved comments that will be lost.</div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>

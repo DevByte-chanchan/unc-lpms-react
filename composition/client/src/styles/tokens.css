@@ -66,6 +66,15 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-pill: 999px;
+  /* The whole scale, by what a thing is:
+       4px  tiny marks (a highlight, a focus ring)        --radius-xs
+       6px  an item inside a control or menu              --radius-sm
+       8px  every control: button, input, select, tab     --control-radius / --radius-md
+       12px every surface: card, panel, window, menu, toast  --radius-lg
+       pill badges, chips and counts; 50% switches, dots, avatars.
+     A control nested inside another with padding p uses the outer radius minus p (concentric). */
+  --radius-xs: 4px;
+  --radius-lg: 12px;
 
   /* --- control sizing -------------------------------------------------
      40px matches the existing .draft / .submit buttons, so anything using

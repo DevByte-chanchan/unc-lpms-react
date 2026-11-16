@@ -16,7 +16,7 @@
   width: min(1180px, calc(100vw - 32px))
   height: min(820px, calc(100dvh - 32px))
   transform: translate(-50%, -50%)
-  border-radius: 8px
+  border-radius: var(--radius-lg)
   background: #fff
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
   overflow: hidden
@@ -101,7 +101,7 @@
     min-height: 3.4em
     padding: 6px 8px
     border: 1px solid var(--control-border)
-    border-radius: 6px
+    border-radius: var(--control-radius)
     font: 13px var(--font-ui)
     resize: vertical
 
@@ -156,7 +156,7 @@
   gap: 8px
   padding: 12px
   border: 1px solid var(--line)
-  border-radius: 8px
+  border-radius: var(--radius-lg)
 
 .iloBlock
   display: flex
@@ -180,7 +180,7 @@
   width: 28px
   height: 28px
   border: 0
-  border-radius: 6px
+  border-radius: var(--control-radius)
   background: transparent
   color: var(--ink-muted)
   cursor: pointer

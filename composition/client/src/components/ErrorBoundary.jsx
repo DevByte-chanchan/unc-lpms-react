@@ -71,7 +71,7 @@ class ErrorBoundary extends React.Component {
             textAlign: 'center',
             padding: 32,
             background: '#fff',
-            borderRadius: 12,
+            borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--line)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
           }}>
