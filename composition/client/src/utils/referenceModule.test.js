@@ -94,7 +94,7 @@ test('a failed save stops and reports, it does not pretend to have saved', async
   await withFetch((call) => (call.url.includes('/references/38')
     ? { ok: false, status: 400, text: async () => '{"message":"The reference is not valid.","errors":{"link":"Enter a valid http(s) link"}}' }
     : ok()), async (calls) => {
-    await assert.rejects(updateReference({ id: 'srv-28', sourceIds: [28, 38, 39] }, { type: 'Online Resource', title: 'T', link: 'x' }), /HTTP 400/)
+    await assert.rejects(updateReference({ id: 'srv-28', sourceIds: [28, 38, 39] }, { type: 'Online Resource', title: 'T', link: 'x' }), /The reference is not valid./)
     assert.equal(calls.length, 2, 'it stops at the first failure')
   })
 })

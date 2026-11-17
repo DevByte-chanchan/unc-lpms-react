@@ -48,7 +48,7 @@ test('a protected API 401 clears the stale browser identity immediately', async 
   })
 
   try {
-    await assert.rejects(() => fetchJson('/api/assignments'), /HTTP 401/)
+    await assert.rejects(() => fetchJson('/api/assignments'), /Authentication required./)
   } finally {
     globalThis.fetch = originalFetch
   }

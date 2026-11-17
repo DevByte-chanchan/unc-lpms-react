@@ -29,7 +29,13 @@ async function requestJson(endpoint, opts = {}) {
     // The role the signed-in person is acting as (multi-role accounts); the server checks the account holds it.
     const role = actingRole();
     const headers = role ? { ...(opts.headers || {}), 'X-LPMS-Role': role } : opts.headers;
-    const res = await fetch(url, { ...opts, ...(headers ? { headers } : {}), credentials: 'include' });
+    let res;
+    try {
+        res = await fetch(url, { ...opts, ...(headers ? { headers } : {}), credentials: 'include' });
+    } catch (cause) {
+        if (cause?.name === 'AbortError') throw cause;
+        throw friendlyError(0, '', cause);
+    }
     if (!res.ok) {
         if (res.status === 401) expireSession();
         const text = await res.text().catch(() => '');
@@ -37,23 +43,50 @@ async function requestJson(endpoint, opts = {}) {
         if (res.status === 403 && text.includes('PASSWORD_CHANGE_REQUIRED') && getSession()) {
             setSession({ ...getSession(), mustChangePassword: true });
         }
-        const message = text ? `HTTP ${res.status}: ${text}` : `HTTP ${res.status}`;
-        const err = new Error(message);
-        err.status = res.status;
-        throw err;
+        throw friendlyError(res.status, text);
     }
     return res.json();
 }
 
-// fetchJson errors read "HTTP 409: {"message":"..."}"; show just the message.
-export function apiErrorMessage(err, fallback = 'Request failed.') {
-    const raw = String(err?.message || '');
-    const start = raw.indexOf('{');
-    if (start >= 0) {
-        try {
-            const body = JSON.parse(raw.slice(start));
-            return body.message || body.error || fallback;
-        } catch { /* not JSON, fall through */ }
+// What the user reads when a request fails: plain words, never a stack trace, SQL or HTML. A 4xx message the server
+// wrote for people ("This learning plan is pending and cannot be edited.") is kept; anything else gets a sentence by
+// status. The raw text stays on err.detail and in the console during development.
+const BY_STATUS = {
+    0: 'The server could not be reached. Check your connection and try again.',
+    401: 'Your session ended. Sign in again to continue.',
+    403: 'You do not have access to this.',
+    404: 'This could not be found. It may have been moved or deleted.',
+    408: 'The server took too long to answer. Try again.',
+    413: 'That file is too large.',
+    429: 'Too many tries in a row. Wait a moment, then try again.',
+};
+const SERVER_TROUBLE = 'Something went wrong on our side. Try again in a moment.';
+const TECHNICAL = /sqlite|sequelize|constraint|syntaxerror|typeerror|referenceerror|undefined|stack|\bat \w+ \(|<\/?[a-z]|econn|enoent|errno|exception|[{}]/i;
+
+export function friendlyText(status, text = '') {
+    if (status >= 400 && status < 500) {
+        let said = '';
+        try { const body = JSON.parse(text); said = typeof body === 'string' ? body : (body?.message || body?.error || ''); } catch { /* not JSON */ }
+        if (typeof said === 'string' && said && said.length <= 300 && !TECHNICAL.test(said)) return said;
     }
-    return raw || fallback;
+    return BY_STATUS[status] || (status >= 400 && status < 500 ? 'That request could not be completed. Check what you entered and try again.' : SERVER_TROUBLE);
+}
+
+function friendlyError(status, text, cause) {
+    const err = new Error(friendlyText(status, text));
+    err.status = status;
+    err.detail = text || cause?.message || '';
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) console.warn(`[api] ${status || 'network'}:`, err.detail);
+    return err;
+}
+
+// The words to show for any caught error: fetchJson errors are already plain; anything else (a crash, an "HTTP 500"
+// thrown by hand) becomes a plain sentence or the fallback, never the raw text.
+export function apiErrorMessage(err, fallback = SERVER_TROUBLE) {
+    if (err && 'detail' in err) return err.message;
+    const raw = String(err?.message || '');
+    const http = raw.match(/^HTTP (\d{3})(?::\s*([\s\S]*))?$/);
+    if (http) return friendlyText(Number(http[1]), http[2] || '');
+    if (err?.name === 'TypeError' && /fetch|network/i.test(raw)) return BY_STATUS[0];
+    return raw && raw.length <= 300 && !TECHNICAL.test(raw) ? raw : fallback;
 }

@@ -13,8 +13,11 @@ test('apiErrorMessage pulls the server message out of a fetchJson error', () => 
   assert.equal(apiErrorMessage(new Error('HTTP 403: {"error":"No access."}')), 'No access.')
 })
 
-test('apiErrorMessage falls back for plain or empty errors', () => {
-  assert.equal(apiErrorMessage(new Error('HTTP 500')), 'HTTP 500')
+test('apiErrorMessage never shows raw or technical text', () => {
+  assert.match(apiErrorMessage(new Error('HTTP 500')), /went wrong on our side/)
   assert.equal(apiErrorMessage(null, 'Nope'), 'Nope')
-  assert.equal(apiErrorMessage(new Error('HTTP 400: {bad json'), 'x'), 'HTTP 400: {bad json')
+  assert.match(apiErrorMessage(new Error('HTTP 400: {bad json')), /could not be completed/)
+  assert.match(apiErrorMessage(new Error('HTTP 400: {"error":"SQLITE_CONSTRAINT: UNIQUE failed"}')), /could not be completed/)
+  assert.equal(apiErrorMessage(new Error("Cannot read properties of undefined (reading 'x')"), 'Not saved.'), 'Not saved.')
+  assert.match(apiErrorMessage(new TypeError('Failed to fetch')), /could not be reached/)
 })

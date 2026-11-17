@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Maximize, Minimize2 } from 'lucide-react'
 
-// Full screen for any page: the page takes the whole window (the side bar and the top bar step aside: index.css,
+// Full screen for any page: the page takes the whole window (the top bar steps aside, the side bar stays: index.css,
 // body[data-focus]) and, where the browser allows it, the browser's own full screen too. Works the same on a small
 // laptop, a zoomed browser or one without the Fullscreen API (then only the bars step aside). While it is on, a small
 // "Exit full screen" tab shows at the top for a moment, then tucks away so it covers nothing; moving the pointer to

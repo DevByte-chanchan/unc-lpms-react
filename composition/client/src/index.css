@@ -981,9 +981,8 @@ details.info-line, div.info-line {
 .info-line > summary svg, div.info-line svg { flex: none; }
 details.info-line > :not(summary) { margin-left: 26px; }
 
-/* Full screen (components/FullscreenToggle.jsx): the side bar and the top bar step aside so the page has the whole
-   window, at any screen size or zoom; a small Exit button stays in the corner. */
-body[data-focus] [data-layout-nav],
+/* Full screen (components/FullscreenToggle.jsx): the top bar steps aside so the page gets more room, at any screen
+   size or zoom; the side bar stays so every page is still one click away. */
 body[data-focus] [data-layout-header] {
     display: none !important;
 }
