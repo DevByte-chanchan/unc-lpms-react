@@ -20,7 +20,9 @@ const browser = () => {
         browserPromise = puppeteer.launch({
             headless: 'shell',
             executablePath: process.env.LPMS_CHROME_PATH || undefined,
-            args: ['--no-sandbox', '--disable-dev-shm-usage', '--font-render-hinting=none'],
+            // --block-new-web-contents: window.open and pop-ups fail. A new window is a new page, and request
+            // interception (below) covers only the page it is set on.
+            args: ['--no-sandbox', '--disable-dev-shm-usage', '--font-render-hinting=none', '--block-new-web-contents'],
         }).then((b) => {
             b.on('disconnected', () => { browserPromise = null; });
             return b;
@@ -29,13 +31,21 @@ const browser = () => {
     return browserPromise;
 };
 
+// Put first in <head>: only data: images, styles and fonts and the page's own inline script and styles; no fetch,
+// XHR or WebSocket (request interception does not see WebSockets), no frames, forms or <base>.
+const CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline' data:; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">`;
+const withCsp = (html) => (/<head[^>]*>/i.test(html)
+    ? html.replace(/<head[^>]*>/i, (head) => `${head}${CSP}`)
+    : /<html[^>]*>/i.test(html) ? html.replace(/<html[^>]*>/i, (tag) => `${tag}<head>${CSP}</head>`)
+        : html.replace(/^\s*(<!doctype[^>]*>)?/i, (start) => `${start}${CSP}`));
+
 const render = async (html) => {
     const page = await (await browser()).newPage();
     try {
         await page.setRequestInterception(true);
         page.on('request', (req) => (req.url().startsWith('data:') ? req.continue() : req.abort()));
         page.setDefaultTimeout(RENDER_TIMEOUT_MS);
-        await page.setContent(html, { waitUntil: 'load', timeout: RENDER_TIMEOUT_MS });
+        await page.setContent(withCsp(html), { waitUntil: 'load', timeout: RENDER_TIMEOUT_MS });
         // the coverage pages re-pack themselves after load (REPAG_SCRIPT in client/src/utils/syllabusPdfHtml.js)
         await new Promise((resolve) => setTimeout(resolve, 300));
         return await page.pdf({ preferCSSPageSize: true, printBackground: true, timeout: RENDER_TIMEOUT_MS });
@@ -58,4 +68,4 @@ const closeBrowser = async () => {
     if (b) await b.close().catch(() => {});
 };
 
-module.exports = { htmlToPdf, closeBrowser };
+module.exports = { htmlToPdf, closeBrowser, withCsp };

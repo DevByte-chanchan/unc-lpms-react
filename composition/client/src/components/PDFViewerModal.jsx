@@ -53,15 +53,18 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
     const src = file?.file_url;
     if (!src || !/^(https?:\/\/|\/|blob:)/i.test(src)) return;
     let cancelled = false;
+    let made = null; // this preview's copy of the file, freed when the file changes or the viewer closes
     setIframeHeight(4000);
     setPageCount(0);
     fetch(src, { credentials: 'include' })
       .then(r => r.blob())
       .then(blob => {
-        if (!cancelled) setPdfSrc(URL.createObjectURL(blob) + '#toolbar=0&navpanes=0');
+        if (cancelled) return;
+        made = URL.createObjectURL(blob);
+        setPdfSrc(made + '#toolbar=0&navpanes=0');
       })
       .catch(() => { if (!cancelled) setPdfSrc(file.file_url); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; if (made) URL.revokeObjectURL(made); };
   }, [file?.file_url]);
 
   const calcZoom = useCallback(() => {
