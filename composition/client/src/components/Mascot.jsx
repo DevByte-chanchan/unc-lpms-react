@@ -12,7 +12,8 @@ import happy from '../assets/mascot/happy.png'
 const POSES = { reading, thinking, worried, happy }
 
 const Mascot = ({ pose = 'reading', size = 72, className = '' }) => (
-  <img className={className} src={POSES[pose] || reading} width={size} height={size} alt="" aria-hidden="true" draggable="false" />
+  <img className={className} src={POSES[pose] || reading} width={size} height={size} alt="" aria-hidden="true" draggable="false"
+    style={{ pointerEvents: 'none', userSelect: 'none' }} />
 )
 
 export default Mascot
