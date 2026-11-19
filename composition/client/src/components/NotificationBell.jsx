@@ -28,6 +28,7 @@ const KIND = {
   poke: { tag: 'Reminder', tone: 'amber', title: 'Reminder', Icon: BellRing },
   reminder: { tag: 'Reminder', tone: 'amber', title: 'Reminder', Icon: BellRing },
   missing_digest: { tag: 'Reminder', tone: 'amber', title: 'Plans Not Submitted', Icon: ListTodo },
+  overdue_escalation: { tag: 'Overdue', tone: 'red', title: 'Plans Overdue', Icon: ListTodo },
   approval_waiting: { tag: 'Waiting', tone: 'amber', title: 'Waiting for Your Review', Icon: Hourglass },
   returned_waiting: { tag: 'Waiting', tone: 'amber', title: 'Returned Plan Waiting', Icon: Hourglass },
   reference_health: { tag: 'Library', tone: 'teal', title: 'Reference Check', Icon: BookOpen },

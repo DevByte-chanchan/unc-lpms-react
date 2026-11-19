@@ -15,7 +15,7 @@
 // A person always decides what happens to a plan; the job only reminds.
 
 const { Op } = require('sequelize');
-const { QUIET_HOURS, CHECK_EVERY_MS, RETURNED_REMIND_DAYS } = require('../config/reminders');
+const { QUIET_HOURS, CHECK_EVERY_MS, RETURNED_REMIND_DAYS, DEAN_OVERDUE_DAYS } = require('../config/reminders');
 const rules = require('./reminderRules');
 const { findAwaiting, standing } = require('./missingSubmissions');
 const { findWaitingOnApprovers } = require('./approverWaiting');
@@ -115,6 +115,32 @@ const remindReturned = async ({ deps, clock, timeZone, waiting, pausedIds, resul
     }
 };
 
+// A plan still not submitted DEAN_OVERDUE_DAYS after its due date is escalated to the Dean of its department:
+// one summary per Dean on a day when one of their plans reaches 7, 14, 21... days overdue, naming every plan
+// 7 days or more overdue. Paused plans are left out, like the instructor's reminders. Once a day, through ReminderLog.
+const remindDeans = async ({ deps, clock, waiting, pausedIds, result, now = new Date() }) => {
+    const { models, notify } = deps;
+    const { ReminderLog, User } = models;
+    const perDean = new Map();
+    for (const row of waiting) {
+        if (!row.deanId || !row.syllabusDue || pausedIds.has(row.offeringId)) continue;
+        const overdue = -rules.daysUntil(row.syllabusDue, clock.day);
+        if (overdue < DEAN_OVERDUE_DAYS) continue;
+        const e = perDean.get(row.deanId) || { codes: [], plans: [], trigger: false };
+        e.codes.push(row.courseCode); e.plans.push(row.offeringId);
+        if (rules.isDeanOverdueTrigger(overdue)) e.trigger = true;
+        perDean.set(row.deanId, e);
+    }
+    for (const [id, e] of perDean) {
+        if (!e.trigger) continue;
+        const user = await User.findByPk(id);
+        if (!user || !user.is_active) continue;
+        if (!(await claim(ReminderLog, `overdue:${id}`, 'dean-overdue', clock.day))) continue;
+        await notify([id], 'overdue_escalation', e.plans.length === 1 ? e.plans[0] : null, rules.deanOverdueText(e.codes), null, now);
+        result.deanEscalations += 1;
+    }
+};
+
 // On the digest day the Director of Libraries gets one summary of the references that need attention
 // (unavailable, older than their recency rule, missing an ISBN or link). Nothing is sent when all is well.
 const remindDirectors = async ({ deps, clock, result, now = new Date() }) => {
@@ -136,7 +162,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
     const { models, notify, mailer } = deps;
     const { sequelize, Notification, ReminderLog, ReminderPause, Program, User } = models;
     const clock = rules.schoolClock(now, rules.timezoneOf(env));
-    const result = { day: clock.day, sent: 0, emailRetries: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, returnedReminders: 0, skipped: null };
+    const result = { day: clock.day, sent: 0, emailRetries: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, returnedReminders: 0, deanEscalations: 0, skipped: null };
     if (!rules.isSendingHour(clock)) { result.skipped = 'before the school day starts'; return result; }
 
     const waiting = await findAwaiting({ sequelize, programIds });
@@ -191,10 +217,10 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         for (const row of waiting) {
             const head = headOf.get(row.programId);
             if (!head) continue;
-            const entry = perHead.get(head) || { notSubmitted: 0, overdue: 0, noDueDate: 0, noInstructor: 0 };
+            const entry = perHead.get(head) || { notSubmitted: 0, overdue: 0, noDueDate: 0, noInstructor: 0, overdueCodes: [] };
             entry.notSubmitted += 1;
             const where = standing(row, clock.day).status;
-            if (where === 'overdue') entry.overdue += 1;
+            if (where === 'overdue') { entry.overdue += 1; entry.overdueCodes.push(row.courseCode); }
             if (where === 'no-deadline') entry.noDueDate += 1;
             if (!row.instructorId || !row.instructorActive) entry.noInstructor += 1;
             perHead.set(head, entry);
@@ -210,6 +236,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         if (!programIds) await remindDirectors({ deps, clock, result, now });
     }
     await remindReturned({ deps, clock, timeZone: rules.timezoneOf(env), waiting, pausedIds, result, now });
+    await remindDeans({ deps, clock, waiting, pausedIds, result, now });
     await remindApprovers({ deps, clock, timeZone: rules.timezoneOf(env), programIds, result, now });
     return result;
 };
@@ -224,7 +251,7 @@ const startReminders = ({ env = process.env, log = console.log, setIntervalFn = 
         running = true;
         try {
             const result = await runFn({ env, log });
-            if (result.sent || result.digests || result.approverReminders || result.referenceDigests || result.returnedReminders) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}, returned-plan reminders: ${result.returnedReminders}.`);
+            if (result.sent || result.digests || result.approverReminders || result.referenceDigests || result.returnedReminders || result.deanEscalations) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}, returned-plan reminders: ${result.returnedReminders}, overdue plans escalated to Deans: ${result.deanEscalations}.`);
         } catch (error) {
             console.error(`Reminders did not run: ${error.message}`);
         } finally {

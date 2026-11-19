@@ -3,7 +3,7 @@
 // The rules of the automatic reminders. Pure: no database, no clock of their own. Every function that
 // needs "now" takes it as an argument, so the tests can use any date without waiting for it.
 
-const { BEFORE_DUE, OVERDUE_EVERY_DAYS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, DEFAULT_TIMEZONE, SEND_FROM_HOUR } = require('../config/reminders');
+const { BEFORE_DUE, OVERDUE_EVERY_DAYS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, DEFAULT_TIMEZONE, SEND_FROM_HOUR, DEAN_OVERDUE_DAYS } = require('../config/reminders');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -63,15 +63,25 @@ const isSendingHour = (clock) => clock.hour >= SEND_FROM_HOUR;
 
 const isDigestDay = (clock) => clock.weekday === DIGEST_WEEKDAY;
 
+// "ZZRA, ZZRB, ZZRC +2 more": a few course codes, short enough for a notification (200 characters).
+const someCodes = (codes = [], shown = 3) => codes.slice(0, shown).join(', ') + (codes.length > shown ? ` +${codes.length - shown} more` : '');
+
 // extras: plans with no due date (so no automatic reminders go out) and plans whose instructor cannot be reminded.
-const digestText = (notSubmitted, overdue, { noDueDate = 0, noInstructor = 0 } = {}) => {
+// overdueCodes names the overdue courses, so the Program Head sees who is late without opening the page.
+const digestText = (notSubmitted, overdue, { noDueDate = 0, noInstructor = 0, overdueCodes = [] } = {}) => {
     const plans = `${notSubmitted} learning plan${notSubmitted === 1 ? '' : 's'} not submitted`;
     const parts = [plans];
-    if (overdue > 0) parts.push(`${overdue} overdue`);
+    if (overdue > 0) parts.push(`${overdue} overdue${overdueCodes.length ? ` (${someCodes(overdueCodes)})` : ''}`);
     if (noDueDate > 0) parts.push(`${noDueDate} with no due date, so no reminders`);
     if (noInstructor > 0) parts.push(`${noInstructor} with no active instructor`);
     return parts.join(', ');
 };
+
+// Is today a day to tell the Dean about a plan `overdue` days late? On DEAN_OVERDUE_DAYS and every multiple of it.
+const isDeanOverdueTrigger = (overdue) => Number.isInteger(overdue) && overdue >= DEAN_OVERDUE_DAYS && overdue % DEAN_OVERDUE_DAYS === 0;
+
+// What the Dean reads: "2 learning plans are 7 days or more overdue: ZZRA, ZZRB".
+const deanOverdueText = (codes) => `${codes.length} learning plan${codes.length === 1 ? ' is' : 's are'} ${DEAN_OVERDUE_DAYS} days or more overdue and not submitted: ${someCodes(codes)}`;
 
 // Days a plan may wait on a reviewer before they are reminded (and the gap between reminders).
 const waitLimitFor = (role) => (role === 'DEAN' ? DEAN_WAIT_DAYS : APPROVER_WAIT_DAYS);
@@ -95,4 +105,4 @@ const waitingText = ({ waiting, long, stalled = 0 }) => {
     return parts.join('; ');
 };
 
-module.exports = { DEFAULT_SCHEDULE, scheduleOf, returnedText, returnedHeadText, waitLimitFor, isWaitingTrigger, asDate, waitingText, timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };
+module.exports = { isDeanOverdueTrigger, deanOverdueText, DEFAULT_SCHEDULE, scheduleOf, returnedText, returnedHeadText, waitLimitFor, isWaitingTrigger, asDate, waitingText, timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };

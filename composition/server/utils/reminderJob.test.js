@@ -18,6 +18,7 @@ const stamp = Date.now();
 const made = { users: [], offerings: [], assignments: [], courses: [], programs: [], depts: [] };
 const plan = {};   // name -> { offeringId, assignmentId, instructorId }
 let headId;
+let deanId;
 let withDeadline;
 let withoutDeadline;
 const emails = [];
@@ -33,7 +34,8 @@ const user = async (label, role, active = true) => {
 test.before(async () => {
     const head = await user('head', 'program-head');
     headId = head.user_id;
-    const dept = await insert('INSERT INTO Departments (name, code, stakeholder_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [`ZZ reminders dept ${stamp}`, 'ZZR', null, now(), now()]);
+    deanId = (await user('dean', 'dean')).user_id;
+    const dept = await insert('INSERT INTO Departments (name, code, stakeholder_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [`ZZ reminders dept ${stamp}`, 'ZZR', deanId, now(), now()]);
     made.depts.push(dept);
     const program = async (name, stakeholder) => { const id = await insert('INSERT INTO Programs (dept_id, name, stakeholder_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [dept, name, stakeholder, now(), now()]); made.programs.push(id); return id; };
     withDeadline = await program(`ZZ program with a deadline ${stamp}`, headId);
@@ -62,7 +64,7 @@ test.before(async () => {
 test.after(async () => {
     const offerings = made.offerings.length ? made.offerings : [0];
     await Notification.destroy({ where: { [Op.or]: [{ offering_id: { [Op.in]: offerings } }, { recipient_user_id: { [Op.in]: made.users.length ? made.users : [0] } }] } });
-    await ReminderLog.destroy({ where: { [Op.or]: [{ subject: { [Op.in]: offerings.flatMap(id => [`offering:${id}`, `email:offering:${id}`]) } }, { subject: { [Op.in]: made.users.map(id => `digest:${id}`) } }] } });
+    await ReminderLog.destroy({ where: { [Op.or]: [{ subject: { [Op.in]: offerings.flatMap(id => [`offering:${id}`, `email:offering:${id}`]) } }, { subject: { [Op.in]: made.users.flatMap(id => [`digest:${id}`, `overdue:${id}`]) } }] } });
     await ReminderPause.destroy({ where: { offering_id: { [Op.in]: offerings } } });
     await TermDeadline.destroy({ where: { program_id: { [Op.in]: made.programs.length ? made.programs : [0] } } });
     const list = (ids) => (ids.length ? ids.join(', ') : '0');
@@ -143,7 +145,7 @@ test('on the due date and then every third overdue day the reminder says how lat
 test('the overdue summary counts the overdue plans', async () => {
     await run('2026-11-09T09:00:00Z'); // the next Monday
     const last = (await digests()).at(-1);
-    assert.match(last.message, /4 learning plans not submitted, 4 overdue/);
+    assert.match(last.message, /4 learning plans not submitted, 4 overdue \(ZZRA, ZZRC, ZZRD \+1 more\)/, 'names the late courses');
 });
 
 test('once the instructor submits, the reminders stop', async () => {
@@ -204,4 +206,18 @@ test('a program with no due date, or with reminders turned off in the environmen
     assert.equal(startReminders({ env: { LPMS_REMINDERS: '0' }, log: (line) => logged.push(line), setIntervalFn: () => assert.fail('must not schedule') }), null);
     assert.match(logged[0], /off/);
     assert.equal((await reminders('F')).length, 0);
+});
+
+test('a plan 7 days overdue is escalated to the Dean once, naming the late courses but not the paused one', async () => {
+    await TermDeadline.update({ syllabus_due: '2026-11-05' }, { where: { program_id: withDeadline } });
+    const toDean = () => Notification.findAll({ where: { recipient_user_id: deanId, type: 'overdue_escalation' }, raw: true });
+    await run('2026-11-11T09:00:00Z'); // 6 days overdue: not yet
+    assert.equal((await toDean()).length, 0);
+    const result = await run('2026-11-12T09:00:00Z'); // 7 days overdue
+    assert.equal(result.deanEscalations, 1);
+    const [sent] = await toDean();
+    assert.equal(sent.message, '3 learning plans are 7 days or more overdue and not submitted: ZZRA, ZZRD, ZZRE'); // C is paused
+    await run('2026-11-12T11:00:00Z');
+    await run('2026-11-13T09:00:00Z'); // 8 days: not a trigger day
+    assert.equal((await toDean()).length, 1, 'once a day, and only on the 7th, 14th... day');
 });

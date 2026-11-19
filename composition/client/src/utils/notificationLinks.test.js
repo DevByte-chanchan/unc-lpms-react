@@ -36,6 +36,7 @@ test('a notification about no single course opens the page it is about', () => {
   assert.equal(notificationPath('director-of-libraries', { type: 'reference_health' }), '/role/director-of-libraries/reference-library')
   assert.equal(notificationPath('dean', { type: 'approval_waiting' }), '/role/dean?page=Syllabus&status=pending')
   assert.equal(notificationPath('instructor', { type: 'missing_digest' }), null)
+  assert.equal(notificationPath('dean', { type: 'overdue_escalation' }), '/role/dean?page=Syllabus&status=not-submitted')
   assert.equal(notificationPath('program-head', { type: 'reminder' }), null)
 })
 

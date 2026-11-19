@@ -8,6 +8,7 @@ const APPROVER_ROLES = ['program-head', 'dean', 'director-of-libraries', 'indust
 // page it is about instead.
 const pageFor = (role, type) => {
   if (type === 'missing_digest' && role === 'program-head') return '/role/program-head/approval-course-table?page=Syllabus&status=not-submitted'
+  if (type === 'overdue_escalation' && role === 'dean') return '/role/dean?page=Syllabus&status=not-submitted'
   if (String(type || '').startsWith('reference_') && role === 'director-of-libraries') return '/role/director-of-libraries/reference-library'
   if (type === 'approval_waiting' && APPROVER_ROLES.includes(role)) return `/role/${role}?page=Syllabus&status=pending`
   return null

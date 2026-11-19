@@ -30,12 +30,14 @@ const findAwaiting = async ({ sequelize, programIds = null, schoolYear = null, s
                 c.course_no AS courseCode, c.course_title AS courseTitle, p.name AS programName,
                 a.co_assign_id AS assignmentId, a.stakeholder_id AS instructorId, a.date_assigned AS assignedAt,
                 u.name AS instructorName, u.email AS instructorEmail, u.is_active AS instructorActive,
+                d.stakeholder_id AS deanId,
                 td.syllabus_due AS syllabusDue, td.remind_before AS remindBefore, td.overdue_every AS overdueEvery
          FROM ProgramCourseOfferings pco
              INNER JOIN Courses c ON c.course_id = pco.course_id
              INNER JOIN Programs p ON p.program_id = pco.program_id
              INNER JOIN CourseOfferingAssignments a ON a.pc_offering_id = pco.pc_offering_id
              LEFT JOIN Users u ON u.user_id = CAST(a.stakeholder_id AS INTEGER)
+             LEFT JOIN Departments d ON d.dept_id = pco.dept_id
              LEFT JOIN TermDeadlines td ON td.program_id = pco.program_id AND td.school_year = pco.school_year AND td.semester = pco.semester
          WHERE ${conditions.join(' AND ')}
          ORDER BY pco.school_year DESC, pco.semester ASC, c.course_no ASC;`,
@@ -53,6 +55,7 @@ const findAwaiting = async ({ sequelize, programIds = null, schoolYear = null, s
         waiting.push({
             ...row,
             instructorId: row.instructorId == null ? null : Number(row.instructorId),
+            deanId: row.deanId == null ? null : Number(row.deanId),
             instructorActive: row.instructorActive == null ? false : Boolean(row.instructorActive),
             isRevision: row.baseOfferingId != null,
             state: state.state,

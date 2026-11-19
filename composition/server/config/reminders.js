@@ -30,6 +30,10 @@ const DEAN_WAIT_DAYS = 7;
 // told, this many days after the return (plan 3.3).
 const RETURNED_REMIND_DAYS = Object.freeze([3, 7]);
 
+// A plan this many days past its due date and still not submitted is escalated to the Dean of its
+// department, then again every this many days, in one summary per Dean per day.
+const DEAN_OVERDUE_DAYS = 7;
+
 // How often the job wakes up. It is idempotent, so running more often only means a reminder goes
 // out sooner after the day starts.
 const CHECK_EVERY_MS = 60 * 60 * 1000;
@@ -37,4 +41,4 @@ const CHECK_EVERY_MS = 60 * 60 * 1000;
 // Reminders go out at or after this hour of the school's day, not at midnight.
 const SEND_FROM_HOUR = 8;
 
-module.exports = { BEFORE_DUE, OVERDUE_EVERY_DAYS, QUIET_HOURS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, RETURNED_REMIND_DAYS, DEFAULT_TIMEZONE, CHECK_EVERY_MS, SEND_FROM_HOUR };
+module.exports = { BEFORE_DUE, OVERDUE_EVERY_DAYS, QUIET_HOURS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, RETURNED_REMIND_DAYS, DEAN_OVERDUE_DAYS, DEFAULT_TIMEZONE, CHECK_EVERY_MS, SEND_FROM_HOUR };
