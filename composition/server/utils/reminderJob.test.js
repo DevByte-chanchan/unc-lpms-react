@@ -217,6 +217,7 @@ test('a plan 7 days overdue is escalated to the Dean once, naming the late cours
     assert.equal(result.deanEscalations, 1);
     const [sent] = await toDean();
     assert.equal(sent.message, '3 learning plans are 7 days or more overdue and not submitted: ZZRA, ZZRD, ZZRE'); // C is paused
+    assert.equal(sent.offering_id, null, 'opens the Not submitted list of the Dean, not a plan they cannot open')
     await run('2026-11-12T11:00:00Z');
     await run('2026-11-13T09:00:00Z'); // 8 days: not a trigger day
     assert.equal((await toDean()).length, 1, 'once a day, and only on the 7th, 14th... day');

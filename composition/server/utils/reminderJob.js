@@ -126,8 +126,8 @@ const remindDeans = async ({ deps, clock, waiting, pausedIds, result, now = new 
         if (!row.deanId || !row.syllabusDue || pausedIds.has(row.offeringId)) continue;
         const overdue = -rules.daysUntil(row.syllabusDue, clock.day);
         if (overdue < DEAN_OVERDUE_DAYS) continue;
-        const e = perDean.get(row.deanId) || { codes: [], plans: [], trigger: false };
-        e.codes.push(row.courseCode); e.plans.push(row.offeringId);
+        const e = perDean.get(row.deanId) || { codes: [], trigger: false };
+        e.codes.push(row.courseCode);
         if (rules.isDeanOverdueTrigger(overdue)) e.trigger = true;
         perDean.set(row.deanId, e);
     }
@@ -136,7 +136,8 @@ const remindDeans = async ({ deps, clock, waiting, pausedIds, result, now = new 
         const user = await User.findByPk(id);
         if (!user || !user.is_active) continue;
         if (!(await claim(ReminderLog, `overdue:${id}`, 'dean-overdue', clock.day))) continue;
-        await notify([id], 'overdue_escalation', e.plans.length === 1 ? e.plans[0] : null, rules.deanOverdueText(e.codes), null, now);
+        // No plan id even for one plan: a plan never submitted cannot be opened by the Dean, so it opens their Not submitted list.
+        await notify([id], 'overdue_escalation', null, rules.deanOverdueText(e.codes), null, now);
         result.deanEscalations += 1;
     }
 };

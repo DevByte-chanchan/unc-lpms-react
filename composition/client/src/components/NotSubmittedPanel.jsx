@@ -149,6 +149,8 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
       await load()
       toast(`${row.instructorName ? 'The instructor of ' : ''}${row.courseCode} was reminded.`)
     } catch (err) {
+      // 409: someone (or the system) reminded this plan today already; reload so the row shows "Reminded".
+      if (err?.status === 409) load()
       alertDialog(apiErrorMessage(err, 'The reminder was not sent.'), { title: 'Not sent' })
     } finally {
       setBusyId(null)

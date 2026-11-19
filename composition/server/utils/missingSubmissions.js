@@ -37,7 +37,8 @@ const findAwaiting = async ({ sequelize, programIds = null, schoolYear = null, s
              INNER JOIN Programs p ON p.program_id = pco.program_id
              INNER JOIN CourseOfferingAssignments a ON a.pc_offering_id = pco.pc_offering_id
              LEFT JOIN Users u ON u.user_id = CAST(a.stakeholder_id AS INTEGER)
-             LEFT JOIN Departments d ON d.dept_id = pco.dept_id
+             -- the Dean of the program's department: the same Dean whose Not submitted list shows the plan
+             LEFT JOIN Departments d ON d.dept_id = p.dept_id
              LEFT JOIN TermDeadlines td ON td.program_id = pco.program_id AND td.school_year = pco.school_year AND td.semester = pco.semester
          WHERE ${conditions.join(' AND ')}
          ORDER BY pco.school_year DESC, pco.semester ASC, c.course_no ASC;`,
