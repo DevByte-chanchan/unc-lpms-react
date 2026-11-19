@@ -515,6 +515,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                                 value={c.text || ''}
                                 onChange={(next) => updateCommentText(c.id, next)}
                                 placeholder="What should change, and why?"
+                                maxLength={2000}
                                 disabled={readOnly}
                                 padding="10px 12px"
                                 minHeight={110}
@@ -666,6 +667,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             value={c.text || ''}
                             onChange={(next) => updateCommentText(c.id, next)}
                             placeholder={'Describe the issue or suggestion...'}
+                            maxLength={2000}
                             disabled={readOnly}
                             rows={4}
                             padding="14px 10px"

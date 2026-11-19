@@ -754,8 +754,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       return 'This course could not be identified, so the comment was not saved.'
     }
 
-    const incoming = (payload.comments || []).filter(c => c.text?.trim())
-    if (incoming.some(inc => isDuplicateComment(globalComments, inc))) {
+    const written = (payload.comments || []).filter(c => c.text?.trim())
+    // Comments already on the plan word for word are skipped, not refused: after a send that saved some and failed
+    // on one, sending again saves only the rest. Refused only when every one is already there.
+    const incoming = written.filter(inc => !isDuplicateComment(globalComments, inc))
+    if (written.length > 0 && incoming.length === 0) {
       return 'Duplicate comment: identical content already exists for this target.'
     }
 

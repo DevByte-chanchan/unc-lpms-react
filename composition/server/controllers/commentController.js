@@ -482,6 +482,10 @@ exports.createCourseComment = async (req, res) => {
         if (!code || !commenter_role || !message || !String(message).trim()) {
             return res.status(400).json({ message: 'code, commenter_role and message are required.' });
         }
+        // The same limit as a consultant suggestion; the comment box stops at it too (ApprovalCommentBox maxLength).
+        if (String(message).length > MAX_SUGGESTION) {
+            return res.status(400).json({ error: `A comment is at most ${MAX_SUGGESTION} characters.` });
+        }
         if (!co_index && !normalizedFor) {
             return res.status(400).json({ message: 'Provide co_index (and week_index), or comment_for so the comment can be attached.' });
         }

@@ -69,9 +69,11 @@ const CommentsSidebar = ({
   const roles = [...new Set(comments.map(c => c.role).filter(Boolean))].map(role => ({
     role, total: comments.filter(c => c.role === role).length, open: comments.filter(c => c.role === role && !c.resolved && !isSuggestion(c)).length
   }))
+  // A role picked earlier whose comments are no longer here (the list reloaded): show everyone, not an empty list.
+  const fromRole = roles.some(r => r.role === roleFilter) ? roleFilter : 'all'
   const listedComments = comments
     .filter(c => commentFilter === 'all' || (!isSuggestion(c) && (commentFilter === 'open' ? !c.resolved : c.resolved)))
-    .filter(c => roleFilter === 'all' || c.role === roleFilter)
+    .filter(c => fromRole === 'all' || c.role === fromRole)
     .slice()
     .sort((a, b) => (Number(Boolean(a.resolved)) - Number(Boolean(b.resolved)))
       || (new Date(b.createdAt || b.submittedAt || 0) - new Date(a.createdAt || a.submittedAt || 0)))
@@ -131,7 +133,7 @@ const CommentsSidebar = ({
               ))}
               {roles.length > 1 && (
                 <div className={styles.commentRoleFilter}>
-                <Select block value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Comments from">
+                <Select block value={fromRole} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Comments from">
                   <option value="all">Everyone ({comments.length})</option>
                   {roles.map(r => (
                     <option key={r.role} value={r.role}>{reviewerRoleLabel(r.role)} ({r.total}{r.open ? `, ${r.open} open` : ''})</option>
