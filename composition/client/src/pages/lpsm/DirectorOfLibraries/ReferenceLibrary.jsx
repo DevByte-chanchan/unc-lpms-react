@@ -213,14 +213,11 @@ const ReferenceLibrary = () => {
     recentOnly,
     currentYear: CURRENT_YEAR,
   }), [query, searchField, filterDepartment, filterType, filterYear, tab, recentOnly]);
-  const currentViewCriteria = useMemo(() => ({
-    ...criteria,
-    sortKey: sort.sortKey,
-    sortDir: sort.sortDir,
-  }), [criteria, sort]);
+  // The view is what is shown, not its order: sorting a column (the page sorts by title) is not a "Custom view".
+  // A course chosen in the rail narrows the list, so it is one.
   const activeViewValue = useMemo(
-    () => getReferenceViewValue(currentViewCriteria),
-    [currentViewCriteria],
+    () => (filterCourse ? 'custom' : getReferenceViewValue({ ...criteria, sortKey: 'id', sortDir: 'asc' })),
+    [criteria, filterCourse],
   );
   const recordIds = (record) => (record.sourceIds?.length ? record.sourceIds : [serverId(record.id)]).map(Number);
   const filtered = useMemo(() => {
@@ -236,6 +233,17 @@ const ReferenceLibrary = () => {
     () => paginateReferenceRecords(sortedReferences, page, pageSize),
     [sortedReferences, page, pageSize]
   );
+  // Wider than 1400px the preview pane is always on screen (styles/ReferenceLibrary.module.scss), showing the first row
+  // until one is picked. Narrower, it opens only for a clicked row, so no row should look picked before that.
+  const PANE_QUERY = '(min-width: 1401px)';
+  const [paneShown, setPaneShown] = useState(() => (typeof window === 'undefined' || !window.matchMedia ? true : window.matchMedia(PANE_QUERY).matches));
+  useEffect(() => {
+    const media = window.matchMedia?.(PANE_QUERY);
+    if (!media) return undefined;
+    const sync = () => setPaneShown(media.matches);
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
   const previewReference = useMemo(
     () => getReferencePreview(viewRef, sortedReferences),
     [viewRef, sortedReferences]
@@ -609,9 +617,9 @@ const ReferenceLibrary = () => {
                 {pageResult.items.length > 0 ? pageResult.items.map(ref => (
                   <tr
                     key={ref.id}
-                    className={`${styles.resultRow} ${previewReference?.id === ref.id ? styles.resultRowSelected : ''}`}
+                    className={`${styles.resultRow} ${(viewRef || paneShown) && previewReference?.id === ref.id ? styles.resultRowSelected : ''}`}
                     tabIndex={0}
-                    aria-selected={previewReference?.id === ref.id}
+                    aria-selected={Boolean(viewRef || paneShown) && previewReference?.id === ref.id}
                     onClick={() => setViewRef(ref)}
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setViewRef(ref); } }}
                   >
