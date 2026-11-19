@@ -3,7 +3,7 @@ import { offeringKey } from '../utils/offeringKey.js'
 import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
-import { fetchJson as defaultFetchJson } from '../utils/api';
+import { fetchJson as defaultFetchJson, apiErrorMessage } from '../utils/api';
 import { toast } from '../utils/toast.jsx';
 import { alertDialog } from '../utils/appDialog.jsx';
 
@@ -68,7 +68,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, styles, stylesB, fetchJso
             toast('Criteria for grading saved.');
         } catch (e) {
             console.error('Failed to save criteria', e);
-            alertDialog(`The criteria for grading were not saved: ${e.message}. Try again.`, { title: 'Not saved' });
+            alertDialog(`The criteria for grading were not saved. ${apiErrorMessage(e, 'Try again.')}`, { title: 'Not saved' });
         } finally {
             setIsSaving(false);
         }

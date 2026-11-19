@@ -5,8 +5,9 @@ import styles from '../styles/VersionHistory.module.sass'
 
 // Every version of this course's plan, newest first, with who did what and when (server: utils/versionHistory.js).
 // Closed until opened: it is for looking back, not part of the review.
-// two-digit day and hour, so every date is the same length and the column lines up ("Jun 01, 2026, 08:00 AM")
-const when = (value) => (value ? new Date(value).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
+// The date and the time as two right-aligned parts ("Jun 01, 2026" and "08:00 AM"), so both line up down the list.
+const whenDate = (value) => (value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '')
+const whenTime = (value) => (value ? new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '')
 const day = (value) => (value ? new Date(value).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '')
 // The timeline dot's colour by what happened: green approve / accept, amber return, teal submit, grey the rest.
 const toneOf = (action = '') => (/approv|accept/i.test(action) ? 'good' : /return|sent back/i.test(action) ? 'warn' : /submit|forward/i.test(action) ? 'submit' : '')
@@ -51,7 +52,7 @@ const VersionHistory = ({ pcId }) => {
                     <span className={`${styles.dot} ${styles[toneOf(event.action)] || ''}`} aria-hidden="true" />
                     <span className={styles.action}>{event.action}</span>
                     <span className={styles.who}>{event.who || 'Someone'} <span className={styles.role}>{event.role}</span></span>
-                    <time className={styles.when} dateTime={event.at}>{when(event.at)}</time>
+                    <time className={styles.when} dateTime={event.at}><span>{whenDate(event.at)}</span><span className={styles.clock}>{whenTime(event.at)}</span></time>
                     {event.note && <q className={styles.note}>{event.note}</q>}
                   </li>
                 ))}

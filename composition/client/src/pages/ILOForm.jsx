@@ -67,7 +67,7 @@ const ILOForm = () => {
                 }
                 setLoadError('This ILO was not found in the course offering.');
             })
-            .catch(err => { if (mounted) setLoadError(err.message || 'Could not load the ILO.'); })
+            .catch(err => { if (mounted) setLoadError(apiErrorMessage(err, 'Could not load the ILO.')); })
             .finally(() => { if (mounted) setLoading(false); });
         return () => { mounted = false; };
     }, [offeringID, revisionNum, iloId]);

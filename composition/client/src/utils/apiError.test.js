@@ -20,4 +20,5 @@ test('apiErrorMessage never shows raw or technical text', () => {
   assert.match(apiErrorMessage(new Error('HTTP 400: {"error":"SQLITE_CONSTRAINT: UNIQUE failed"}')), /could not be completed/)
   assert.equal(apiErrorMessage(new Error("Cannot read properties of undefined (reading 'x')"), 'Not saved.'), 'Not saved.')
   assert.match(apiErrorMessage(new TypeError('Failed to fetch')), /could not be reached/)
+  assert.equal(apiErrorMessage(new Error('PDF export failed (HTTP 500)'), 'Try again.'), 'Try again.')
 })

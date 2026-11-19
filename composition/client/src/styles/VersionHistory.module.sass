@@ -113,9 +113,17 @@
   color: var(--ink-muted)
 
 .when
+  display: inline-flex
+  justify-content: flex-end
+  gap: 12px
   color: var(--ink-muted)
   font-variant-numeric: tabular-nums
   white-space: nowrap
+  text-align: right
+
+// a fixed width for the time, so the dates end at the same place on every row
+.clock
+  min-width: 5.2em
 
 .note
   grid-column: 2 / -1

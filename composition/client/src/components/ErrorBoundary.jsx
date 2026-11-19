@@ -1,5 +1,6 @@
 import React from 'react'
 import { planLazyImportRecovery } from '../utils/lazyImportRecovery'
+import Mascot from './Mascot.jsx'
 
 const LAZY_IMPORT_RECOVERY_KEY = 'lpms:lazy-import-recovery'
 
@@ -57,93 +58,30 @@ class ErrorBoundary extends React.Component {
 
       const isDev = import.meta.env?.DEV
 
+      // A plain, friendly page: the greyhound looking worried, what happened in everyday words, and two ways out.
+      // The real error is only shown while developing; users never see a stack trace.
       return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: this.props.minHeight || '300px',
-          padding: 24,
-          fontFamily: "'Poppins', sans-serif"
-        }}>
-          <div style={{
-            maxWidth: 480,
-            textAlign: 'center',
-            padding: 32,
-            background: '#fff',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--line)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
-          }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-            <h2 style={{
-              margin: '0 0 8px 0',
-              fontSize: 18,
-              fontWeight: 600,
-              color: '#2c3e50'
-            }}>
-              {this.props.title || 'Something went wrong'}
+        <div role="alert" style={{ display: 'grid', placeItems: 'center', minHeight: this.props.minHeight || 300, padding: 24 }}>
+          <div style={{ maxWidth: 440, textAlign: 'center', padding: '28px 32px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm, 0 4px 16px rgb(0 0 0 / 0.06))' }}>
+            <Mascot pose="worried" size={88} />
+            <h2 style={{ margin: '12px 0 6px', fontSize: 'var(--fs-lg)', fontWeight: 600, color: 'var(--ink)' }}>
+              {this.props.title || 'This page hit a snag'}
             </h2>
-            <p style={{
-              margin: '0 0 20px 0',
-              fontSize: 14,
-              color: '#7f8c8d',
-              lineHeight: 1.5
-            }}>
-              {this.props.message || 'An unexpected error occurred. Please try again.'}
+            <p style={{ margin: '0 0 20px', fontSize: 'var(--fs-md)', lineHeight: 1.5, color: 'var(--ink-muted)', textWrap: 'pretty' }}>
+              {this.props.message || 'Something on this page did not load properly. Your saved work is safe. Try again, or reload the page.'}
             </p>
             {isDev && this.state.error && (
-              <details style={{
-                marginBottom: 20,
-                textAlign: 'left',
-                background: '#f8f9fa',
-                padding: 12,
-                borderRadius: 6,
-                fontSize: 12,
-                color: '#e74c3c',
-                maxHeight: 200,
-                overflow: 'auto'
-              }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Error Details</summary>
+              <details style={{ marginBottom: 20, textAlign: 'left', background: 'var(--surface-sunken)', padding: 12, borderRadius: 'var(--radius-sm, 6px)', fontSize: 12, color: 'var(--ink-soft)', maxHeight: 200, overflow: 'auto' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Details (shown only while developing)</summary>
                 <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>
               </details>
             )}
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button
-                onClick={this.handleReset}
-                style={{
-                  padding: '10px 24px',
-                  background: '#1e3a5f',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                style={{
-                  padding: '10px 24px',
-                  background: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-              >
-                Reload Page
-              </button>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button type="button" className="btn btn-primary" onClick={this.handleReset}>Try again</button>
+              <button type="button" className="btn btn-secondary" onClick={() => window.location.reload()}>Reload page</button>
             </div>
           </div>
         </div>

@@ -5,7 +5,7 @@ import EmptyState from './EmptyState.jsx';
 import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
-import { fetchJson as defaultFetchJson } from '../utils/api';
+import { fetchJson as defaultFetchJson, apiErrorMessage } from '../utils/api';
 import { toast } from '../utils/toast.jsx';
 import { alertDialog } from '../utils/appDialog.jsx';
 
@@ -90,7 +90,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
             toast('Course description saved.');
         } catch (e) {
             console.error('Failed to save course description', e);
-            alertDialog(`The course description was not saved: ${e.message}. Try again.`, { title: 'Not saved' });
+            alertDialog(`The course description was not saved. ${apiErrorMessage(e, 'Try again.')}`, { title: 'Not saved' });
         } finally {
             setIsSaving(false);
         }

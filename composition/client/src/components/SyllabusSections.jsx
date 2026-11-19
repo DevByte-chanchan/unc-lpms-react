@@ -211,7 +211,7 @@ const SyllabusSections = () => {
             setSubmitPhase(result.ok ? 'CONFIRM' : 'BLOCKED');
         } catch (error) {
             console.error('Alignment check failed:', error);
-            setGateResult({ ok: false, blockers: [`The alignment check could not run: ${error.message}`], warnings: [] });
+            setGateResult({ ok: false, blockers: [`The alignment check could not run. ${apiErrorMessage(error, 'Try again.')}`], warnings: [] });
             setSubmitPhase('BLOCKED');
         }
     };

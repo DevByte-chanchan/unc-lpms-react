@@ -338,7 +338,9 @@ export const autoCorrect = async (text, opts = {}) => {
             notice: summarize(result.applied)
         }
     } catch (e) {
-        return fallbackToLocal(`the online checker could not be reached${e?.message ? `: ${e.message}` : ''}`)
+        // only our own plain deadline note ("no answer in 8s") is shown; a browser's raw error never is
+        const why = /^no answer in \d+s$/.test(e?.message || '') ? `: ${e.message}` : ''
+        return fallbackToLocal(`the online checker could not be reached${why}`)
     }
 }
 

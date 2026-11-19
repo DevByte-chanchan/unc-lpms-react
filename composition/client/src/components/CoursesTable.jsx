@@ -163,7 +163,7 @@ const CoursesTable = () => {
             });
         } catch (err) {
             console.warn('Export failed:', err);
-            alertDialog('The learning plan could not be exported: ' + (err?.message || err || 'unknown error') + '. Try again.', { title: 'Export failed' });
+            alertDialog(`The learning plan could not be exported. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Export failed' });
         } finally {
             setExporting(false);
         }

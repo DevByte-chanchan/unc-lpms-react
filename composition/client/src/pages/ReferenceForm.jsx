@@ -312,7 +312,7 @@ const ReferenceForm = forwardRef(({
                     setSelectedRefs(prev => prev.map(r => (r.reference_id === editingRef.reference_id ? merged : r)));
                 } catch (err) {
                     console.error('Failed to update reference:', err);
-                    setValidationError(err.message || 'Failed to update reference.');
+                    setValidationError(apiErrorMessage(err, 'The reference was not updated. Try again.'));
                     return;
                 }
             } else {

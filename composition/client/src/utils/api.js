@@ -61,7 +61,7 @@ const BY_STATUS = {
     429: 'Too many tries in a row. Wait a moment, then try again.',
 };
 const SERVER_TROUBLE = 'Something went wrong on our side. Try again in a moment.';
-const TECHNICAL = /sqlite|sequelize|constraint|syntaxerror|typeerror|referenceerror|undefined|stack|\bat \w+ \(|<\/?[a-z]|econn|enoent|errno|exception|[{}]/i;
+const TECHNICAL = /sqlite|sequelize|constraint|syntaxerror|typeerror|referenceerror|undefined|stack|\bat \w+ \(|<\/?[a-z]|econn|enoent|errno|exception|http \d{3}|[{}]/i;
 
 export function friendlyText(status, text = '') {
     if (status >= 400 && status < 500) {

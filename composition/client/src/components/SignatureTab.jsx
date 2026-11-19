@@ -84,7 +84,7 @@ const SignatureTab = () => {
       await loadSaved()
       toast('Signature saved. It will appear on the plans you prepare or approve.')
     } catch (err) {
-      setError(err.message)
+      setError(apiErrorMessage(err, 'The signature was not saved.'))
     } finally {
       setBusy(false)
     }

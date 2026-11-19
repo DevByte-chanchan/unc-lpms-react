@@ -59,7 +59,7 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
 
   const run = async (action, done) => {
     setBusy(true); setError('')
-    try { await action(); await load(); toast(done) } catch (err) { alertDialog(apiErrorMessage(err, err?.message || 'The change was not saved.'), { title: 'Not saved' }) } finally { setBusy(false) }
+    try { await action(); await load(); toast(done) } catch (err) { alertDialog(apiErrorMessage(err, 'The change was not saved.'), { title: 'Not saved' }) } finally { setBusy(false) }
   }
   const upload = (file) => file && run(async () => {
     await fetchJson(`/api/course-documents/${pcId}/${kind}`, {

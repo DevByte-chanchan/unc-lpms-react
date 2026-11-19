@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Inbox, Search, Pen as Edit2, Clock, Flag } from "lucide-react";
 import { offeringKey, revisionOf } from '../utils/offeringKey.js'
+import { apiErrorMessage } from '../utils/api.js'
 
 const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
     const [iloData, setIloData] = useState({ course: null, courseOutcomes: [], ilos: [] });
@@ -68,7 +69,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
             } catch (err) {
                 console.error(err);
                 if (!mounted) return;
-                setError(err.message);
+                setError(apiErrorMessage(err, 'The outcomes could not be loaded. Try again.'));
             } finally {
                 if (mounted) setLoading(false);
             }

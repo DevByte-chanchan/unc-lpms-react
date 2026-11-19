@@ -177,7 +177,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     try {
       setPreviewFile(await buildReviewRecordFile({ pcId: validPcId, code: codeToUse }))
     } catch (err) {
-      alertDialog('The review record could not be made: ' + (err?.message || err) + '. Try again.', { title: 'Review record failed' })
+      alertDialog(`The review record could not be made. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Review record failed' })
     } finally {
       setExportingPdf(false)
     }
@@ -210,7 +210,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       })
     } catch (err) {
       console.warn('Export generation failed:', err)
-      alertDialog('The learning plan could not be exported: ' + (err?.message || err) + '. Try again.', { title: 'Export failed' })
+      alertDialog(`The learning plan could not be exported. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Export failed' })
     } finally {
       setExportingPdf(false)
     }
@@ -330,7 +330,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         });
       } catch (err) {
         if (!mounted) return;
-        setCpaError(err.message);
+        setCpaError(apiErrorMessage(err, 'This could not be loaded. Try again.'));
       } finally {
         if (mounted) setCpaLoading(false);
       }
@@ -1078,7 +1078,7 @@ ${suggestionLine}` : text,
                     })
                   } catch (err) {
                     console.warn('Export generation failed:', err)
-                    alertDialog('The learning plan could not be exported: ' + (err?.message || err) + '. Try again.', { title: 'Export failed' })
+                    alertDialog(`The learning plan could not be exported. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Export failed' })
                   } finally {
                     setExportingPdf(false)
                   }

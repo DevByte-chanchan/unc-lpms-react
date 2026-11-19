@@ -110,7 +110,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       toast(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}).`)
       await loadFront(programId)
     } catch (err) {
-      alertDialog(apiErrorMessage(err, err?.message || 'The front pages were not uploaded.'), { title: 'Not uploaded' })
+      alertDialog(apiErrorMessage(err, 'The front pages were not uploaded.'), { title: 'Not uploaded' })
     } finally {
       setBusy(false)
       if (frontRef.current) frontRef.current.value = ''
