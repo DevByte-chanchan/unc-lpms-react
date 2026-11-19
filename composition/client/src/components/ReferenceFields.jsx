@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Select from './Select.jsx';
 import SpellCheckArea from './SpellCheckArea.jsx';
 import styles from '../styles/ReferenceFields.module.sass';
-import { getReferenceTypes, fieldsFor, referenceTypeLabel, YEAR_MIN, yearMax, completeLink } from '../utils/referenceTypes.js';
+import { getReferenceTypes, fieldsFor, referenceTypeLabel, YEAR_MIN, yearMax, completeLink, localDay } from '../utils/referenceTypes.js';
 import { fetchJson, apiErrorMessage } from '../utils/api.js';
 
 // The reference form, drawn from the server's type definitions: the type dropdown, then exactly the
@@ -57,7 +57,7 @@ const Field = ({ label, error, value, onChange, onBlur, options, placeholder, ch
         {yearOptions().map(year => <option key={year} value={year}>{year}</option>)}
       </Select>
     ) : kind === 'date' ? (
-      <input className={`app-input ${error ? styles.invalid : ''}`} type="date" value={value} max={new Date().toISOString().slice(0, 10)}
+      <input className={`app-input ${error ? styles.invalid : ''}`} type="date" value={value} max={localDay()}
         aria-label={label} onChange={(event) => onChange(event.target.value)} onBlur={() => onBlur?.()} />
     ) : checked ? (
       // One line: a pasted line break becomes a space.

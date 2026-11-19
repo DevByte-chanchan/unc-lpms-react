@@ -124,7 +124,8 @@ test('the old localStorage reference store is gone from the code base', () => {
 })
 
 test('each field kind is checked as it is left, with the server rules', async () => {
-  const { fieldError, formErrors, completeLink } = await import('./referenceTypes.js')
+  const { fieldError, formErrors, completeLink, localDay } = await import('./referenceTypes.js')
+  assert.equal(localDay(new Date(2026, 10, 19, 7, 30)), '2026-11-19', 'the local day, not the UTC one')
   const now = new Date('2026-11-15T00:00:00Z')
   const year = { key: 'year', label: 'Publication year', kind: 'year', required: true }
   assert.match(fieldError(year, '2005A', now), /4-digit year/)

@@ -8,6 +8,7 @@
 
 const { FIELDS, REFERENCE_TYPES, isReferenceType, THIS_YEAR } = require('../config/referenceTypes');
 const { normalizeIsbn } = require('./isbnLookup');
+const { schoolClock, timezoneOf } = require('./reminderRules');
 
 const clean = (value) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -21,7 +22,8 @@ const checkers = {
     choice: (value, def) => (def.options.includes(value) ? null : `${def.label} must be one of: ${def.options.join(', ')}.`),
     date: (value, def) => {
         if (!isRealDate(value)) return `${def.label} must be a date written YYYY-MM-DD.`;
-        return value <= new Date().toISOString().slice(0, 10) ? null : `${def.label} cannot be in the future.`;
+        // Today in the school's zone, not UTC: before 8 AM in Manila the UTC date is still yesterday.
+        return value <= schoolClock(new Date(), timezoneOf()).day ? null : `${def.label} cannot be in the future.`;
     },
     text: (value, def) => (value.length > def.max ? `${def.label} must be at most ${def.max} characters.` : null),
     isbn: (value) => {
@@ -87,7 +89,14 @@ const validateReference = (raw) => {
 const duplicateKey = (title, authors) => `${clean(title).toLowerCase()}|${clean(authors).toLowerCase()}`;
 
 // An ISBN compared the way people write it: no spaces or hyphens, upper case. Empty when there is none.
-const isbnKey = (isbn) => clean(isbn).replace(/[ -]/g, '').toUpperCase();
+// A valid ISBN-10 is turned into its ISBN-13 (978 + 9 digits + new check digit), so both forms of one book match.
+const isbnKey = (isbn) => {
+    const digits = clean(isbn).replace(/[ -]/g, '').toUpperCase();
+    if (digits.length !== 10 || !normalizeIsbn(digits)) return digits;
+    const body = `978${digits.slice(0, 9)}`;
+    const sum = [...body].reduce((s, c, i) => s + Number(c) * (i % 2 ? 3 : 1), 0);
+    return `${body}${(10 - (sum % 10)) % 10}`;
+};
 
 // The stored reference that `values` (validated, with the References column names) would duplicate, or null.
 // Same title and authors, or the same ISBN when both have one. `stored` is a list of

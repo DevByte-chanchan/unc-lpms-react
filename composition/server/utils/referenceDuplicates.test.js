@@ -11,7 +11,9 @@ const { createReference, updateReference, importReferences } = require('../contr
 
 test('isbnKey ignores spaces, hyphens and case', () => {
     assert.equal(isbnKey('978-0-13-468599-1'), '9780134685991');
-    assert.equal(isbnKey(' 0 8044 2957 x '), '080442957X');
+    assert.equal(isbnKey(' 0 8044 2957 x '), '9780804429573', 'a valid ISBN-10 becomes its ISBN-13');
+    assert.equal(isbnKey('0-13-235088-2'), isbnKey('978-0-13-235088-4'), 'both forms of Clean Code are one book');
+    assert.equal(isbnKey('1234567890'), '1234567890', 'an invalid ISBN-10 stays as written');
     assert.equal(isbnKey(null), '');
     assert.equal(isbnKey(''), '');
 });

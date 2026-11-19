@@ -7,6 +7,9 @@
 
 let registry = []
 
+// Today as YYYY-MM-DD in the person's own time zone (toISOString is UTC: before 8 AM in Manila it is still yesterday).
+export const localDay = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
 export const setReferenceTypes = (types) => { registry = Array.isArray(types) ? types : [] }
 export const getReferenceTypes = () => registry
 
@@ -61,7 +64,7 @@ export const fieldError = (field, raw, now = new Date()) => {
       return /^[0-9]+$/.test(value) && Number(value) <= (field.max || 9999) ? null : `${field.label} must be a whole number from 0 to ${field.max || 9999}.`
     case 'date': {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) return `${field.label} must be a date.`
-      return value <= now.toISOString().slice(0, 10) ? null : `${field.label} cannot be in the future.`
+      return value <= localDay(now) ? null : `${field.label} cannot be in the future.`
     }
     default:
       return field.max && value.length > field.max ? `${field.label} must be at most ${field.max} characters.` : null
