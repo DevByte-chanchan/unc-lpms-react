@@ -247,47 +247,13 @@ exports.getCommentsByTarget = async (req, res) => {
             replacements: [weekId, String(commentFor).toLowerCase().trim()]
         });
 
-        // Preload week subtopics / references / tlas as fallback in case a target_id was re-created previously
-        let weekSubtopicsFallback = null;
-        let weekRefsFallback = null;
-        let weekTlasFallback = null;
-
-        const getWeekSubtopics = async () => {
-            if (weekSubtopicsFallback !== null) return weekSubtopicsFallback;
-            const [subs] = await sequelize.query(`
-                SELECT st.subtopic_id, st.title AS subtopic_title, st.topic_id, t.title AS topic_title
-                FROM Subtopics st
-                JOIN Topics t ON st.topic_id = t.topic_id
-                WHERE st.week_id = ?
-                ORDER BY st.is_orientation ASC, st.subtopic_id ASC, st.sequence_order ASC
-            `, { replacements: [weekId] });
-            weekSubtopicsFallback = subs;
-            return subs;
-        };
-
-        const getWeekRefs = async () => {
-            if (weekRefsFallback !== null) return weekRefsFallback;
-            const [refs] = await sequelize.query(`
-                SELECT wr.weekly_reference_id, r.title AS ref_title
-                FROM WeeklyReferences wr
-                JOIN \`References\` r ON wr.reference_id = r.reference_id
-                WHERE wr.week_id = ?
-                ORDER BY wr.is_orientation ASC, wr.weekly_reference_id ASC
-            `, { replacements: [weekId] });
-            weekRefsFallback = refs;
-            return refs;
-        };
-
-        const getWeekTlas = async () => {
-            if (weekTlasFallback !== null) return weekTlasFallback;
-            const [tlas] = await sequelize.query(`
-                SELECT tla_id, tla_name
-                FROM TeachingAndLearningActivities
-                WHERE week_id = ?
-                ORDER BY is_orientation ASC, tla_id ASC
-            `, { replacements: [weekId] });
-            weekTlasFallback = tlas;
-            return tlas;
+        // A target that no longer exists (the topic, activity or reference was removed from the plan) is named as
+        // removed. It used to be re-pointed, in the database, at the week's first item, so the comment then read as if
+        // it were about something else; a read never changes a comment now.
+        const REMOVED = {
+            topics: 'A topic since removed from the plan',
+            tlas: 'An activity since removed from the plan',
+            references: 'A reference since removed from the plan'
         };
 
         // Group rows by comment_id to support multiple targets per comment (e.g., multi-selected subtopics)
@@ -325,29 +291,12 @@ exports.getCommentsByTarget = async (req, res) => {
             }
 
             if (row.comment_for === 'topics') {
-                let topicId = row.parent_topic_id || row.direct_topic_id || null;
+                const topicId = row.parent_topic_id || row.direct_topic_id || null;
                 let topicTitle = row.parent_topic_title || row.direct_topic_title || null;
-                let subtopicId = row.resolved_subtopic_id || null;
-                let subtopicTitle = row.subtopic_title || null;
+                const subtopicId = row.resolved_subtopic_id || null;
+                const subtopicTitle = row.subtopic_title || null;
 
-                // If target_id was orphaned (e.g., from an earlier Subtopic destroy/recreate), heal & resolve from the week's subtopics
-                if (!topicTitle && !subtopicTitle) {
-                    const weekSubs = await getWeekSubtopics();
-                    if (weekSubs.length > 0) {
-                        const fallbackSub = weekSubs[0];
-                        topicId = fallbackSub.topic_id;
-                        topicTitle = fallbackSub.topic_title;
-                        subtopicId = fallbackSub.subtopic_id;
-                        subtopicTitle = fallbackSub.subtopic_title;
-
-                        if (row.comment_target_id) {
-                            await sequelize.query(
-                                `UPDATE CommentTargets SET target_id = ? WHERE comment_target_id = ?`,
-                                { replacements: [subtopicId, row.comment_target_id] }
-                            ).catch(() => {});
-                        }
-                    }
-                }
+                if (!topicTitle && !subtopicTitle && row.target_id != null) topicTitle = REMOVED.topics;
 
                 if (topicTitle || subtopicTitle) {
                     const effectiveTopicTitle = topicTitle || 'Topic';
@@ -373,30 +322,12 @@ exports.getCommentsByTarget = async (req, res) => {
                     }
                 }
             } else if (row.comment_for === 'tlas') {
-                let tlaTitle = row.tla_title || null;
-                if (!tlaTitle) {
-                    const weekTlas = await getWeekTlas();
-                    if (weekTlas.length > 0) {
-                        tlaTitle = weekTlas[0].tla_name;
-                    }
-                }
+                const tlaTitle = row.tla_title || (row.target_id != null ? REMOVED.tlas : null);
                 if (tlaTitle && !commentObj.target_titles.includes(tlaTitle)) {
                     commentObj.target_titles.push(tlaTitle);
                 }
             } else if (row.comment_for === 'references') {
-                let refTitle = row.wr_ref_title || row.direct_ref_title || null;
-                if (!refTitle) {
-                    const weekRefs = await getWeekRefs();
-                    if (weekRefs.length > 0) {
-                        refTitle = weekRefs[0].ref_title;
-                        if (row.comment_target_id) {
-                            await sequelize.query(
-                                `UPDATE CommentTargets SET target_id = ? WHERE comment_target_id = ?`,
-                                { replacements: [weekRefs[0].weekly_reference_id, row.comment_target_id] }
-                            ).catch(() => {});
-                        }
-                    }
-                }
+                const refTitle = row.wr_ref_title || row.direct_ref_title || (row.target_id != null ? REMOVED.references : null);
                 if (refTitle && !commentObj.target_titles.includes(refTitle)) {
                     commentObj.target_titles.push(refTitle);
                 }
@@ -661,11 +592,15 @@ exports.getCourseCommentsByCode = async (req, res) => {
                  (SELECT COUNT(*) FROM Weeks w3 INNER JOIN CourseOutcomes co3 ON co3.co_id = w3.co_id
                   WHERE co3.pc_offering_id = co.pc_offering_id
                     AND (co3.co_id < co.co_id OR (co3.co_id = co.co_id AND w3.week_id <= w.week_id))) AS week_no,
-                 CASE c.comment_for
+                 -- a target since removed from the plan is named so, not left blank (as in getCommentsByTarget)
+                 COALESCE(CASE c.comment_for
                      WHEN 'topics'     THEN COALESCE(top.title || CASE WHEN st.title IS NOT NULL AND st.title <> '' THEN ': ' || st.title ELSE '' END, top_direct.title)
                      WHEN 'references' THEN ref.title
                      WHEN 'tlas'       THEN tla.tla_name
-                 END AS target_title
+                 END, CASE WHEN ct.target_id IS NULL THEN NULL
+                     WHEN c.comment_for = 'topics' THEN 'A topic since removed from the plan'
+                     WHEN c.comment_for = 'tlas' THEN 'An activity since removed from the plan'
+                     WHEN c.comment_for = 'references' THEN 'A reference since removed from the plan' END) AS target_title
              FROM Comments c
                  LEFT JOIN CommentTargets ct ON ct.comment_id = c.comment_id
                  INNER JOIN Weeks w ON w.week_id = c.week_id
@@ -733,11 +668,15 @@ exports.getCourseComments = async (req, res) => {
                  (SELECT COUNT(*) FROM Weeks w3 INNER JOIN CourseOutcomes co3 ON co3.co_id = w3.co_id
                   WHERE co3.pc_offering_id = co.pc_offering_id
                     AND (co3.co_id < co.co_id OR (co3.co_id = co.co_id AND w3.week_id <= w.week_id))) AS week_no,
-                 CASE c.comment_for
+                 -- a target since removed from the plan is named so, not left blank (as in getCommentsByTarget)
+                 COALESCE(CASE c.comment_for
                      WHEN 'topics'     THEN COALESCE(top.title || CASE WHEN st.title IS NOT NULL AND st.title <> '' THEN ': ' || st.title ELSE '' END, top_direct.title)
                      WHEN 'references' THEN ref.title
                      WHEN 'tlas'       THEN tla.tla_name
-                 END AS target_title
+                 END, CASE WHEN ct.target_id IS NULL THEN NULL
+                     WHEN c.comment_for = 'topics' THEN 'A topic since removed from the plan'
+                     WHEN c.comment_for = 'tlas' THEN 'An activity since removed from the plan'
+                     WHEN c.comment_for = 'references' THEN 'A reference since removed from the plan' END) AS target_title
              FROM Comments c
                  LEFT JOIN CommentTargets ct ON ct.comment_id = c.comment_id
                  INNER JOIN Weeks w ON w.week_id = c.week_id

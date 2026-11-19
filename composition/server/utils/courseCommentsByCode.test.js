@@ -94,3 +94,25 @@ test('a comment is saved on the plan being reviewed, not the newest plan with th
     made.comments.push(row.comment_id);
     assert.equal(row.pc_offering_id, otherOffering);
 });
+
+test('a comment whose topic was removed is named as removed, and reading it never moves it to another topic', async () => {
+    const week = made.weeks[0];
+    const topic = await insert('INSERT INTO Topics (title, createdAt, updatedAt) VALUES (?, ?, ?)', [`ZZ kept topic ${stamp}`, now(), now()]);
+    const subtopic = await insert('INSERT INTO Subtopics (week_id, topic_id, title, sequence_order, is_orientation, createdAt, updatedAt) VALUES (?, ?, ?, 0, 0, ?, ?)', [week, topic, 'ZZ kept subtopic', now(), now()]);
+    const comment = await Comment.create({ co_assign_id: made.assignments[0], commenter_role: 'DEAN', commenter_user_id: ids.dean, message: `ZZ gone ${stamp}`, resolved_status: false, week_id: week, comment_for: 'topics' });
+    made.comments.push(comment.comment_id);
+    const gone = 2000000000 + (stamp % 1000000); // a subtopic id that does not exist: it was removed from the plan
+    const target = await insert('INSERT INTO CommentTargets (comment_id, target_id, createdAt, updatedAt) VALUES (?, ?, ?, ?)', [comment.comment_id, gone, now(), now()]);
+    try {
+        const res = await fetch(`${base}/comments/filter/${week}/topics`, { headers: { 'x-user': `${ids.mine}:instructor` } });
+        assert.equal(res.status, 200);
+        const mine = (await res.json()).find(c => c.comment_id === comment.comment_id);
+        assert.equal(mine.target_title, 'A topic since removed from the plan');
+        const [stored] = await sequelize.query('SELECT target_id FROM CommentTargets WHERE comment_target_id = ?', { replacements: [target], type: Sequelize.QueryTypes.SELECT });
+        assert.equal(Number(stored.target_id), gone, 'not re-pointed at the week\'s first subtopic');
+    } finally {
+        await sequelize.query('DELETE FROM CommentTargets WHERE comment_target_id = ?', { replacements: [target] });
+        await sequelize.query('DELETE FROM Subtopics WHERE subtopic_id = ?', { replacements: [subtopic] });
+        await sequelize.query('DELETE FROM Topics WHERE topic_id = ?', { replacements: [topic] });
+    }
+});
