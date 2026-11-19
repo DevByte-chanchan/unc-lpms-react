@@ -76,6 +76,15 @@
   color: #16a34a
 
 // No date yet: amber outline and text, the thing to do next.
+// the due date has passed: the chip turns red so it is not read as "all set"
+.chipPast.chipPast
+  border-color: var(--danger-line, #fca5a5)
+  background: var(--danger-soft, #fef2f2)
+  color: var(--danger)
+
+  svg
+    color: var(--danger)
+
 .chipUnset
   border-color: #f59e0b
   background: #fffbeb

@@ -26,7 +26,8 @@ const daysFrom = (from, to) => {
   const b = Date.parse(`${String(to || '').slice(0, 10)}T00:00:00Z`)
   return Number.isNaN(a) || Number.isNaN(b) ? null : Math.round((b - a) / 86400000)
 }
-const shiftDay =(iso, days) => {
+const shiftYear = (iso) => { const [y, m, d] = String(iso || '').slice(0, 10).split('-').map(Number); return y && m && d ? `${y + 1}-${String(m).padStart(2, '0')}-${String(Math.min(d, m === 2 ? 28 : d)).padStart(2, '0')}` : '' }
+const shiftDay = (iso, days) => {
   const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
   if (!y || !m || !d) return ''
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
@@ -97,8 +98,17 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
   const termDeadline = (program) => deadlines.deadlines.find(d => d.program_id === program.program_id && d.school_year === schoolYear && d.semester === semester)
   const openDialog = (program) => {
     const found = termDeadline(program)
-    setDialog(program); setDueText(found?.syllabus_due || ''); setDialogError('')
-    setBeforeDays(parseBefore(found?.remind_before)); setEveryDays(found?.overdue_every ?? DEFAULT_EVERY); setPickingDate(false)
+    // No date yet: start from last year's date for the same semester (and its reminder days), moved one year on,
+    // when that day has not passed. The Program Head checks it and saves; nothing is set without them.
+    const lastYear = found ? null : (() => {
+      const [start] = String(schoolYear).split('-').map(Number)
+      const prev = deadlines.deadlines.find(d => d.program_id === program.program_id && d.semester === semester && d.school_year === `${start - 1}-${start}`)
+      const moved = prev ? shiftYear(prev.syllabus_due) : ''
+      return moved && moved >= (data?.today || '') ? { ...prev, syllabus_due: moved } : null
+    })()
+    const from = found || lastYear
+    setDialog({ ...program, fromLastYear: Boolean(lastYear) }); setDueText(from?.syllabus_due || ''); setDialogError('')
+    setBeforeDays(parseBefore(from?.remind_before)); setEveryDays(from?.overdue_every ?? DEFAULT_EVERY); setPickingDate(false)
   }
   // A day picked on the calendar becomes "N days before" (0-60, like the chips); shown as its own removable chip.
   const addDate = (iso) => {
@@ -179,7 +189,11 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
                     : 'Every program has a due date. Instructors are reminded automatically.'}
               </span>
               <span className={dueStyles.note} role="status">
-                {[`${visible.length} not submitted`, count('overdue') ? `${count('overdue')} overdue` : '', count('due-soon') ? `${count('due-soon')} due soon` : ''].filter(Boolean).join(' · ')}
+                {(() => {
+                  const today = visible.filter(row => row.daysLeft === 0).length
+                  const soon = count('due-soon') - today
+                  return [`${visible.length} not submitted`, count('overdue') ? `${count('overdue')} overdue` : '', today ? `${today} due today` : '', soon ? `${soon} due soon` : ''].filter(Boolean).join(' · ')
+                })()}
               </span>
             </div>
             {deadlines.programs.length > 0 && (
@@ -192,7 +206,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
                     <button
                       key={program.program_id}
                       type="button"
-                      className={`${dueStyles.chip} ${found ? dueStyles.chipSet : dueStyles.chipUnset}`}
+                      className={`${dueStyles.chip} ${found ? dueStyles.chipSet : dueStyles.chipUnset} ${away !== null && away < 0 ? dueStyles.chipPast : ''}`}
                       onClick={readOnly ? undefined : () => openDialog(program)}
                       aria-disabled={readOnly || undefined}
                       style={readOnly ? { cursor: 'default' } : undefined}
@@ -246,7 +260,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
                 {/* A due date already past would send every reminder at once: past days cannot be picked. */}
                 <DatePicker id="syllabus-due-date" value={dueText} onChange={setDueText} min={(() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` })()} />
               </div>
-              <div className={styles.hint}>Set it at least 2 weeks before classes start.</div>
+              <div className={styles.hint}>{dialog.fromLastYear ? 'Filled in from last year\'s due date for this semester. Check it, then save.' : 'Set it at least 2 weeks before classes start.'}</div>
 
               <div className={styles.schedule} aria-live="polite">
                 <div className={styles.scheduleTitle}>Automatic reminders</div>

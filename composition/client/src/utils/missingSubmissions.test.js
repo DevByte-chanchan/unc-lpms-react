@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { dayLabel, statusLabel, sortMissing, lastReminderLabel, schoolYearOptions, currentSchoolYear, assignedLabel, timeToPrepareLabel, shortDay, lastReminderShort, courseSubline, programCode, niceName } from './missingSubmissions.js'
+import { dayLabel, statusLabel, sortMissing, lastReminderLabel, schoolYearOptions, currentSchoolYear, assignedLabel, timeToPrepareLabel, shortDay, lastReminderShort, remindedToday, courseSubline, programCode, niceName } from './missingSubmissions.js'
 
 const row = (extra = {}) => ({
   courseCode: 'BIT313L', courseTitle: 'Human and Computer Interaction', programName: 'BSIT', schoolYear: '2026-2027', semester: '1st',
@@ -67,6 +67,10 @@ test('short forms: the year is dropped when it is this year, names and programs 
   assert.equal(lastReminderShort({ lastReminderAt: '2026-10-31 02:00:00', lastReminderBy: 'the system' }, '2026-11-01'), '31 Oct · system')
   assert.equal(lastReminderShort({ lastReminderAt: '2026-10-31 02:00:00', lastReminderBy: 'a person' }, '2026-11-01'), '31 Oct · person')
   assert.equal(lastReminderShort({}), 'Never')
+  assert.equal(lastReminderShort({ lastReminderAt: '2026-10-31T23:30:00Z', lastReminderDay: '2026-11-01', lastReminderBy: 'the system' }, '2026-11-01'), '1 Nov · system', 'the school-zone day wins over UTC')
+  assert.equal(remindedToday({ lastReminderAt: '2026-11-01T02:00:00Z', lastReminderDay: '2026-11-01', lastReminderBy: 'the system' }, '2026-11-01'), true, 'a system reminder today counts too')
+  assert.equal(remindedToday({ lastReminderAt: '2026-10-31T02:00:00Z', lastReminderDay: '2026-10-31' }, '2026-11-01'), false)
+  assert.equal(remindedToday({}, '2026-11-01'), false)
   assert.equal(programCode('Bachelor of Science in Information Technology'), 'BSIT')
   assert.equal(programCode('Bachelor of Science in Computer Science'), 'BSCS')
   assert.equal(programCode(''), '—')
@@ -75,8 +79,8 @@ test('short forms: the year is dropped when it is this year, names and programs 
 })
 
 test('the line under a course says where it stands, when it was assigned, and the time to prepare', () => {
-  const row = { state: 'Returned', assignedDay: '2026-06-01', assignedDaysBeforeDue: 151 }
-  assert.equal(courseSubline(row, '2026-11-01'), 'Returned · assigned 1 Jun, 151 days to prepare')
+  const row = { state: 'Returned', assignedDay: '2026-06-01', assignedDaysBeforeDue: 151, returnedDay: '2026-06-16' }
+  assert.equal(courseSubline(row, '2026-11-01'), 'Returned 16 Jun · assigned 1 Jun', 'a returned plan says when it came back, not the time to prepare')
   assert.equal(courseSubline({ state: 'Draft', isRevision: true, assignedDay: '2026-10-20', assignedDaysBeforeDue: -2 }, '2026-11-01'), 'Not submitted · revision · assigned 20 Oct, assigned after the due date')
   assert.equal(courseSubline({ state: 'Draft', assignedDay: '2026-10-20' }, '2026-11-01'), 'Not submitted · assigned 20 Oct')
 })

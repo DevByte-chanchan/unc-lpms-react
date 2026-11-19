@@ -4,7 +4,7 @@ import { BellRing } from 'lucide-react'
 import TableScrollRegion from './TableScrollRegion.jsx'
 import SortableTh from './SortableTh.jsx'
 import { nextSort, sortRows } from '../utils/tableSort.js'
-import { shortDay, statusLabel, lastReminderShort, courseSubline, programCode, niceName } from '../utils/missingSubmissions.js'
+import { shortDay, statusLabel, lastReminderShort, remindedToday, courseSubline, programCode, niceName } from '../utils/missingSubmissions.js'
 
 // The plans still waiting on their instructor. One row per plan, with a tick to pick it for "Remind
 // selected", where it stands against the due date, when the instructor was last reminded, and a switch for
@@ -32,9 +32,6 @@ const Switch = ({ on, disabled, label, onClick }) => (
     {on ? 'On' : 'Paused'}
   </button>
 )
-
-// A person reminded this plan today: "Remind now" waits until tomorrow (the server allows one a day).
-const remindedToday = (row, today) => row.lastReminderBy === 'a person' && String(row.lastReminderAt || '').slice(0, 10) === today
 
 // The columns, sortable like the other lists (SortableTh + utils/tableSort.js). No column picked: the page's own
 // order (most urgent first).

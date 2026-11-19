@@ -54,14 +54,19 @@ export const shortDay = (value, today = '') => {
   return `${Number(match[3])} ${MONTHS[Number(match[2]) - 1] || match[2]}${sameYear ? '' : ` ${match[1]}`}`
 }
 
-// "31 Oct · system", "31 Oct · person", or "Never".
+// "31 Oct · system", "31 Oct · person", or "Never". The server's lastReminderDay is the day in the school's zone.
 export const lastReminderShort = (row, today = '') => (
-  row.lastReminderAt ? `${shortDay(String(row.lastReminderAt).replace(' ', 'T'), today)} · ${row.lastReminderBy === 'the system' ? 'system' : 'person'}` : 'Never'
+  row.lastReminderAt ? `${shortDay(row.lastReminderDay || String(row.lastReminderAt).replace(' ', 'T'), today)} · ${row.lastReminderBy === 'the system' ? 'system' : 'person'}` : 'Never'
 )
 
+// Reminded today by anyone (the system or a person): "Remind now" waits until tomorrow, like the server.
+export const remindedToday = (row, today = '') => Boolean(row.lastReminderAt && today && (row.lastReminderDay || String(row.lastReminderAt).slice(0, 10)) === today)
+
 // The sub-line under a course: where the plan stands, when it was assigned, and the time the instructor had.
+// A returned plan says when it came back instead: the time it had to prepare no longer matters.
 export const courseSubline = (row, today = '') => {
-  const state = row.state === 'Returned' ? 'Returned' : 'Not submitted'
+  if (row.state === 'Returned') return `Returned${row.returnedDay ? ` ${shortDay(row.returnedDay, today)}` : ''}${row.isRevision ? ' · revision' : ''} · assigned ${shortDay(row.assignedDay, today)}`
+  const state = 'Not submitted'
   const days = row.assignedDaysBeforeDue
   const prep = days == null ? '' : days < 0 ? ', assigned after the due date' : `, ${days} day${days === 1 ? '' : 's'} to prepare`
   return `${state}${row.isRevision ? ' · revision' : ''} · assigned ${shortDay(row.assignedDay, today)}${prep}`

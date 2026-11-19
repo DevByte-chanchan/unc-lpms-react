@@ -48,15 +48,17 @@ const listMissing = async (req, res, next) => {
             // The day the course was assigned, and how many days that left before the due date (negative: assigned
             // after it). A plan can still be submitted late; this says why it was.
             const assignedDay = row.assignedAt ? schoolClock(asDate(row.assignedAt), zone).day : null;
+            // days in the school's zone, not UTC: a reminder at 7 AM in Manila is still that day
+            const dayOf = (at) => (at ? schoolClock(asDate(at), zone).day : null);
             return {
                 offeringId: row.offeringId, courseCode: row.courseCode, courseTitle: row.courseTitle,
                 programId: row.programId, programName: row.programName, schoolYear: row.schoolYear, semester: row.semester,
                 instructorName: row.instructorName || null, instructorEmail: row.instructorEmail || null, instructorActive: row.instructorActive,
                 assignedAt: row.assignedAt, assignedDay, planUpdatedAt: row.planUpdatedAt,
                 assignedDaysBeforeDue: assignedDay && row.syllabusDue ? daysUntil(row.syllabusDue, assignedDay) : null,
-                state: row.state, isRevision: row.isRevision,
+                state: row.state, isRevision: row.isRevision, returnedDay: dayOf(row.returnedAt),
                 syllabusDue: row.syllabusDue || null, daysLeft, status,
-                lastReminderAt: notice ? notice.at : null, lastReminderBy: notice ? notice.by : null,
+                lastReminderAt: notice ? notice.at : null, lastReminderDay: dayOf(notice?.at), lastReminderBy: notice ? notice.by : null,
                 remindersPaused: paused.has(row.offeringId)
             };
         });
@@ -100,7 +102,13 @@ const remindNow = async (req, res, next) => {
         const row = (await findAwaiting({ sequelize, programIds: programs.map(p => p.program_id) })).find(r => r.offeringId === id);
         if (!row) return res.status(404).json({ error: 'That plan is not waiting on its instructor, or is not in a program you head.' });
         if (!row.instructorId || !row.instructorActive) return res.status(409).json({ error: 'This course has no active instructor to remind.' });
-        const today = schoolClock(new Date(), timezoneOf()).day;
+        const zone = timezoneOf();
+        const today = schoolClock(new Date(), zone).day;
+        // One reminder a day per plan from anyone: if the system already reminded today, a second ping is noise.
+        const last = (await lastNotices([id])).get(id);
+        if (last && schoolClock(asDate(last.at), zone).day === today) {
+            return res.status(409).json({ error: `${row.courseCode}'s instructor was already reminded today. Try again tomorrow.` });
+        }
         if (!(await claim(ReminderLog, `manual:offering:${id}`, 'manual', today))) {
             return res.status(409).json({ error: `${row.courseCode}'s instructor was already reminded today. Try again tomorrow.` });
         }
