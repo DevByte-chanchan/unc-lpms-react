@@ -167,6 +167,13 @@ const Login = () => {
         <p className={styles.help} style={{ textAlign: 'center' }}>
           <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Notice</a>
         </p>
+
+        {/* Required by the mascot's licences (assets/mascot/CREDITS.txt) */}
+        <p className={styles.help} style={{ textAlign: 'center', fontSize: 11, marginTop: 0 }}>
+          Animated emoji: <a href="https://googlefonts.github.io/noto-emoji-animation/" target="_blank" rel="noopener noreferrer">Noto Animated Emoji</a> by Google,{' '}
+          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.
+          Still emoji: Fluent Emoji by Microsoft, MIT.
+        </p>
       </div>
     </div>
   )
