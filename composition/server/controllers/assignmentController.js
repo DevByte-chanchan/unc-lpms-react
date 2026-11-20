@@ -62,7 +62,7 @@ const termOfferingIds = async (year, semester) => {
              LEFT JOIN CourseOfferingAssignments coa ON coa.pc_offering_id = pco.pc_offering_id
          WHERE (pco.school_year = ? AND pco.semester = ?)
             OR (pco.school_year IS NULL AND coa.date_assigned BETWEEN ? AND ?);`,
-        { replacements: [`${startYear}-${startYear + 1}`, termSemester, new Date(from), new Date(to)], type: sequelize.QueryTypes.SELECT });
+        { replacements: [`${startYear}-${startYear + 1}`, termSemester, new Date(from), new Date(to)], type: require('sequelize').QueryTypes.SELECT });
     return rows.map(row => row.id);
 };
 
@@ -307,6 +307,18 @@ const recordWorkflowAction = async (req, res, next) => {
             const transition = validateWorkflowTransition(history, actor_role, action_type);
             if (!transition.allowed) {
                 return res.status(409).json({ error: transition.error || 'This workflow action is not allowed right now.' });
+            }
+            // A return has to say why: the reviewer needs an open comment on this plan (the review page saves the
+            // comments first, then returns). Without this a direct call could send a plan back with no reason.
+            if (action_type === 'RETURNED') {
+                const [{ open }] = await sequelize.query(
+                    `SELECT COUNT(*) AS open FROM Comments c
+                         INNER JOIN CourseOfferingAssignments a ON a.co_assign_id = c.co_assign_id
+                     WHERE a.pc_offering_id = ? AND c.commenter_role = ? AND c.resolved_status = 0`,
+                    { replacements: [offeringId, actor_role], type: require('sequelize').QueryTypes.SELECT });
+                if (Number(open) === 0) {
+                    return res.status(409).json({ error: 'Write what needs to change first: a return needs at least one open comment.' });
+                }
             }
             // The same checks as the instructor's submit route (submissionController.planSubmissionBlockers): this
             // route used to record SUBMITTED for any plan, an empty one included.

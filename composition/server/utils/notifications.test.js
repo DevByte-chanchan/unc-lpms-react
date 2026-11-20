@@ -64,10 +64,18 @@ const ACCOUNT = { INSTRUCTOR: 'instructor', LIBRARY_DIRECTOR: 'director-of-libra
 const act = async (f, who, role, action, note) => {
     const user = f[who];
     const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
+    // A return needs an open comment from the returner, as the review page writes one first. Removed again after.
+    const [commentId] = action === 'RETURNED' ? await sequelize.query(
+        "INSERT INTO Comments (co_assign_id, commenter_role, commenter_user_id, message, resolved_status, createdAt, updatedAt) VALUES (?, ?, ?, 'Why', 0, ?, ?)",
+        { replacements: [f.assignmentId, role, user.user_id, new Date(), new Date()], type: sequelize.QueryTypes.INSERT }) : [];
+    try {
     await recordWorkflowAction({
         body: { actor_role: role, action_type: action, pcId: f.offeringId, ...(note === undefined ? {} : { note }) },
         user: { id: user.user_id, name: user.name, role: ACCOUNT[role] }, ip: '::1'
     }, res, err => { throw err; });
+    } finally {
+        if (commentId) await sequelize.query('DELETE FROM Comments WHERE comment_id = ?', { replacements: [commentId] });
+    }
     return res;
 };
 const inbox = (user, type) => Notification.findAll({ where: { recipient_user_id: user.user_id, ...(type ? { type } : {}) }, order: [['id', 'ASC']] });

@@ -116,3 +116,30 @@ test('a comment whose topic was removed is named as removed, and reading it neve
         await sequelize.query('DELETE FROM Topics WHERE topic_id = ?', { replacements: [topic] });
     }
 });
+
+test('a return needs an open comment from that reviewer: no reason, no return', async () => {
+    const { recordWorkflowAction } = require('../controllers/assignmentController');
+    const offering = made.offerings[0];
+    const assignment = made.assignments[0];
+    for (const [role, action] of [['INSTRUCTOR', 'SUBMITTED'], ['LIBRARY_DIRECTOR', 'ACCEPTED'], ['PROGRAM_HEAD', 'ACCEPTED']]) {
+        await insert('INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [assignment, role, action, now(), now()]);
+    }
+    const act = async () => {
+        const res = { statusCode: 0, body: null, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
+        await recordWorkflowAction({ user: { id: ids.dean, role: 'dean', name: 'T' }, body: { actor_role: 'DEAN', action_type: 'RETURNED', pcId: offering } }, res, (err) => { throw err; });
+        return res;
+    };
+    try {
+        // The fixture's Dean comment on this plan is resolved first, so the Dean has no open comment.
+        await sequelize.query('UPDATE Comments SET resolved_status = 1 WHERE co_assign_id = ?', { replacements: [assignment] });
+        const refused = await act();
+        assert.equal(refused.statusCode, 409);
+        assert.match(refused.body.error, /needs at least one open comment/);
+        await sequelize.query('UPDATE Comments SET resolved_status = 0 WHERE co_assign_id = ?', { replacements: [assignment] });
+        assert.equal((await act()).statusCode, 201, 'with an open Dean comment the return goes through');
+    } finally {
+        await sequelize.query('DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id = ?', { replacements: [assignment] });
+        await sequelize.query('DELETE FROM PlanReturnSnapshots WHERE offering_id = ?', { replacements: [offering] }).catch(() => {});
+        await sequelize.query('DELETE FROM Notifications WHERE offering_id = ?', { replacements: [offering] });
+    }
+});
