@@ -88,7 +88,9 @@ const remindApprovers = async ({ deps, clock, timeZone, programIds, result, now 
 // A plan returned to its instructor and not resubmitted: on day 3 and day 7 after the return (config/reminders.js)
 // the instructor is reminded to resubmit, and their Program Head is told. Once per plan and day, through ReminderLog;
 // a paused plan is left alone, like the due-date reminders.
-const remindReturned = async ({ deps, clock, timeZone, waiting, pausedIds, result, now = new Date() }) => {
+// quiet: plans reminded or poked within QUIET_HOURS, this run included. Their instructor is not reminded a second
+// time today (one reminder a day per plan); the Program Head is still told.
+const remindReturned = async ({ deps, clock, timeZone, waiting, pausedIds, result, now = new Date(), quiet = new Set() }) => {
     const { models, notify, mailer } = deps;
     const { ReminderLog, Program, User } = models;
     const returned = waiting.filter(row => row.state === 'Returned' && row.returnedAt);
@@ -101,7 +103,7 @@ const remindReturned = async ({ deps, clock, timeZone, waiting, pausedIds, resul
         if (pausedIds.has(row.offeringId)) { result.paused += 1; continue; }
         if (!(await claim(ReminderLog, `returned:${row.offeringId}`, `returned-${days}`, clock.day))) { result.alreadySent += 1; continue; }
 
-        if (row.instructorId && row.instructorActive) {
+        if (row.instructorId && row.instructorActive && !quiet.has(row.offeringId)) {
             const text = rules.returnedText(days);
             await notify([row.instructorId], 'reminder', row.offeringId, `${row.courseCode} — ${text}`, null, now);
             if (mailer.configured() && row.instructorEmail) await mailer.send({ to: row.instructorEmail, ...emailFor(row.courseCode, text) });
@@ -208,6 +210,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
 
         await notify([row.instructorId], 'reminder', row.offeringId, `${row.courseCode} — ${text}`, null, now);
         result.sent += 1;
+        recent.add(row.offeringId);
         if (wantsEmail) await sendEmail();
     }
 
@@ -236,7 +239,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         // Not tied to a program: skipped when the run is limited to some programs (a test or a manual run).
         if (!programIds) await remindDirectors({ deps, clock, result, now });
     }
-    await remindReturned({ deps, clock, timeZone: rules.timezoneOf(env), waiting, pausedIds, result, now });
+    await remindReturned({ deps, clock, timeZone: rules.timezoneOf(env), waiting, pausedIds, result, now, quiet: recent });
     await remindDeans({ deps, clock, waiting, pausedIds, result, now });
     await remindApprovers({ deps, clock, timeZone: rules.timezoneOf(env), programIds, result, now });
     return result;

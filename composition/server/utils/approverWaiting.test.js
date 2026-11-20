@@ -149,3 +149,27 @@ test('a returned plan not resubmitted: on day 3 and day 7 the instructor is remi
     await run('2031-03-09');
     assert.equal((await of(ids.head, 'returned_waiting')).length, headNotes.length, 'not twice the same day');
 });
+
+test('a returned plan due the same day as its day-7 reminder: the instructor gets one reminder, the Program Head is still told', async () => {
+    const { TermDeadline, ReminderLog: Log } = models;
+    const [dept] = made.depts;
+    const course = await insert(`INSERT INTO Courses (course_no, course_title, credit, contact_hrs, classification, cmo, year_lvl, term, createdAt, updatedAt) VALUES ('ZZWF', 'Waiting test', '3', '3', 'x', 'x', 'FIRST YEAR', '1st', ?, ?)`, [new Date(), new Date()]);
+    made.courses.push(course);
+    const id = await insert('INSERT INTO ProgramCourseOfferings (course_id, program_id, dept_id, course_description, school_year, semester, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [course, programId, dept, 'x', '2030-2031', '2nd', new Date(), new Date()]);
+    const assignment = await insert('INSERT INTO CourseOfferingAssignments (pc_offering_id, stakeholder_id, date_assigned, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [id, ids.instructor, new Date(), new Date(), new Date()]);
+    made.offerings.push(id); made.assignments.push(assignment);
+    for (const [role, action, day] of [['INSTRUCTOR', 'SUBMITTED', '2031-03-08'], ['PROGRAM_HEAD', 'RETURNED', '2031-03-10']]) {
+        await insert('INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [assignment, role, action, at(day), at(day)]);
+    }
+    const deadline = await TermDeadline.create({ program_id: programId, school_year: '2030-2031', semester: '2nd', syllabus_due: '2031-03-17' });
+    try {
+        await run('2031-03-17'); // due today, and 7 days since the return
+        const toInstructor = (await Notification.findAll({ where: { recipient_user_id: ids.instructor, type: 'reminder' }, raw: true })).map(n => n.message).filter(m => /^ZZWF/.test(m));
+        assert.deepEqual(toInstructor, ['ZZWF — reminder: resubmit your learning plan (due today)'], 'one reminder a day per plan');
+        const toHead = (await Notification.findAll({ where: { recipient_user_id: ids.head, type: 'returned_waiting' }, raw: true })).map(n => n.message).filter(m => /^ZZWF/.test(m));
+        assert.deepEqual(toHead, ['ZZWF — returned 7 days ago and not resubmitted yet']);
+    } finally {
+        await deadline.destroy();
+        await Log.destroy({ where: { day: '2031-03-17' } });
+    }
+});
