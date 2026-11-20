@@ -1127,6 +1127,19 @@
     height: auto
     max-height: min(420px, 45dvh)
 
+  // the Review Feedback panel goes under the editor too, not beside it: kept at its 100% height it took the whole
+  // column and left the editor 0px tall (the topics were there but clipped away)
+  .leftCont
+    height: auto
+    min-height: 60dvh
+
+  .rightContCollapsible, .rightContCollapsed
+    width: 100%
+    height: auto
+    max-height: min(420px, 45dvh)
+    border-left: none
+    border-top: 1px solid var(--line)
+
   .checklistCard
     padding-bottom: 0
 

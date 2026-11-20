@@ -1289,7 +1289,11 @@ const TopicForm = () => {
                                                                         method: 'PUT',
                                                                         headers: { 'Content-Type': 'application/json' },
                                                                         body: JSON.stringify({ updates: [{ comment_id: comment.comment_id, resolved_status: comment.resolved_status ? 0 : 1 }] })
-                                                                    }).catch(err => console.warn('Failed to persist comment resolution:', err?.message));
+                                                                    }).catch(err => {
+                                                                        // Not saved: put the box back, and say so (it used to stay ticked with nothing saved).
+                                                                        activeRef?.toggleComment?.(comment.comment_id);
+                                                                        alertDialog(apiErrorMessage(err, 'The change was not saved. Try again.'), { title: 'Not saved' });
+                                                                    });
                                                                 }}
                                                             />
                                                             <span className={styles.customCheckmark}></span>

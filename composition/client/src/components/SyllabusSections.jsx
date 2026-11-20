@@ -76,8 +76,12 @@ const SyllabusSections = () => {
     // "Show in plan" for each: the section opens at the item the comment names, flashed yellow
     // (utils/useCommentFocus.js). A notification about a comment opens it the same way (?comment=<id>).
     const sidebarComments = planComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
-    const openSection = useCallback((section) => setSearchParams(p => { const next = new URLSearchParams(p); next.set('section', section); next.delete('comment'); return next }, { replace: true }), [setSearchParams])
-    const showCommentInPlan = useCommentFocus({ selectedSection, openSection })
+    // While the plan is the instructor's to change (draft, returned), coverage and references are edited in one section,
+    // "Intended Learning Outcomes"; the read-only "Course Coverage" and "References Summary" are not in the picker then.
+    const editable = status === 'draft' || status === 'returned'
+    const sectionFor = useCallback((section) => (editable && (section === 'Course Coverage' || section === 'References Summary') ? 'Intended Learning Outcomes' : section), [editable])
+    const openSection = useCallback((section) => setSearchParams(p => { const next = new URLSearchParams(p); next.set('section', sectionFor(section)); next.delete('comment'); return next }, { replace: true }), [setSearchParams, sectionFor])
+    const showCommentInPlan = useCommentFocus({ selectedSection, openSection, sectionFor })
     const openCommentsPanel = useCallback(() => setCommentsCollapsed(false), [])
     useCommentFromLink({ comments: sidebarComments, openPanel: openCommentsPanel, showCommentInPlan })
     useWeekCommentsLink({ comments: sidebarComments, openPanel: openCommentsPanel })
@@ -90,8 +94,8 @@ const SyllabusSections = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ updates: [{ comment_id: serverId, resolved_status: true }] })
         }).catch(err => {
-            console.warn('Could not save the resolution:', err)
             setPlanComments(list => list.map(c => c.id === id ? { ...c, resolved: false, status: 'pending', resolvedAt: null } : c))
+            alertDialog(apiErrorMessage(err, 'The comment was not marked resolved. Try again.'), { title: 'Not saved' })
         })
     }
 
@@ -112,7 +116,7 @@ const SyllabusSections = () => {
         try {
             setPreviewFile(await buildReviewRecordFile({ pcId: offeringID, code: resolvedCode }))
         } catch (err) {
-            alertDialog('The review record could not be made: ' + (err?.message || err) + '. Try again.', { title: 'Review record failed' })
+            alertDialog(`The review record could not be made. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Review record failed' })
         } finally {
             setExportingPdf(false)
         }
@@ -127,7 +131,7 @@ const SyllabusSections = () => {
             setPreviewFile(await buildSyllabusExportFile({ pcId: offeringID, revNum: revisionNum, code: resolvedCode, workflow, logoUrl }))
         } catch (err) {
             console.warn('Export generation failed:', err)
-            alertDialog('The learning plan could not be exported: ' + (err?.message || err) + '. Try again.', { title: 'Export failed' })
+            alertDialog(`The learning plan could not be exported. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Export failed' })
         } finally {
             setExportingPdf(false)
         }

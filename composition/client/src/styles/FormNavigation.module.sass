@@ -354,8 +354,12 @@
   align-items: center
   gap: 6px
   flex: 1
-  justify-content: flex-end
+  // safe: when the tabs do not fit (a narrow window) they start at the group's left edge and the group scrolls,
+  // instead of spilling left over the week buttons
+  justify-content: safe flex-end
   min-width: 0
+  overflow-x: auto
+  scrollbar-width: thin
 
 .contentTabBtn
   display: inline-flex

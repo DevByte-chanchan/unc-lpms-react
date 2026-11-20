@@ -176,7 +176,7 @@ const ReferenceLibrary = () => {
       if (rows.length === 0) throw new Error('The CSV file has no rows.');
       setImportSource({ title: `Import ${file.name}`, rows, kind: 'csv' });
     } catch (err) {
-      showPageToast(err?.message || 'Failed to read the CSV file. Please check the format.', 'error');
+      showPageToast(apiErrorMessage(err, 'The CSV file could not be read. Check its format.'), 'error');
     }
   };
 

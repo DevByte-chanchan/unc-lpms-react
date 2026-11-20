@@ -19,17 +19,19 @@ const flash = (el) => {
   window.setTimeout(() => el.removeAttribute('data-flash'), 4000)
 }
 
-// selectedSection: the section shown now; openSection(name): show that one.
-export const useCommentFocus = ({ selectedSection, openSection }) => {
+// selectedSection: the section shown now; openSection(name): show that one; sectionFor(name): the section a page
+// really shows for it (the instructor's editable plan has one section for coverage and references).
+export const useCommentFocus = ({ selectedSection, openSection, sectionFor = (name) => name }) => {
   const [focusTarget, setFocusTarget] = useState(null)
 
   const showCommentInPlan = useCallback((comment) => {
-    const section = sectionOfComment(comment)
-    if (!section) return
+    const named = sectionOfComment(comment)
+    if (!named) return
+    const section = sectionFor(named)
     openSection(section)
     const details = Array.isArray(comment.coverageDetail) ? comment.coverageDetail : (comment.coverageDetail ? [comment.coverageDetail] : [])
-    setFocusTarget({ section, ilo: comment.ilo, details, nonce: Date.now() })
-  }, [openSection])
+    setFocusTarget({ section, ilo: comment.ilo, co: comment.courseOutcome, details, nonce: Date.now() })
+  }, [openSection, sectionFor])
 
   useEffect(() => {
     if (!focusTarget || selectedSection !== focusTarget.section) return undefined
@@ -45,7 +47,10 @@ export const useCommentFocus = ({ selectedSection, openSection }) => {
       const inRow = iloRow ? match(iloRow) : []
       const exact = inRow.length ? inRow : match(document)
       if (exact.length) return exact
-      return iloRow ? [iloRow] : []
+      if (iloRow) return [iloRow]
+      // The instructor's editable plan has one card per course outcome (ILOs.jsx data-co), not week rows.
+      const coCard = focusTarget.co ? document.querySelector(`[data-co="${CSS.escape(String(focusTarget.co))}"]`) : null
+      return coCard ? [coCard] : []
     }
     const attempt = () => {
       const found = find()

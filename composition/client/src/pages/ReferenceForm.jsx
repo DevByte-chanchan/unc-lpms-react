@@ -478,7 +478,9 @@ const ReferenceForm = forwardRef(({
         getCommentTargetLabel: (comment) => {
             if (comment.target_title) return comment.target_title;
             const match = allReferences.find(r => Number(r.reference_id) === Number(comment.target_id));
-            return match ? match.title : `Reference Element ID: ${comment.target_id}`;
+            // No id: the comment is about the week's references in general; an id with no reference: it was removed.
+            if (match) return match.title;
+            return comment.target_id == null ? 'The references of this week' : 'A reference since removed from the plan';
         }
     }));
 

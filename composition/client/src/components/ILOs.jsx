@@ -295,7 +295,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
 
                                 return (
                                     <React.Fragment key={'grid-frag-' + co.co_id}>
-                                        <div key={co.co_id} className={styles.roadmapStep}>
+                                        <div key={co.co_id} className={styles.roadmapStep} data-co={`CO${co.coNumber}`}>
                                             <div className={styles.stepNode}>
                                                 <span className={styles.nodeCO}>
                                                     CO{co.coNumber}

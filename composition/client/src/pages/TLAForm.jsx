@@ -340,7 +340,9 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
         getCommentTargetLabel: (comment) => {
             if (comment.target_title) return comment.target_title;
             const match = tlas.find(t => Number(t.id) === Number(comment.target_id) || Number(t.tla_id) === Number(comment.target_id));
-            return match ? (match.tlaName || match.tla_name) : `TLA Element ID: ${comment.target_id}`;
+            // No id: the comment is about the week's activities in general; an id with no activity: it was removed.
+            if (match) return match.tlaName || match.tla_name;
+            return comment.target_id == null ? 'The activities of this week' : 'An activity since removed from the plan';
         }
     }));
 

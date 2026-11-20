@@ -4,7 +4,7 @@ import { historyRevisionLabel } from "../utils/offeringLabels.js";
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Clock, X, Maximize, Minimize2 } from "lucide-react";
-import { fetchJson } from "../utils/api";
+import { fetchJson, apiErrorMessage } from "../utils/api";
 import EmptyState from "./EmptyState.jsx";
 import PDFViewerModal from "./PDFViewerModal.jsx";
 import { buildReviewRecordFile } from "../utils/exportSyllabus.js";
@@ -72,7 +72,7 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
         try {
             setRecordFile(await buildReviewRecordFile({ pcId: rev.pcId, code }));
         } catch (err) {
-            alertDialog('The review record could not be made: ' + (err?.message || err) + '. Try again.', { title: 'Review record failed' });
+            alertDialog(`The review record could not be made. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Review record failed' });
         } finally {
             setRecordBusy(null);
         }
