@@ -127,3 +127,14 @@ test('course documents: the program head uploads a PDF or Excel CO-PO / COAEP fi
     assert.equal((await call(head, 'DELETE', `/course-documents/${pcId}/coaep`)).status, 200);
     assert.equal((await call(head, 'GET', `/course-documents/${pcId}/coaep`)).status, 404);
 });
+
+test('front pages: a malformed file name header is ignored, not a server error', async () => {
+    const res = await fetch(`${base}/program-outcomes/${programId}/front-pages`, {
+        method: 'PUT',
+        headers: { 'x-id': String(head.user_id), 'x-role': head.role, 'Content-Type': 'application/octet-stream', 'X-File-Name': 'bad%E0name.pdf' },
+        body: FRONT_PDF,
+    });
+    assert.equal(res.status, 201);
+    assert.equal((await res.json()).fileName, 'front-pages.pdf');
+    await call(head, 'DELETE', `/program-outcomes/${programId}/front-pages`);
+});

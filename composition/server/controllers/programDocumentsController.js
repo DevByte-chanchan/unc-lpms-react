@@ -19,6 +19,9 @@ const asInt = (value) => (/^\d+$/.test(String(value ?? '')) ? Number(value) : nu
 const select = (sql, r = []) => sequelize.query(sql, { replacements: r, type: Sequelize.QueryTypes.SELECT });
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
+// The X-File-Name header, decoded; a malformed one (a stray "%") is treated as no name, not a server error.
+const sentFileName = (req) => { try { return decodeURIComponent(req.get('X-File-Name') || ''); } catch { return ''; } };
+
 // The program, when the signed-in Program Head heads it; otherwise the error response is already sent.
 const ownProgram = async (req, res) => {
     const programId = asInt(req.params.programId);
@@ -54,11 +57,14 @@ const putFrontPages = async (req, res, next) => {
         // It has to be the front pages (vision, mission, PEOs, POs; at most a few pages), not any PDF.
         const problem = await frontPagesProblem(bytes);
         if (problem) return res.status(400).json({ error: problem });
-        const fileName = String(req.get('X-File-Name') ? decodeURIComponent(req.get('X-File-Name')) : 'front-pages.pdf').slice(0, 200);
-        await sequelize.query('DELETE FROM ProgramFrontPages WHERE program_id = ?', { replacements: [program.program_id] });
-        await sequelize.getQueryInterface().bulkInsert('ProgramFrontPages', [{
-            program_id: program.program_id, file_name: fileName, pdf: bytes, uploaded_by: req.user.id, updatedAt: new Date(),
-        }]);
+        const fileName = (sentFileName(req) || 'front-pages.pdf').slice(0, 200);
+        // One transaction: if the new file is not stored, the old one stays (it was deleted first, with nothing after).
+        await sequelize.transaction(async (transaction) => {
+            await sequelize.query('DELETE FROM ProgramFrontPages WHERE program_id = ?', { replacements: [program.program_id], transaction });
+            await sequelize.getQueryInterface().bulkInsert('ProgramFrontPages', [{
+                program_id: program.program_id, file_name: fileName, pdf: bytes, uploaded_by: req.user.id, updatedAt: new Date(),
+            }], { transaction });
+        });
         return res.status(201).json({ fileName });
     } catch (err) { return next(err); }
 };

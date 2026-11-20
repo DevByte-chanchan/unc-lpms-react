@@ -15,6 +15,9 @@ const { parseCourseSheet, templateBook, bookFromData } = require('../utils/cours
 const { scanDocument, courseDocumentProblem, ScanError } = require('../utils/documentScan');
 const { buildCoaepWorkbook } = require('../utils/coaepWorkbook');
 
+// The X-File-Name header, decoded; a malformed one (a stray "%") is treated as no name, not a server error.
+const sentFileName = (req) => { try { return decodeURIComponent(req.get('X-File-Name') || ''); } catch { return ''; } };
+
 const KINDS = ['co-po', 'coaep'];
 const MAX_BYTES = 10 * 1024 * 1024;
 const select = (sql, r = []) => sequelize.query(sql, { replacements: r, type: Sequelize.QueryTypes.SELECT });
@@ -90,7 +93,7 @@ const upload = async (req, res, next) => {
             const problem = await courseDocumentProblem(bytes, p.kind);
             if (problem) return res.status(400).json({ error: problem });
         }
-        const sent = req.get('X-File-Name') ? decodeURIComponent(req.get('X-File-Name')) : '';
+        const sent = sentFileName(req);
         const fileName = (sent.replace(/\.[^.]*$/, '') || p.kind).slice(0, 180) + '.' + kind.ext;
         await store(req, p, bytes, kind.type, fileName);
         return res.status(201).json({ fileName, contentType: kind.type });
