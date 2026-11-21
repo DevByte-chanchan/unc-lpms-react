@@ -5,6 +5,7 @@
 // (client/src/utils/referenceHealth.js); the automatic jobs use this copy. Pure except yearsRule().
 
 const DEFAULT_YEARS = 5;
+const { normalizeIsbn } = require('./isbnLookup');
 
 // The Director's recency rule (years), from the catalog settings row; the default when there is none.
 const yearsRule = async (models = require('../models')) => {
@@ -32,6 +33,8 @@ const flagsOf = (ref, { years = DEFAULT_YEARS, currentYear = new Date().getFullY
         noYear: !Number.isFinite(year),
         outdated: Number.isFinite(year) && currentYear - year >= years,
         noIsbn: isTextbook(ref) && blank(ref?.isbn),
+        // a typo or an ISSN where the ISBN goes: its check digit does not match
+        badIsbn: !blank(ref?.isbn) && !normalizeIsbn(ref.isbn),
         noLink: !isTextbook(ref) && blank(ref?.link)
     };
 };
@@ -44,7 +47,7 @@ const healthCounts = (refs = [], options = {}) => {
     const count = (key) => all.filter(flags => flags[key]).length;
     return {
         total: all.length, needAttention: all.filter(needsAttention).length,
-        unavailable: count('unavailable'), outdated: count('outdated'), noYear: count('noYear'), noIsbn: count('noIsbn'), noLink: count('noLink')
+        unavailable: count('unavailable'), outdated: count('outdated'), noYear: count('noYear'), noIsbn: count('noIsbn'), badIsbn: count('badIsbn'), noLink: count('noLink')
     };
 };
 
@@ -52,7 +55,7 @@ const healthCounts = (refs = [], options = {}) => {
 const healthText = (counts) => {
     const parts = [
         counts.unavailable && `${counts.unavailable} not available`, counts.outdated && `${counts.outdated} outdated`,
-        counts.noYear && `${counts.noYear} no year`, counts.noIsbn && `${counts.noIsbn} no ISBN`, counts.noLink && `${counts.noLink} no link`
+        counts.noYear && `${counts.noYear} no year`, counts.noIsbn && `${counts.noIsbn} no ISBN`, counts.badIsbn && `${counts.badIsbn} ISBN not valid`, counts.noLink && `${counts.noLink} no link`
     ].filter(Boolean);
     return `${counts.needAttention} of ${counts.total} active references need attention${parts.length ? `: ${parts.join(' · ')}` : ''}`;
 };

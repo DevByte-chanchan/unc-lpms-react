@@ -16,6 +16,8 @@ test('what makes a record need attention', () => {
   assert.deepEqual(healthIssues({ ...good, year: 2022 }, options), [])
   assert.deepEqual(healthIssues({ ...good, year: '' }, options), ['No publication year'])
   assert.deepEqual(healthIssues({ ...good, isbn: '' }, options), ['No ISBN'])
+  assert.deepEqual(healthIssues({ ...good, isbn: '2945-7793' }, options), ['ISBN not valid'], 'an ISSN where the ISBN goes')
+  assert.deepEqual(healthIssues({ ...good, isbn: '978-0-13-235088-5' }, options), ['ISBN not valid'], 'a typo in the check digit')
   assert.deepEqual(healthIssues({ id: 'srv-2', type: 'Online Resources', year: 2025, link: '' }, options), ['No link'])
 })
 
@@ -25,6 +27,6 @@ test('the recency rule is the Director\'s: 3 years makes a 2023 title old', () =
 
 test('the summary counts each kind once per record', () => {
   const records = [good, { ...good, id: 'srv-3', status: 'withdrawn', year: 2010 }, { ...good, id: 'srv-4', isbn: '' }]
-  assert.deepEqual(healthSummary(records, options), { total: 3, needAttention: 2, unavailable: 1, outdated: 1, noYear: 0, noIsbn: 1, noLink: 0 })
+  assert.deepEqual(healthSummary(records, options), { total: 3, needAttention: 2, unavailable: 1, outdated: 1, noYear: 0, noIsbn: 1, badIsbn: 0, noLink: 0 })
 })
 

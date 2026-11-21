@@ -361,6 +361,22 @@
   overflow-x: auto
   scrollbar-width: thin
 
+// "Teaching & Learning Activities" in full on wide windows, "TLAs" below 1200px (the screen reader keeps the full name)
+.shortTabLabel
+  display: none
+
+@media (max-width: 1200px)
+  .longTabLabel
+    position: absolute
+    width: 1px
+    height: 1px
+    overflow: hidden
+    clip-path: inset(50%)
+    white-space: nowrap
+
+  .shortTabLabel
+    display: inline
+
 .contentTabBtn
   display: inline-flex
   align-items: center

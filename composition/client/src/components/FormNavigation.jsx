@@ -216,7 +216,9 @@ const FormNavigation = ({
                                     onClick={() => setStep(idx)}
                                 >
                                     {getContentIcon(idx)}
-                                    <span>{stepLabel}</span>
+                                    {/* a narrow window shows "TLAs", so the three tabs fit without scrolling */}
+                                    <span className={stepLabel === 'Teaching & Learning Activities' ? styles.longTabLabel : undefined}>{stepLabel}</span>
+                                    {stepLabel === 'Teaching & Learning Activities' && <span className={styles.shortTabLabel} aria-hidden="true">TLAs</span>}
                                     {badgeCount > 0 && (
                                         <span className={styles.contentCommentBadge}>
                                             {badgeCount}

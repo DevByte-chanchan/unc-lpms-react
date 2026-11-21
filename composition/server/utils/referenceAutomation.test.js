@@ -51,7 +51,7 @@ test.before(async () => {
     const week = await Week.create({ co_id: outcome.co_id, hours: 5 });
     made.outcomes.push(outcome.co_id); made.weeks.push(week.week_id);
     const reference = async (title, fields) => {
-        const row = await Reference.create({ title: `ZZ ${title} ${stamp}`, type: 'Textbook', author: 'ZZ Author', isbn: `978${String(stamp).slice(-9)}${made.references.length}`, publication_year: new Date('2025-01-01'), status: 'available', ...fields });
+        const row = await Reference.create({ title: `ZZ ${title} ${stamp}`, type: 'Textbook', author: 'ZZ Author', isbn: isbn13(`978${String(stamp).slice(-8)}${made.references.length}`), publication_year: new Date('2025-01-01'), status: 'available', ...fields });
         made.references.push(row.reference_id);
         await WeeklyReference.create({ week_id: week.week_id, reference_id: row.reference_id });
         return row;
@@ -79,14 +79,19 @@ test.after(async () => {
 
 const inbox = async (id, type) => (await Notification.findAll({ where: { recipient_user_id: id, type }, order: [['id', 'ASC']], raw: true })).map(n => n.message);
 
+// A valid ISBN-13 from its first 12 digits (the health check flags a wrong check digit).
+const isbn13 = (twelve) => `${twelve}${(10 - ([...twelve].reduce((sum, d, k) => sum + Number(d) * (k % 2 ? 3 : 1), 0) % 10)) % 10}`;
+
 test('the health rules: unavailable, outdated by the Director\'s years, no year, no ISBN or link', () => {
-    const ref = { type: 'Textbook', isbn: '9', publication_year: '2025-01-01', status: 'available', copies: 2 };
+    const ref = { type: 'Textbook', isbn: '9780132350884', publication_year: '2025-01-01', status: 'available', copies: 2 };
     assert.equal(health.needsAttention(health.flagsOf(ref, { years: 5, currentYear: 2026 })), false);
     assert.equal(health.flagsOf({ ...ref, status: 'lost' }).unavailable, true);
     assert.equal(health.flagsOf({ ...ref, copies: 0 }).unavailable, true);
     assert.equal(health.flagsOf({ ...ref, publication_year: '2021-01-01' }, { years: 5, currentYear: 2026 }).outdated, true);
     assert.equal(health.flagsOf({ ...ref, publication_year: '2021-01-01' }, { years: 6, currentYear: 2026 }).outdated, false);
     assert.equal(health.flagsOf({ ...ref, isbn: '' }).noIsbn, true);
+    assert.equal(health.flagsOf({ ...ref, isbn: '2945-7793' }).badIsbn, true, 'an ISSN where the ISBN goes');
+    assert.equal(health.flagsOf(ref).badIsbn, false);
     assert.equal(health.flagsOf({ type: 'Online Resources', link: '#', publication_year: '2025-01-01' }).noLink, true);
     assert.equal(health.flagsOf({ ...ref, publication_year: null }).noYear, true);
 });

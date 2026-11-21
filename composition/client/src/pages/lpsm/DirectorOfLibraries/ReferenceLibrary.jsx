@@ -605,7 +605,7 @@ const ReferenceLibrary = () => {
             <div role="status" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', margin: '0 0 8px', color: health.needAttention ? 'var(--warn)' : 'var(--good)' }}>
               <strong>{health.needAttention === 0 ? 'Every active reference is in good order.' : `${health.needAttention} of ${health.total} active references need attention`}</strong>
               {health.needAttention > 0 && (
-                <span>{[health.unavailable && `${health.unavailable} not available`, health.outdated && `${health.outdated} outdated`, health.noYear && `${health.noYear} no year`, health.noIsbn && `${health.noIsbn} no ISBN`, health.noLink && `${health.noLink} no link`].filter(Boolean).join(' · ')}</span>
+                <span>{[health.unavailable && `${health.unavailable} not available`, health.outdated && `${health.outdated} outdated`, health.noYear && `${health.noYear} no year`, health.noIsbn && `${health.noIsbn} no ISBN`, health.badIsbn && `${health.badIsbn} ISBN not valid`, health.noLink && `${health.noLink} no link`].filter(Boolean).join(' · ')}</span>
               )}
             </div>
           )}

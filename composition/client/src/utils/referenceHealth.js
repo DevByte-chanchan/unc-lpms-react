@@ -5,6 +5,15 @@ import { unavailableReason } from './referenceCatalog.js'
 
 const isTextbook = (record) => String(record?.type || '').toLowerCase().startsWith('textbook')
 
+// A real ISBN-10 or ISBN-13: its last digit is a check digit, so a typo or an ISSN ("2945-7793") fails.
+// The same rule as the server (utils/isbnLookup.js normalizeIsbn).
+export const isValidIsbn = (value) => {
+  const isbn = String(value || '').replace(/[\s-]/g, '').toUpperCase()
+  if (/^\d{9}[\dX]$/.test(isbn)) return [...isbn].reduce((s, c, i) => s + (c === 'X' ? 10 : Number(c)) * (10 - i), 0) % 11 === 0
+  if (/^\d{13}$/.test(isbn)) return [...isbn].reduce((s, c, i) => s + Number(c) * (i % 2 ? 3 : 1), 0) % 10 === 0
+  return false
+}
+
 // The reasons one library record needs attention. years is the recency rule (published this many years ago or more is old).
 export const healthIssues = (record, { years = 5, currentYear = new Date().getFullYear() } = {}) => {
   const issues = []
@@ -14,6 +23,7 @@ export const healthIssues = (record, { years = 5, currentYear = new Date().getFu
   if (!Number.isFinite(year)) issues.push('No publication year')
   else if (currentYear - year >= years) issues.push(`Published ${year}, ${years} years ago or more`)
   if (isTextbook(record) && !String(record?.isbn || '').trim()) issues.push('No ISBN')
+  else if (String(record?.isbn || '').trim() && !isValidIsbn(record.isbn)) issues.push('ISBN not valid')
   if (!isTextbook(record) && !String(record?.link || '').trim()) issues.push('No link')
   return issues
 }
@@ -29,6 +39,7 @@ export const healthSummary = (records = [], options = {}) => {
     outdated: count(issue => issue.startsWith('Published')),
     noYear: count(issue => issue === 'No publication year'),
     noIsbn: count(issue => issue === 'No ISBN'),
+    badIsbn: count(issue => issue === 'ISBN not valid'),
     noLink: count(issue => issue === 'No link')
   }
 }

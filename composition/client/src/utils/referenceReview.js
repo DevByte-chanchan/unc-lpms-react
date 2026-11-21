@@ -2,6 +2,7 @@
 // Pure. A reference with no issue is simply listed; one with issues is listed first, with the reasons.
 // The system only points: accepting or returning the plan is still the Director's decision.
 import { DEFAULT_CATALOG_SETTINGS, isWithinRecency, recencyWindow, unavailableReason } from './referenceCatalog.js'
+import { isValidIsbn } from './referenceHealth.js'
 
 const blank = (value) => ['', '-', '#', null, undefined].includes(typeof value === 'string' ? value.trim() : value)
 const titleKey = (ref) => `${String(ref.title || '').trim().toLowerCase()}|${String(ref.authors || '').trim().toLowerCase()}`
@@ -18,6 +19,7 @@ export const issuesOf = (ref, { all = [], settings = DEFAULT_CATALOG_SETTINGS, n
 
   const isTextbook = String(ref.typeKey || ref.type || '').toLowerCase().startsWith('textbook')
   if (isTextbook && blank(ref.isbn)) issues.push('No ISBN')
+  else if (!blank(ref.isbn) && !isValidIsbn(ref.isbn)) issues.push('ISBN not valid')
   if (!isTextbook && blank(ref.link)) issues.push('No link')
 
   const twins = all.filter(other => other !== ref && other.id !== ref.id && titleKey(other) === titleKey(ref))
