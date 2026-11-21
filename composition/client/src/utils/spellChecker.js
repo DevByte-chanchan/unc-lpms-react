@@ -169,6 +169,11 @@ const DEFAULT_WHITELIST = new Set([
     'bicol',
     'naga',
     'caceres',
+    // the university's own name and region: "University of Nueva Caceres" was flagged on every orientation week
+    'nueva',
+    'bicolano',
+    'bicolanos',
+    'camarines',
     'philippines',
     'filipino',
     'monica',
