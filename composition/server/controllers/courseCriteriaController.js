@@ -47,8 +47,10 @@ async function getCourseCriteriaByPcOffering(req, res) {
 
         const gradingSystem = [];
 
-        for (let coIndex = 0; coIndex < 4; coIndex++) {
-            const coRecord = courseOutcomes[coIndex] || null;
+        // The plan's own course outcomes, however many: it used to be always four, so a plan with none showed four
+        // made-up rows and a fifth outcome was left out (here and in the syllabus export, which reads this).
+        for (let coIndex = 0; coIndex < courseOutcomes.length; coIndex++) {
+            const coRecord = courseOutcomes[coIndex];
 
             const allIlosForCo = coRecord
                 ? await IntendedLearningOutcome.findAll({

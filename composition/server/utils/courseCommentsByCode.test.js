@@ -143,3 +143,10 @@ test('a return needs an open comment from that reviewer: no reason, no return', 
         await sequelize.query('DELETE FROM Notifications WHERE offering_id = ?', { replacements: [offering] });
     }
 });
+
+test('grading criteria list the plan\'s own course outcomes: one here, not a fixed four', async () => {
+    const { getCourseCriteriaByPcOffering } = require('../controllers/courseCriteriaController');
+    const res = { body: null, status() { return this; }, json(body) { this.body = body; return this; } };
+    await getCourseCriteriaByPcOffering({ params: { pcId: String(made.offerings[0]) } }, res);
+    assert.deepEqual(res.body.gradingSystem.map(g => g.co), ['CO1']);
+});
