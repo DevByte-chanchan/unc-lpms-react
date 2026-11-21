@@ -181,7 +181,7 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
                     ))}
                   </span>
                 </Row>
-                <div className={styles.footnote}>Your name, e-mail and roles are set by a superuser.</div>
+                <div className={styles.footnote}>Your name, e-mail and roles are set by the VPAA or a superuser (User Accounts).</div>
               </>
             )}
             {tab === 'security' && <SecurityTab />}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { offeringPath } from '../utils/offeringKey.js'
 import Spinner from './Spinner.jsx';
+import Select from './Select.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import Reveal from './Reveal.jsx';
@@ -331,24 +332,16 @@ const CoursesTable = () => {
         <div className={styles['courses-table']}>
             <div className={styles.header}>
                 <h2>ASSIGNED COURSE OFFERINGS </h2>
-                <div className={styles.filterA}>
-                    <select
-                        className={styles['header-select']}
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                    >
+                {/* The same pickers as the approvers' list (ApprovalCoursesTable): it was two bare red selects. */}
+                <div className={styles.filterA} style={{ background: 'transparent', boxShadow: 'none', padding: 0, gap: 10, alignItems: 'center' }}>
+                    <Select variant="pill" value={String(selectedYear)} onChange={(e) => setSelectedYear(e.target.value)} aria-label="School year">
                         {yearOptions}
-                    </select>
-
-                    <select
-                        className={styles['header-select']}
-                        value={selectedSem}
-                        onChange={(e) => setSelectedSem(e.target.value)}
-                    >
+                    </Select>
+                    <Select variant="pill" value={selectedSem} onChange={(e) => setSelectedSem(e.target.value)} aria-label="Semester">
                         {SEM_OPTIONS.map(sem => (
                             <option key={sem} value={sem}>{sem}</option>
                         ))}
-                    </select>
+                    </Select>
                 </div>
 
                 <div className={styles.fill}></div>

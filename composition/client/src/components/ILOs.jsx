@@ -199,7 +199,14 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                         return (
                             <div className={styles.emptyStateContainer} style={{ padding: '40px' }}>
                                 <Inbox size={22} strokeWidth={1.6} />
-                                <span>No matching results found.</span>
+                                {/* Nothing searched: the plan has no course outcomes yet, so say where they are added. */}
+                                {searchTerm ? <span>No matching results found.</span> : (
+                                    <span>
+                                        No course outcomes yet. Add them in{' '}
+                                        <Link to={{ search: '?section=Course+and+Program+Outcome+Alignment' }}>Course and Program Outcome Alignment</Link>
+                                        {' '}(Edit Alignments); their ILOs and weekly content then appear here.
+                                    </span>
+                                )}
                             </div>
                         );
                     }
