@@ -51,6 +51,10 @@ const Dialog = ({ label, onClose, children, actions }) => (
   </div>
 )
 
+// An e-mail that may wrap only after a dot or before the "@" ("roberto." / "cruz" / "@unc.edu.ph"), not in the middle
+// of a word; a single part longer than the column still breaks (break-word).
+const EmailParts = ({ email = '' }) => String(email).split(/(?<=\.)|(?=@)/).flatMap((part, i) => (i ? [<wbr key={i} />, part] : [part]))
+
 export const UserAccountsPanel = () => {
   const me = getSession()
   const [accounts, setAccounts] = React.useState([])
@@ -230,7 +234,7 @@ export const UserAccountsPanel = () => {
                 return (
                   <tr key={account.id}>
                     <td style={cell('name')}>{account.name}{isMe ? ' (you)' : ''}</td>
-                    <td style={cell('email')} title={account.email}><span style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{account.email.split('@')[0]}<wbr />@{account.email.split('@')[1]}</span></td>
+                    <td style={cell('email')} title={account.email}><span style={{ overflowWrap: 'break-word', minWidth: 0 }}><EmailParts email={account.email} /></span></td>
                     <td style={{ ...cell('roles'), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2 }}>
                       <span>{account.roles.map(roleLabel).join(', ')}</span>
                       {headsOf(account).length > 0 && (
