@@ -1,20 +1,18 @@
 .navi
   width: 100%
   min-height: 58px
-  max-height: 58px
   flex-shrink: 0
   background: #ffffff
   display: flex
   padding: 8px 16px
   justify-content: space-between
   align-items: center
-  gap: 14px
+  gap: 12px
   box-sizing: border-box
   border-bottom: 1px solid #EDF2F7
   transition: max-height 0.34s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease
 
 .naviExpanded
-  max-height: 34vh
   align-items: stretch
   gap: 0
   padding: 8px 16px
@@ -45,10 +43,100 @@
   &:hover
     background: #E2E8F0
 
+.rightActionsGroup
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-shrink: 0
+  max-width: 320px
+  opacity: 1
+  transform: scale(1) translateX(0)
+  overflow: hidden
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)
+
+.rightActionsHidden
+  max-width: 0
+  opacity: 0
+  transform: scale(0.85) translateX(12px)
+  pointer-events: none
+
+.importPrevBtn
+  height: 40px
+  padding: 0 14px
+  border-radius: 7px
+  border: 1px solid #6EE7B7
+  background: #ECFDF5
+  color: #065F46
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  font-size: 13px
+  font-weight: 700
+  gap: 7px
+  cursor: pointer
+  flex-shrink: 0
+  white-space: nowrap
+  box-sizing: border-box
+  transition: all 0.18s ease
+  &:hover
+    background: #D1FAE5
+    border-color: #34D399
+    color: #064E3B
+
 .save
   background: #19282C
   color: #ffffff
 
+  &:hover
+    background: #24383E
+
+.mobileActionCluster
+  display: none
+  align-items: center
+  gap: 6px
+  margin-left: auto
+  flex-shrink: 0
+
+.importPrevInlineMobile
+  display: inline-flex
+  height: 30px
+  padding: 0 11px
+  border-radius: 6px
+  border: 1px solid #6EE7B7
+  background: #ECFDF5
+  color: #065F46
+  align-items: center
+  justify-content: center
+  font-size: 12px
+  font-weight: 700
+  gap: 5px
+  cursor: pointer
+  flex-shrink: 0
+  white-space: nowrap
+  box-sizing: border-box
+  transition: all 0.18s ease
+  &:hover
+    background: #D1FAE5
+    border-color: #34D399
+    color: #064E3B
+
+.saveInlineMobile
+  display: inline-flex
+  height: 30px
+  padding: 0 14px
+  border-radius: 6px
+  border: none
+  background: #19282C
+  color: #ffffff
+  align-items: center
+  justify-content: center
+  font-size: 12.5px
+  font-weight: 700
+  gap: 6px
+  cursor: pointer
+  flex-shrink: 0
+  white-space: nowrap
+  transition: background 0.18s ease
   &:hover
     background: #24383E
 
@@ -73,11 +161,10 @@
   flex: 1
   min-width: 0
   min-height: 42px
-  max-height: 42px
   background: #F8FAFC
   border: 1px solid #DCE2F0
   border-radius: 8px
-  padding: 2px 12px
+  padding: 3px 12px
   display: flex
   flex-direction: column
   justify-content: flex-start
@@ -87,17 +174,15 @@
 
 .plannerBarExpanded
   width: 100%
-  max-height: calc(34vh - 16px)
   padding: 6px 12px 12px 12px
 
 .plannerTopRow
   width: 100%
-  height: 36px
   min-height: 36px
   display: flex
   align-items: center
   justify-content: space-between
-  gap: 14px
+  gap: 10px
   flex-shrink: 0
 
 .calendarSection
@@ -105,6 +190,8 @@
   align-items: center
   gap: 8px
   flex-shrink: 0
+  min-width: 0
+  flex-wrap: wrap
 
 // Recognizable Course Outcome Toggler Button
 .coToggleBtn
@@ -244,6 +331,7 @@
   display: flex
   align-items: center
   gap: 6px
+  flex-wrap: wrap
 
 .weekNotepadBtn
   position: relative
@@ -252,7 +340,7 @@
   justify-content: center
   gap: 4px
   height: 30px
-  padding: 6px 12px 4px 12px
+  padding: 6px 11px 4px 11px
   background: #ffffff
   border: 1px solid #CBD5E1
   border-radius: 5px
@@ -346,16 +434,24 @@
   background: #DCE2F0
   flex-shrink: 0
 
-// Non-sequential content selector tabs
+// Pinned Content Selector Tabs + Import Previous Button + Responsive Save
 .contentSelectorGroup
   display: flex
   align-items: center
-  gap: 6px
+  gap: 8px
   flex: 1
   justify-content: flex-end
   min-width: 0
+  flex-wrap: wrap
+
+.pinnedTabsCluster
+  display: flex
+  align-items: center
+  gap: 7px
+  flex-wrap: wrap
 
 .contentTabBtn
+  position: relative
   display: inline-flex
   align-items: center
   justify-content: center
@@ -363,121 +459,122 @@
   height: 30px
   padding: 0 13px
   border-radius: 6px
-  border: 1px solid transparent
-  background: transparent
+  border: 1px dashed #CBD5E1
+  background: #F1F5F9
   color: #64748B
-  font-size: 12.5px
+  font-size: 12px
   font-weight: 600
   cursor: pointer
   white-space: nowrap
   transition: all 0.18s ease
 
   &:hover
-    background: #EDF2F7
+    background: #E2E8F0
     color: #1E293B
+    border-color: #94A3B8
 
 .tabIcon
   flex-shrink: 0
-  opacity: 0.8
+  opacity: 0.75
 
 .activeContentTab
-  background: #ffffff
-  border-color: #CBD5E1
-  color: #19282C
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06)
+  background: #FFFFFF
+  border: 1px solid #3182CE
+  color: #1E3A8A
+  box-shadow: 0 1px 3px rgba(49, 130, 206, 0.14)
+  padding-right: 17px
 
   .tabIcon
     color: #3182CE
     opacity: 1
 
   &:hover
-    background: #ffffff
-    color: #19282C
+    background: #EFF6FF
+    color: #1E3A8A
+    border-color: #2563EB
+
+// Pin Icon Badge on Top-Right of Selected Content Buttons
+.pinCornerBadge
+  position: absolute
+  top: -4px
+  right: -4px
+  width: 15px
+  height: 15px
+  border-radius: 999px
+  background: #2563EB
+  color: #FFFFFF
+  border: 1.5px solid #FFFFFF
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.35)
+  pointer-events: none
 
 .contentTabHasComment
   color: #B91C1C
+  border-color: #FCA5A5
 
   .tabIcon
     color: #DC2626
     opacity: 1
 
   &.activeContentTab
-    border-color: #FCA5A5
+    border-color: #EF4444
     background: #FFF5F5
     color: #991B1B
+    .pinCornerBadge
+      background: #DC2626
 
 .contentCommentBadge
   display: inline-flex
   align-items: center
   justify-content: center
-  min-width: 18px
-  height: 18px
-  padding: 0 5px
+  min-width: 17px
+  height: 17px
+  padding: 0 4px
   border-radius: 999px
   background: #DC2626
   color: #ffffff
-  font-size: 10.5px
+  font-size: 10px
   font-weight: 700
   line-height: 1
   box-shadow: 0 1px 2px rgba(220, 38, 38, 0.25)
 
-// AI Suggest Button in FormNavigation Bar
-.aiSuggestNavBtn
-  display: inline-flex
-  align-items: center
-  justify-content: center
-  gap: 6px
-  height: 30px
-  padding: 0 13px
-  margin-left: 4px
-  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
-  background-size: 200% 200%
-  color: #ffffff
-  border: none
-  border-radius: 6px
-  font-size: 12.5px
-  font-weight: 700
-  letter-spacing: 0.25px
-  cursor: pointer
-  white-space: nowrap
-  flex-shrink: 0
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35)
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1)
-  animation: magicalGlowNav 6s ease infinite alternate
+// Responsive 2-Row Layout when Width Decreases:
+// Row 1 = CO-Week Buttons | Row 2 = Content Buttons/Pins + Import Previous + Save Button
+@media (max-width: 1240px)
+  .navi
+    align-items: flex-start
+    padding: 8px 12px
 
-  &:hover
-    transform: translateY(-1px)
-    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.55), 0 0 10px rgba(236, 72, 153, 0.35)
-    filter: brightness(1.06)
+  .rightActionsGroup
+    display: none !important
 
-  &:active
-    transform: translateY(0)
-    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4)
+  .mobileActionCluster
+    display: inline-flex
 
-@keyframes magicalGlowNav
-  0%
-    background-position: 0% 50%
-  100%
-    background-position: 100% 50%
+  .plannerBar
+    padding: 6px 10px
 
-.geminiSparkleIcon
-  display: inline-flex
-  align-items: center
-  justify-content: center
-  color: #FFFFFF
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9))
-  animation: sparkleTwinkleNav 2.5s ease-in-out infinite alternate
+  .plannerTopRow
+    flex-direction: column
+    align-items: stretch
+    height: auto
+    gap: 8px
 
-@keyframes sparkleTwinkleNav
-  0%
-    transform: scale(0.9) rotate(-6deg)
-  100%
-    transform: scale(1.15) rotate(14deg)
+  .calendarSection
+    width: 100%
+    justify-content: flex-start
 
-.aiBtnText
-  font-weight: 700
-  letter-spacing: 0.2px
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18)
+  .barDivider
+    display: none
+
+  .contentSelectorGroup
+    width: 100%
+    justify-content: space-between
+    padding-top: 6px
+    border-top: 1px solid #E2E8F0
+
 
 // Smooth CSS Grid Collapse/Expand Wrapper for Course Outcome & ILO Details
 .expandableCollapseWrapper

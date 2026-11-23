@@ -13,6 +13,7 @@ const {
     WeeklyReference,
     Reference
 } = require('../models');
+const { formatTermFromDate, evaluateAndIncrementRevisionOnApproval } = require('../utils/versionHelper');
 
 // Helper to format roles neatly
 const formatRoleLabel = (rawRole) => {
@@ -130,7 +131,7 @@ exports.getRevisionsByOffering = async (req, res) => {
                     ]
                 }
             ],
-            order: [['revision_number', 'DESC']]
+            order: [['pc_offering_id', 'DESC'], ['revision_number', 'DESC']]
         });
 
         const formattedRevisions = [];
@@ -285,11 +286,18 @@ exports.getRevisionsByOffering = async (req, res) => {
             const deanApproved = rawLogs.some(log => (log.action_type === 'ACCEPTED' || log.action_type === 'APPROVED') && log.actor_role === 'DEAN');
             if (deanApproved) {
                 computedStatus = 'Approved';
+                if (offering.base_pc_offering_id && !offering.is_revision_incremented) {
+                    const evalRes = await evaluateAndIncrementRevisionOnApproval(offering.pc_offering_id);
+                    if (evalRes.incremented) {
+                        offering.revision_number = evalRes.revision_number;
+                        offering.is_revision_incremented = true;
+                    }
+                }
             } else if (latestLog && latestLog.action_type === 'RETURNED') {
                 computedStatus = 'Returned';
             } else {
                 const hasBeenSubmitted =
-                    offering.date_submitted !== null ||
+                    Boolean(assignment.date_submitted) ||
                     rawLogs.some(log => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
 
                 if (hasBeenSubmitted) {
@@ -300,6 +308,10 @@ exports.getRevisionsByOffering = async (req, res) => {
             formattedRevisions.push({
                 revNum: offering.revision_number,
                 pcId: offering.pc_offering_id,
+                basePcId: offering.base_pc_offering_id || null,
+                hasModifications: Boolean(offering.has_modifications),
+                isRevisionIncremented: Boolean(offering.is_revision_incremented),
+                termLabel: formatTermFromDate(assignment.date_assigned || offering.createdAt),
                 status: computedStatus,
                 updatedAt: offering.updatedAt,
                 timeline: timeline
@@ -312,3 +324,4 @@ exports.getRevisionsByOffering = async (req, res) => {
         res.status(500).json({ message: "Error fetching revisions", error: error.message });
     }
 };
+

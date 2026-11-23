@@ -9,11 +9,13 @@ module.exports = (sequelize, DataTypes) => {
         author: { type: DataTypes.STRING(200) },
         isbn: { type: DataTypes.STRING(100) },
         link: { type: DataTypes.STRING(500) },
-        publication_year: { type: DataTypes.DATE }
+        publication_year: { type: DataTypes.DATE },
+        parent_reference_id: { type: DataTypes.INTEGER, allowNull: true }
     }, { tableName: 'References' });
 
     Reference.associate = function(models) {
         Reference.belongsTo(models.Course, { foreignKey: 'course_id', as: 'Course' });
+        Reference.belongsTo(models.Reference, { foreignKey: 'parent_reference_id', as: 'parentReference' });
     };
 
     return Reference;

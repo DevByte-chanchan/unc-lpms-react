@@ -186,7 +186,7 @@ module.exports = {
             { course_id: courseId, course_no: 'BIT213L', title: 'UNC Student Handbook & SCIS Policies', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
             
             // OPEN EDUCATIONAL RESOURCES (Title, Author, Link, optional ISBN & Year with values)
-            { course_id: courseId, course_no: 'BIT213L', title: 'CCS VMO Curated Institutional Materials', author: 'CCS Dean's Office', isbn: '978-971-0000-02-8', link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
+            { course_id: courseId, course_no: 'BIT213L', title: 'CCS VMO Curated Institutional Materials', author: "CCS Dean's Office", isbn: '978-971-0000-02-8', link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
             
             // TEXTBOOKS (Title, Author, ISBN, Publication Year; no link)
             { course_id: courseId, course_no: 'BIT213L', title: 'Clean Code: A Handbook of Agile Software Craftsmanship', author: 'Robert C. Martin', isbn: '978-0132350884', link: null, publication_year: new Date('2008-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },

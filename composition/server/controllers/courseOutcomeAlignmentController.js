@@ -1,5 +1,6 @@
 // controllers/courseOutcomeAlignmentController.js
 const { Course, ProgramCourseOffering, CourseOutcome, ProgramOutcomeAlignment, ProgramOutcome } = require('../models');
+const { findOfferingByPcIdAndRev, markOfferingModified } = require('../utils/versionHelper');
 
 async function getCourseProgramOutcomeAlignment(req, res) {
     try {
@@ -7,8 +8,7 @@ async function getCourseProgramOutcomeAlignment(req, res) {
         if (!pcId || !revNum) return res.status(400).json({ message: 'pcId and revNum are required' });
 
         // 1) Find the specific program course offering and include Course to get its metadata
-        const pco = await ProgramCourseOffering.findOne({
-            where: { pc_offering_id: pcId, revision_number: revNum },
+        const pco = await findOfferingByPcIdAndRev(pcId, revNum, {
             include: [{ model: Course, attributes: ['course_id', 'course_no', 'course_title'] }]
         });
 
@@ -78,7 +78,6 @@ async function getCourseProgramOutcomeAlignment(req, res) {
     }
 }
 
-module.exports = { getCourseProgramOutcomeAlignment, updateCourseProgramOutcomeAlignment };
 async function updateCourseProgramOutcomeAlignment(req, res) {
     try {
         const { pcId, revNum } = req.params;
@@ -86,6 +85,8 @@ async function updateCourseProgramOutcomeAlignment(req, res) {
 
         if (!pcId || !revNum || !courseOutcomes || !programOutcomes) 
             return res.status(400).json({ message: 'Missing parameters' });
+
+        const pco = await findOfferingByPcIdAndRev(pcId, revNum);
 
         // Iterate through all courseOutcomes and perform an upsert on ProgramOutcomeAlignment
         for (const co of courseOutcomes) {
@@ -111,9 +112,17 @@ async function updateCourseProgramOutcomeAlignment(req, res) {
                 }
             }
         }
+
+        if (pco) {
+            await markOfferingModified(pco.pc_offering_id);
+        }
+
         return res.json({ message: 'Successfully updated' });
     } catch (err) {
         console.error('updateCourseProgramOutcomeAlignment error', err);
         return res.status(500).json({ message: 'Internal server error' });
     }
 }
+
+module.exports = { getCourseProgramOutcomeAlignment, updateCourseProgramOutcomeAlignment };
+

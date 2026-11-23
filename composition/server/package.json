@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -32,6 +33,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
     "sass": "^1.93.2",
+    "sequelize-cli": "^6.6.5",
     "vite": "^7.1.7"
   }
 }

@@ -9,10 +9,16 @@ async function getILOsByPcOffering(req, res) {
         }
 
         // 1) Find the program course offering version and include course configuration details
-        const pco = await ProgramCourseOffering.findOne({
+        let pco = await ProgramCourseOffering.findOne({
             where: { pc_offering_id: pcId, revision_number: revNum },
             include: [{ model: Course, attributes: ['course_id', 'course_no', 'credit', 'contact_hrs'] }]
         });
+        if (!pco) {
+            pco = await ProgramCourseOffering.findOne({
+                where: { pc_offering_id: pcId },
+                include: [{ model: Course, attributes: ['course_id', 'course_no', 'credit', 'contact_hrs'] }]
+            });
+        }
 
         if (!pco) {
             return res.status(404).json({ message: 'Program course offering version not found' });

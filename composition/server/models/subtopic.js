@@ -6,12 +6,14 @@ module.exports = (sequelize, DataTypes) => {
         topic_id: { type: DataTypes.INTEGER, allowNull: false },
         title: { type: DataTypes.STRING(200), allowNull: false },
         sequence_order: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-        is_orientation: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }
+        is_orientation: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+        parent_subtopic_id: { type: DataTypes.INTEGER, allowNull: true }
     }, { tableName: 'Subtopics' });
 
     Subtopic.associate = function(models) {
         Subtopic.belongsTo(models.Week, { foreignKey: 'week_id', as: 'week', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
         Subtopic.belongsTo(models.Topic, { foreignKey: 'topic_id', as: 'topic', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+        Subtopic.belongsTo(models.Subtopic, { foreignKey: 'parent_subtopic_id', as: 'parentSubtopic', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
     };
 
     return Subtopic;

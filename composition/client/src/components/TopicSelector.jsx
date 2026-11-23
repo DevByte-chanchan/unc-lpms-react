@@ -1,23 +1,22 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import styles from '../styles/TopicSelector.module.sass';
-import { Search, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock } from 'react-feather';
+import { BookOpen, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock, PlusCircle } from 'react-feather';
 import { GeminiStar } from './AiTopicSuggestModal.jsx';
 import SpellCheckInput from './SpellCheckInput.jsx';
 
 const TopicSelector = ({
     label,
-    options = [],
     value = [],
     onChange,
     error,
     disabled,
+    isOrientation = false,
     weekNumber = 1,
     weekIndexInCo = 0,
     previousWeekTopics = [],
-    onOpenAiSuggest
+    onOpenAiSuggest,
+    isSingleColumn = false
 }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isContinueOpen, setIsContinueOpen] = useState(false);
     const [lastAddedId, setLastAddedId] = useState(null);
     const wrapperRef = useRef(null);
@@ -25,7 +24,7 @@ const TopicSelector = ({
 
     // Topics can only be continued starting from the 2nd week within the same Course Outcome (weekIndexInCo >= 1).
     // Instructors cannot continue topics across different Course Outcomes.
-    const canContinueTopic = Number(weekIndexInCo) >= 1 && (previousWeekTopics || []).length > 0;
+    const canContinueTopic = !isOrientation && Number(weekIndexInCo) >= 1;
     const prevWeekDisplay = Number(weekNumber) > 1 ? Number(weekNumber) - 1 : 1;
     const currentContinuedTopic = useMemo(
         () => value.find(t => Boolean(t.isContinuation)),
@@ -35,7 +34,6 @@ const TopicSelector = ({
     useEffect(() => {
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-                setIsPickerOpen(false);
                 setIsContinueOpen(false);
             }
         }
@@ -46,67 +44,38 @@ const TopicSelector = ({
     const getTopicKey = (t) => t.topic_id || t._temp_id;
     const getSubtopicKey = (s) => s.subtopic_id || s._temp_id;
 
-    const isTopicSelected = useCallback((topic) => {
-        if (!topic || !topic.title) return false;
-        return value.some(t => String(t.title).trim().toLowerCase() === String(topic.title).trim().toLowerCase());
-    }, [value]);
+    // Only scroll when the newly added card extends outside the visible scroll viewport (i.e. container is full)
+    const scrollCardIntoViewIfNeeded = (cardId) => {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                const container = scrollContainerRef.current;
+                if (!container) return;
+                const cardEl = container.querySelector(`[data-card-id="${String(cardId).replace(/"/g, '\\"')}"]`);
+                if (!cardEl) return;
+                const containerRect = container.getBoundingClientRect();
+                const cardRect = cardEl.getBoundingClientRect();
 
-    const filteredOptions = useMemo(() => {
-        let results = options.filter(opt =>
-            (opt.title || '').toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        results.sort((a, b) => {
-            const aSelected = isTopicSelected(a);
-            const bSelected = isTopicSelected(b);
-            if (aSelected && !bSelected) return -1;
-            if (!aSelected && bSelected) return 1;
-            return 0;
+                if (cardRect.top >= containerRect.top && cardRect.bottom <= containerRect.bottom) {
+                    return;
+                }
+                if (cardRect.height > containerRect.height || cardRect.top < containerRect.top) {
+                    const targetTop = container.scrollTop + (cardRect.top - containerRect.top) - 12;
+                    container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+                    return;
+                }
+                const targetTop = container.scrollTop + (cardRect.bottom - containerRect.bottom) + 12;
+                container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            }, 60);
         });
-        return results;
-    }, [options, searchTerm, isTopicSelected]);
-
-    const scrollToMainBottom = () => {
-        setTimeout(() => {
-            if (scrollContainerRef.current) {
-                scrollContainerRef.current.scrollTo({
-                    top: scrollContainerRef.current.scrollHeight,
-                    behavior: 'smooth'
-                });
-            }
-        }, 100);
-    };
-
-    const handleSelectTopic = (topic) => {
-        if (disabled) return;
-        const isSelected = isTopicSelected(topic);
-        if (isSelected) {
-            onChange(value.filter(t => String(t.title).trim().toLowerCase() !== String(topic.title).trim().toLowerCase()));
-        } else {
-            const tempId = `temp-topic-${Date.now()}`;
-            const newTopic = {
-                topic_id: topic.topic_id || null,
-                _temp_id: topic.topic_id ? null : tempId,
-                title: topic.title,
-                isContinuation: false,
-                subtopics: (topic.subtopics || []).map((s, idx) => ({
-                    subtopic_id: s.subtopic_id || null,
-                    _temp_id: s.subtopic_id ? null : `temp-sub-${Date.now()}-${idx}-${Math.random()}`,
-                    title: s.title || '',
-                    sequence_order: s.sequence_order ?? idx
-                }))
-            };
-            onChange([...value, newTopic]);
-            triggerAnimation(topic.topic_id || tempId);
-            scrollToMainBottom();
-        }
     };
 
     const handleAddManualTopic = () => {
+        if (disabled) return;
         const tempId = `temp-topic-${Date.now()}`;
         const manualTopic = {
             topic_id: null,
             _temp_id: tempId,
-            title: searchTerm || "New Custom Topic",
+            title: "New Custom Topic",
             isContinuation: false,
             subtopics: [{
                 subtopic_id: null,
@@ -117,10 +86,8 @@ const TopicSelector = ({
             isManual: true
         };
         onChange([...value, manualTopic]);
-        setSearchTerm('');
-        setIsPickerOpen(false);
         triggerAnimation(tempId);
-        scrollToMainBottom();
+        scrollCardIntoViewIfNeeded(tempId);
     };
 
     const handleSelectContinueTopic = (prevTopic) => {
@@ -236,19 +203,38 @@ const TopicSelector = ({
         scrollToSubtopicsBottom(getTopicKey(topicTarget));
     };
 
-    const emptySpots = Math.max(4, value.length + (value.length % 2 === 1 ? 1 : 0)) - value.length;
-    const placeholderCards = Array.from({ length: emptySpots }).map((_, i) => (
-        <div key={`placeholder-${i}`} className={styles.placeholderCard}>
-            <div className={styles.placeholderHeader} />
-            <div className={styles.placeholderBody}>
-                <div className={styles.placeholderLine} />
-                <div className={styles.placeholderLine} />
-                <div className={styles.placeholderLine} />
-                <div className={styles.placeholderLine} />
-                <div className={styles.placeholderLine} />
+    const emptySpots = Math.max(2, value.length) - value.length;
+    const placeholderCards = Array.from({ length: emptySpots }).map((_, i) => {
+        if (value.length === 0 && i === 0) {
+            return (
+                <div key="placeholder-empty-prompt" className={styles.emptyPromptCard}>
+                    <div className={styles.emptyPromptIcon}>
+                        <PlusCircle size={20} />
+                    </div>
+                    <div className={styles.emptyPromptTitle}>
+                        No topics added for {isOrientation ? 'orientation' : `week ${weekNumber}`} yet
+                    </div>
+                    <div className={styles.emptyPromptText}>
+                        Click <strong>Add Topic</strong>, use <strong>AI Suggest</strong>, or click <strong>Import Previous</strong> in the top bar.
+                    </div>
+                </div>
+            );
+        }
+        return (
+            <div key={`placeholder-${i}`} className={styles.placeholderCard}>
+                <div className={styles.placeholderHeader} />
+                <div className={styles.placeholderBody}>
+                    <div className={styles.placeholderLine} />
+                    <div className={styles.placeholderLine} />
+                    <div className={styles.placeholderLine} />
+                    <div className={styles.placeholderLine} />
+                    <div className={styles.placeholderLine} />
+                    <div className={styles.placeholderLine} />
+                    <div className={styles.placeholderLine} />
+                </div>
             </div>
-        </div>
-    ));
+        );
+    });
 
     return (
         <div className={styles.container} style={{ display: "flex", flexDirection: "column", height: "100%", flexGrow: 1, minHeight: 0 }}>
@@ -257,133 +243,88 @@ const TopicSelector = ({
             <div className={`${styles.mainWrapper} ${error ? styles.error : ''}`}>
                 <div ref={wrapperRef} className={styles.stickyHeader}>
                     <div className={styles.headerRow}>
-                        <div className={styles.searchBar}>
-                            <Search size={16} className={styles.searchIcon} />
-                            <SpellCheckInput
-                                type="text"
-                                placeholder="Search or type to add custom topic..."
-                                value={searchTerm}
-                                onFocus={() => {
-                                    setIsPickerOpen(true);
-                                    setIsContinueOpen(false);
-                                }}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleAddManualTopic();
-                                }}
-                            />
-                            <ChevronDown
-                                size={18}
-                                className={`${styles.chevron} ${isPickerOpen ? styles.up : ''}`}
-                                onClick={() => {
-                                    setIsPickerOpen(!isPickerOpen);
-                                    setIsContinueOpen(false);
-                                }}
-                            />
+                        <div className={styles.headerTitleGroup}>
+                            <BookOpen size={15} className={styles.headerTitleIcon} />
+                            <span className={styles.headerTitleText}>Topics</span>
+                            <span className={styles.headerCountBadge}>{value.length}</span>
                         </div>
 
-                        {canContinueTopic && (
-                            <div className={styles.continueTopicWrapper}>
+                        <div className={styles.headerActionsGroup}>
+                            {canContinueTopic && (
+                                <div className={styles.continueTopicWrapper}>
+                                    <button
+                                        type="button"
+                                        className={`${styles.continueTopicBtn} ${currentContinuedTopic ? styles.continueActive : ''}`}
+                                        onClick={() => setIsContinueOpen(!isContinueOpen)}
+                                        title={`Continue one topic from Week ${prevWeekDisplay} with new subtopics for Week ${weekNumber}`}
+                                    >
+                                        <CornerDownRight size={14} className={styles.btnIcon} />
+                                        <span>Continue Prev</span>
+                                        <ChevronDown size={13} className={`${styles.continueChevron} ${isContinueOpen ? styles.up : ''}`} />
+                                    </button>
+
+                                    {isContinueOpen && (
+                                        <div className={styles.continueDropdown}>
+                                            <div className={styles.continueDropdownHeader}>
+                                                <span>Select 1 Topic from Week {prevWeekDisplay} to Continue</span>
+                                            </div>
+                                            <div className={styles.continueOptionsList}>
+                                                {previousWeekTopics && previousWeekTopics.length > 0 ? (
+                                                    previousWeekTopics.map((prevTopic, idx) => {
+                                                        const isSelectedCont =
+                                                            currentContinuedTopic &&
+                                                            String(currentContinuedTopic.title).trim().toLowerCase() ===
+                                                                String(prevTopic.title).trim().toLowerCase();
+                                                        return (
+                                                            <div
+                                                                key={prevTopic.topic_id || prevTopic._temp_id || idx}
+                                                                className={`${styles.continueOptionItem} ${isSelectedCont ? styles.selectedContinueOpt : ''}`}
+                                                                onClick={() => handleSelectContinueTopic(prevTopic)}
+                                                            >
+                                                                <input type="radio" checked={Boolean(isSelectedCont)} readOnly />
+                                                                <div className={styles.continueOptText}>
+                                                                    <span className={styles.continueOptTitle}>{prevTopic.title}</span>
+                                                                    <span className={styles.continueOptMeta}>
+                                                                        {(prevTopic.subtopics || []).length} subtopics in Week {prevWeekDisplay}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className={styles.noResults}>
+                                                        No topics mapped in Week {prevWeekDisplay} yet.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {onOpenAiSuggest && (
                                 <button
                                     type="button"
-                                    className={`${styles.continueTopicBtn} ${currentContinuedTopic ? styles.continueActive : ''}`}
-                                    onClick={() => {
-                                        setIsContinueOpen(!isContinueOpen);
-                                        setIsPickerOpen(false);
-                                    }}
-                                    title={`Continue one topic from Week ${prevWeekDisplay} with new subtopics for Week ${weekNumber}`}
+                                    className={styles.aiSuggestBtn}
+                                    onClick={onOpenAiSuggest}
+                                    title="AI Suggest sequential topics & subtopics aligned to Course Outcomes, ILOs, and weekly hours"
                                 >
-                                    <CornerDownRight size={15} className={styles.btnIcon} />
-                                    <span>Continue Previous Topic</span>
-                                    <ChevronDown size={14} className={`${styles.continueChevron} ${isContinueOpen ? styles.up : ''}`} />
+                                    <span className={styles.geminiSparkleIcon}>
+                                        <GeminiStar size={15} />
+                                    </span>
+                                    <span className={styles.aiBtnText}>AI Suggest</span>
                                 </button>
+                            )}
 
-                                {isContinueOpen && (
-                                    <div className={styles.continueDropdown}>
-                                        <div className={styles.continueDropdownHeader}>
-                                            <span>Select 1 Topic from Week {prevWeekDisplay} to Continue</span>
-                                        </div>
-                                        <div className={styles.continueOptionsList}>
-                                            {previousWeekTopics && previousWeekTopics.length > 0 ? (
-                                                previousWeekTopics.map((prevTopic, idx) => {
-                                                    const isSelectedCont =
-                                                        currentContinuedTopic &&
-                                                        String(currentContinuedTopic.title).trim().toLowerCase() ===
-                                                            String(prevTopic.title).trim().toLowerCase();
-                                                    return (
-                                                        <div
-                                                            key={prevTopic.topic_id || prevTopic._temp_id || idx}
-                                                            className={`${styles.continueOptionItem} ${isSelectedCont ? styles.selectedContinueOpt : ''}`}
-                                                            onClick={() => handleSelectContinueTopic(prevTopic)}
-                                                        >
-                                                            <input type="radio" checked={Boolean(isSelectedCont)} readOnly />
-                                                            <div className={styles.continueOptText}>
-                                                                <span className={styles.continueOptTitle}>{prevTopic.title}</span>
-                                                                <span className={styles.continueOptMeta}>
-                                                                    {(prevTopic.subtopics || []).length} subtopics in Week {prevWeekDisplay}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })
-                                            ) : (
-                                                <div className={styles.noResults}>
-                                                    No topics mapped in Week {prevWeekDisplay} yet.
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <button type="button" className={styles.mainAddBtn} onClick={handleAddManualTopic}>
-                            <Plus size={16} className={styles.btnIcon} /> <span>Add Topic</span>
-                        </button>
-
-                        {onOpenAiSuggest && (
-                            <button
-                                type="button"
-                                className={styles.aiSuggestBtn}
-                                onClick={onOpenAiSuggest}
-                                title="AI Suggest sequential topics & subtopics aligned to Course Outcomes, ILOs, and weekly hours"
-                            >
-                                <span className={styles.geminiSparkleIcon}>
-                                    <GeminiStar size={16} />
-                                </span>
-                                <span className={styles.aiBtnText}>AI Suggest</span>
+                            <button type="button" className={styles.mainAddBtn} onClick={handleAddManualTopic}>
+                                <Plus size={15} className={styles.btnIcon} /> <span>Add Topic</span>
                             </button>
-                        )}
-                    </div>
-
-                    {isPickerOpen && (
-                        <div className={styles.pickerDropdown}>
-                            <div className={styles.optionsList}>
-                                {filteredOptions.length > 0 ? (
-                                    filteredOptions.map(opt => {
-                                        const isSelected = isTopicSelected(opt);
-                                        return (
-                                            <div
-                                                key={opt.topic_id || opt._temp_id}
-                                                className={`${styles.optionItem} ${isSelected ? styles.selectedOpt : ''}`}
-                                                onClick={() => handleSelectTopic(opt)}
-                                            >
-                                                <input type="checkbox" checked={isSelected} readOnly />
-                                                <span>{opt.title}</span>
-                                                <span className={styles.subCount}>{(opt.subtopics || []).length} items</span>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className={styles.noResults}>No matching topics found.</div>
-                                )}
-                            </div>
                         </div>
-                    )}
+                    </div>
                 </div>
 
                 <div className={styles.scrollContainer} ref={scrollContainerRef}>
-                    <div className={styles.configArea}>
+                    <div className={`${styles.configArea} ${isSingleColumn ? styles.configAreaTwoCol : ''}`}>
                         {value.map((topic) => {
                             const topicKey = getTopicKey(topic);
                             const isNewlyAdded = topicKey === lastAddedId;
@@ -393,6 +334,7 @@ const TopicSelector = ({
                             return (
                                 <div
                                     key={topicKey}
+                                    data-card-id={topicKey}
                                     className={`${styles.topicCard} ${isNewlyAdded ? styles.newEntry : ''} ${isLockedContinuation ? styles.continuedTopicCard : ''} ${isAiSuggested ? styles.aiSuggestedTopicCard : ''}`}
                                 >
                                     <div className={styles.topicHeaderCard}>
@@ -467,3 +409,4 @@ const TopicSelector = ({
 };
 
 export default TopicSelector;
+

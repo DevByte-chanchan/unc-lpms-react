@@ -20,7 +20,7 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
 
     const [selectedRevNum, setSelectedRevNum] = useState(initialRevNum);
     const [activePcId, setActivePcId] = useState(Number(currentPcId));
-    const [expandedAccordion, setExpandedAccordion] = useState(initialRevNum);
+    const [expandedAccordion, setExpandedAccordion] = useState(Number(currentPcId));
     const [selectedSection, setSelectedSection] = useState('Course Details');
 
     const [revisionsData, setRevisionsData] = useState([]);
@@ -32,7 +32,14 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
             try {
                 setLoading(true);
                 const data = await fetchJson(`/api/revisions/${currentPcId}`);
-                setRevisionsData(Array.isArray(data?.revisions) ? data.revisions : []);
+                const revs = Array.isArray(data?.revisions) ? data.revisions : [];
+                setRevisionsData(revs);
+                if (revs.length > 0) {
+                    const currentMatch = revs.find(r => Number(r.pcId) === Number(currentPcId)) || revs[0];
+                    setExpandedAccordion(Number(currentMatch.pcId));
+                    setActivePcId(Number(currentMatch.pcId));
+                    setSelectedRevNum(Number(currentMatch.revNum));
+                }
             } catch (err) {
                 console.error("Failed to load live revisions:", err);
                 setRevisionsData([]);
@@ -44,9 +51,10 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
     }, [currentPcId]);
 
     const handleAccordionToggle = (revNum, pcId) => {
-        setExpandedAccordion(expandedAccordion === revNum ? null : revNum);
+        const numericPcId = Number(pcId);
+        setExpandedAccordion(expandedAccordion === numericPcId ? null : numericPcId);
         setSelectedRevNum(revNum);
-        if (pcId) setActivePcId(Number(pcId));
+        if (pcId) setActivePcId(numericPcId);
     };
 
     const getIndicatorClass = (type) => {
@@ -126,18 +134,19 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
                                 <div style={{ padding: '1rem', color: '#666', textAlign: 'center' }}>No revision history available.</div>
                             ) : (
                                 revisionsData.map((rev) => {
-                                    const isExpanded = expandedAccordion === rev.revNum;
+                                    const isExpanded = expandedAccordion === Number(rev.pcId);
                                     const revStatus = rev?.status || "UNKNOWN";
                                     const statusClass = styles[revStatus.toLowerCase()] || '';
 
                                     return (
-                                        <div key={`rev-${rev.revNum}`} className={styles.accordionItem}>
+                                        <div key={`rev-${rev.pcId}-${rev.revNum}`} className={styles.accordionItem}>
 
                                             {/* Accordion Header */}
                                             <div className={styles.accordionHeader} onClick={() => handleAccordionToggle(rev.revNum, rev.pcId)}>
                                                 <div className={styles.accordionMetaInfo}>
-                                                    <span className={styles.revLabelText}>Revision {rev.revNum}</span>
-                                                    {/*<span className={`${styles.statusMiniTag} ${statusClass}`}>{revStatus}</span>*/}
+                                                    <span className={styles.revLabelText}>
+                                                        Revision {rev.revNum} {rev.termLabel ? `• ${rev.termLabel}` : ''} ({revStatus})
+                                                    </span>
                                                 </div>
                                                 <span className={styles.toggleArrow}>{isExpanded ? "▲" : "▼"}</span>
                                             </div>

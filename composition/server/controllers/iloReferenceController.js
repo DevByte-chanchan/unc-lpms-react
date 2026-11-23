@@ -1,6 +1,7 @@
 // controllers/iloReferenceController.js
 const { WeeklyReference, Reference, Week, IntendedLearningOutcome, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { resolveWeekLineageContext, markOfferingModified } = require('../utils/versionHelper');
 
 function parseIsOrientation(val) {
     if (typeof val === 'boolean') return val;
@@ -217,6 +218,11 @@ async function assignReferencesToILO(req, res) {
             });
         }
 
+        const lineage = await resolveWeekLineageContext(week_id);
+        if (lineage?.pcOfferingId) {
+            await markOfferingModified(lineage.pcOfferingId, t);
+        }
+
         await t.commit();
         return res.json({ message: 'Assigned weekly references updated', assignedCount: uniqueRefIds.length });
     } catch (err) {
@@ -231,8 +237,14 @@ async function deleteILOReference(req, res) {
         const id = Number(req.params.iloReferenceId);
         if (!id) return res.status(400).json({ message: 'weeklyReferenceId is required' });
 
-        const deleted = await WeeklyReference.destroy({ where: { weekly_reference_id: id } });
-        if (!deleted) return res.status(404).json({ message: 'WeeklyReference not found' });
+        const wr = await WeeklyReference.findByPk(id);
+        if (!wr) return res.status(404).json({ message: 'WeeklyReference not found' });
+
+        const lineage = await resolveWeekLineageContext(wr.week_id);
+        await WeeklyReference.destroy({ where: { weekly_reference_id: id } });
+        if (lineage?.pcOfferingId) {
+            await markOfferingModified(lineage.pcOfferingId);
+        }
 
         return res.json({ message: 'Deleted' });
     } catch (err) {
@@ -241,4 +253,92 @@ async function deleteILOReference(req, res) {
     }
 }
 
-module.exports = { getReferencesByILO, assignReferencesToILO, deleteILOReference };
+async function getPreviousReferences(req, res) {
+    try {
+        const rawId = req.params.weekId || req.params.iloId;
+        const isOrientation = parseIsOrientation(req.query.isOrientation ?? req.query.orientation);
+        const week = await resolveWeekRecord(rawId);
+        if (!week) return res.status(400).json({ message: 'Valid weekId is required' });
+
+        const lineage = await resolveWeekLineageContext(week.week_id);
+        if (!lineage || lineage.previousOfferings.length === 0) {
+            return res.json({
+                hasPreviousVersion: false,
+                weekNumber: lineage?.weekNumber || week.week_number,
+                matchingWeekReferences: []
+            });
+        }
+
+        const primaryPrevOffering = lineage.baseOffering || lineage.previousOfferings[0];
+        const prevWeekIds = (primaryPrevOffering.weeks || [])
+            .filter(w => Number(w.week_number) === Number(lineage.weekNumber))
+            .map(w => Number(w.week_id));
+        const sourceOfferingSummary = {
+            pc_offering_id: primaryPrevOffering.pc_offering_id,
+            revision_number: primaryPrevOffering.revision_number,
+            termLabel: primaryPrevOffering.termLabel,
+            status: primaryPrevOffering.status
+        };
+
+        if (prevWeekIds.length === 0) {
+            return res.json({
+                hasPreviousVersion: true,
+                weekNumber: lineage.weekNumber,
+                sourceOffering: sourceOfferingSummary,
+                matchingWeekReferences: []
+            });
+        }
+
+        const rows = await sequelize.query(
+            `SELECT wr.weekly_reference_id,
+                    wr.reference_id,
+                    wr.week_id,
+                    wr.is_orientation,
+                    r.reference_id   AS ref_reference_id,
+                    r.title          AS ref_title,
+                    r.type           AS ref_type,
+                    r.author         AS ref_author,
+                    r.isbn           AS ref_isbn,
+                    r.link           AS ref_link,
+                    r.publication_year AS ref_publication_year
+             FROM \`WeeklyReferences\` wr
+             INNER JOIN \`References\` r ON r.reference_id = wr.reference_id
+             WHERE wr.week_id IN (:prevWeekIds) AND wr.is_orientation = :isOrientation
+             ORDER BY wr.weekly_reference_id ASC;`,
+            {
+                replacements: { prevWeekIds, isOrientation: isOrientation ? 1 : 0 },
+                type: sequelize.QueryTypes.SELECT
+            }
+        );
+
+        const seenRefKeys = new Set();
+        const matchingWeekReferences = [];
+        for (const r of rows) {
+            const key = `${String(r.ref_title || '').trim().toLowerCase()}||${String(r.ref_author || '').trim().toLowerCase()}`;
+            if (seenRefKeys.has(key)) continue;
+            seenRefKeys.add(key);
+            matchingWeekReferences.push({
+                reference_id: r.ref_reference_id,
+                title: r.ref_title,
+                type: r.ref_type,
+                author: r.ref_author,
+                isbn: r.ref_isbn,
+                link: r.ref_link,
+                publication_year: r.ref_publication_year
+            });
+        }
+
+        return res.json({
+            hasPreviousVersion: true,
+            weekNumber: lineage.weekNumber,
+            sourceOffering: sourceOfferingSummary,
+            matchingWeekReferences
+        });
+    } catch (err) {
+        console.error('getPreviousReferences error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+module.exports = { getReferencesByILO, assignReferencesToILO, deleteILOReference, getPreviousReferences };
+

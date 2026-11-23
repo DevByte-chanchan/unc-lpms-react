@@ -11,10 +11,16 @@ async function submitLearningPlan(req, res) {
         }
 
         // 2. Find the correct Assignment ID using the offering ID
-        const offering = await ProgramCourseOffering.findOne({
+        let offering = await ProgramCourseOffering.findOne({
             where: { pc_offering_id: pcId, revision_number: revNum },
             attributes: ['pc_offering_id']
         });
+        if (!offering) {
+            offering = await ProgramCourseOffering.findOne({
+                where: { pc_offering_id: pcId },
+                attributes: ['pc_offering_id']
+            });
+        }
 
         if (!offering) return res.status(404).json({ message: 'Learning Plan Offering not found.' });
 

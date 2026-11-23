@@ -9,6 +9,10 @@ const {
     Course
 } = require('../models');
 const { Op } = require('sequelize');
+const {
+    resolveWeekLineageContext,
+    markOfferingModified
+} = require('../utils/versionHelper');
 
 function parseIsOrientation(val) {
     if (typeof val === 'boolean') return val;
@@ -329,67 +333,282 @@ async function getWeekContext(req, res) {
     }
 }
 
-// Fetch topics that are EITHER unassigned OR assigned to the current (weekId, isOrientation) context
+// Fetch topics that are EITHER unassigned in the CURRENT offering OR assigned to the current (weekId, isOrientation) context,
+// scoped to the current course and deduplicated by normalized title across revisions/terms.
 async function getAvailableTopics(req, res) {
     try {
-        const rawId = req.query.weekId || req.query.iloId;
+        const rawId = req.query.weekId || req.query.week_id || req.query.iloId || req.query.ilo_id;
         const isOrientation = parseIsOrientation(req.query.isOrientation ?? req.query.orientation);
         const week = await resolveWeekRecord(rawId);
         if (!week) return res.status(400).json({ message: 'Valid weekId is required' });
-        const weekId = week.week_id;
+        const weekId = Number(week.week_id);
 
-        // Find all subtopics in the database to see which topics are assigned to which (week_id, is_orientation) context
-        const allSubtopics = await Subtopic.findAll({
-            attributes: ['subtopic_id', 'week_id', 'topic_id', 'title', 'sequence_order', 'is_orientation'],
-            order: [['sequence_order', 'ASC'], ['subtopic_id', 'ASC']],
-            raw: true
-        });
+        const lineage = await resolveWeekLineageContext(weekId);
+        if (!lineage) {
+            return res.json([]);
+        }
+
+        const courseId = lineage.courseId ? Number(lineage.courseId) : null;
+        const currentOfferingWeekIdSet = new Set(
+            Array.isArray(lineage.allCurrentOfferingWeekIds)
+                ? lineage.allCurrentOfferingWeekIds.map(Number)
+                : [weekId]
+        );
+
+        // Identify the matching week of the latest previous revision for this course
+        const latestPriorOffering =
+            Array.isArray(lineage.priorOfferings) && lineage.priorOfferings.length > 0
+                ? lineage.priorOfferings[0]
+                : null;
+        const matchingPriorWeek = latestPriorOffering
+            ? (latestPriorOffering.weeks || []).find(
+                  (w) => Number(w.week_number) === Number(lineage.weekNumber)
+              ) || null
+            : null;
+        const matchingPriorWeekId = matchingPriorWeek ? Number(matchingPriorWeek.week_id) : null;
+
+        // Collect all week_ids belonging to ALL offerings of this course_id
+        const allCourseWeekIds = new Set(currentOfferingWeekIdSet);
+        if (Array.isArray(lineage.priorOfferings)) {
+            lineage.priorOfferings.forEach((po) => {
+                (po.weeks || []).forEach((w) => allCourseWeekIds.add(Number(w.week_id)));
+            });
+        }
+
+        // Fetch subtopics strictly for weeks belonging to THIS course
+        const courseSubtopics =
+            allCourseWeekIds.size > 0
+                ? await Subtopic.findAll({
+                      where: { week_id: { [Op.in]: [...allCourseWeekIds] } },
+                      attributes: ['subtopic_id', 'week_id', 'topic_id', 'title', 'sequence_order', 'is_orientation'],
+                      order: [
+                          ['week_id', 'DESC'],
+                          ['sequence_order', 'ASC'],
+                          ['subtopic_id', 'ASC']
+                      ],
+                      raw: true
+                  })
+                : [];
 
         const topicsInCurrentContext = new Set();
-        const topicsInOtherContexts = new Set();
+        const topicsInOtherWeeksOfCurrentOffering = new Set();
         const subtopicsByTopicForCurrentContext = {};
-        const subtopicsByTopicDefault = {};
+        const latestWeekPerTopic = {};
+        const subtopicsByTopicLatestWeek = {};
+        const courseTopicIdSet = new Set();
+        const orientationTopicIdSet = new Set();
+        const regularTopicIdSet = new Set();
 
-        for (const sub of allSubtopics) {
+        // Track matching-week topics & subtopics from the latest previous revision in original display order
+        const matchingPriorRawSubs = [];
+
+        for (const sub of courseSubtopics) {
             const tid = Number(sub.topic_id);
+            const wid = Number(sub.week_id);
             const subIsOrientation = Boolean(sub.is_orientation);
 
-            if (Number(sub.week_id) === Number(weekId) && subIsOrientation === isOrientation) {
+            if (subIsOrientation) {
+                orientationTopicIdSet.add(tid);
+            } else {
+                regularTopicIdSet.add(tid);
+            }
+
+            if (subIsOrientation !== isOrientation) {
+                continue;
+            }
+
+            courseTopicIdSet.add(tid);
+
+            if (matchingPriorWeekId && wid === matchingPriorWeekId) {
+                matchingPriorRawSubs.push(sub);
+            }
+
+            if (wid === weekId) {
                 topicsInCurrentContext.add(tid);
-                if (!subtopicsByTopicForCurrentContext[tid]) subtopicsByTopicForCurrentContext[tid] = [];
+                if (!subtopicsByTopicForCurrentContext[tid]) {
+                    subtopicsByTopicForCurrentContext[tid] = [];
+                }
                 subtopicsByTopicForCurrentContext[tid].push({
                     subtopic_id: sub.subtopic_id,
                     title: sub.title,
                     sequence_order: sub.sequence_order
                 });
-            } else {
-                topicsInOtherContexts.add(tid);
+            } else if (currentOfferingWeekIdSet.has(wid)) {
+                // Only exclude topics used in OTHER weeks of the CURRENT learning plan offering,
+                // NOT topics used in previous revisions/terms
+                topicsInOtherWeeksOfCurrentOffering.add(tid);
             }
 
-            if (!subtopicsByTopicDefault[tid]) subtopicsByTopicDefault[tid] = [];
-            subtopicsByTopicDefault[tid].push({
+            // Track subtopics from the most recent week_id where this topic appeared
+            if (latestWeekPerTopic[tid] === undefined) {
+                latestWeekPerTopic[tid] = wid;
+                subtopicsByTopicLatestWeek[tid] = [];
+            }
+            if (latestWeekPerTopic[tid] === wid) {
+                subtopicsByTopicLatestWeek[tid].push({
+                    subtopic_id: sub.subtopic_id,
+                    title: sub.title,
+                    sequence_order: sub.sequence_order
+                });
+            }
+        }
+
+        // Preserve original topic & subtopic order from the latest previous revision's matching week
+        matchingPriorRawSubs.sort(
+            (a, b) => Number(a.subtopic_id) - Number(b.subtopic_id) || (Number(a.sequence_order) || 0) - (Number(b.sequence_order) || 0)
+        );
+        const matchingPriorOrderByTopicId = new Map();
+        const matchingPriorSubtopicsByTopic = {};
+        let prevOrderCounter = 0;
+        for (const sub of matchingPriorRawSubs) {
+            const tid = Number(sub.topic_id);
+            if (!matchingPriorOrderByTopicId.has(tid)) {
+                matchingPriorOrderByTopicId.set(tid, prevOrderCounter++);
+                matchingPriorSubtopicsByTopic[tid] = [];
+            }
+            matchingPriorSubtopicsByTopic[tid].push({
                 subtopic_id: sub.subtopic_id,
                 title: sub.title,
                 sequence_order: sub.sequence_order
             });
         }
 
-        // Exclude topics that are already used in other weeks or the other orientation context
-        const excludedTopicIds = [...topicsInOtherContexts].filter(tid => !topicsInCurrentContext.has(tid));
+        // Build topic query STRICTLY scoped to this course (never fall back to an unfiltered `{}` query!)
+        const topicOrFilters = [];
+        if (isOrientation) {
+            // For Orientation, only show topics that belong to this course's orientation subtopics
+            if (courseTopicIdSet.size > 0) {
+                topicOrFilters.push({ topic_id: { [Op.in]: [...courseTopicIdSet] } });
+            }
+        } else {
+            if (courseId) {
+                topicOrFilters.push({ course_id: courseId });
+            }
+            if (courseTopicIdSet.size > 0) {
+                topicOrFilters.push({ topic_id: { [Op.in]: [...courseTopicIdSet] } });
+            }
+        }
+
+        if (topicOrFilters.length === 0) {
+            return res.json([]);
+        }
 
         const topics = await Topic.findAll({
-            where: excludedTopicIds.length > 0
-                ? { topic_id: { [Op.notIn]: excludedTopicIds } }
-                : {},
-            order: [['title', 'ASC']],
+            where: { [Op.or]: topicOrFilters },
+            order: [['topic_id', 'DESC']],
             raw: true
         });
 
-        const result = topics.map(t => ({
-            topic_id: t.topic_id,
-            title: t.title,
-            subtopics: subtopicsByTopicForCurrentContext[t.topic_id] || subtopicsByTopicDefault[t.topic_id] || []
-        }));
+        // Map matching-week topic titles so title-based deduplication preserves the emphasized matching-week flag
+        const matchingPriorOrderByTitle = new Map();
+        for (const t of topics) {
+            const tid = Number(t.topic_id);
+            if (matchingPriorOrderByTopicId.has(tid)) {
+                const normTitle = String(t.title || '').trim().toLowerCase();
+                if (normTitle && !matchingPriorOrderByTitle.has(normTitle)) {
+                    matchingPriorOrderByTitle.set(normTitle, {
+                        orderIndex: matchingPriorOrderByTopicId.get(tid),
+                        subtopics: matchingPriorSubtopicsByTopic[tid] || []
+                    });
+                }
+            }
+        }
+
+        // Exclude topics whose title or topic_id is already assigned in another week of the CURRENT offering
+        const blockedTopicIds = new Set(
+            [...topicsInOtherWeeksOfCurrentOffering].filter((tid) => !topicsInCurrentContext.has(tid))
+        );
+        const blockedTitleSet = new Set();
+        for (const t of topics) {
+            if (blockedTopicIds.has(Number(t.topic_id))) {
+                blockedTitleSet.add(String(t.title || '').trim().toLowerCase());
+            }
+        }
+
+        const dedupeSubtopics = (rawSubs) => {
+            const seenSubTitles = new Set();
+            const cleanSubs = [];
+            const sortedRawSubs = [...(rawSubs || [])].sort(
+                (a, b) => (Number(a.sequence_order) || 0) - (Number(b.sequence_order) || 0)
+            );
+            for (const s of sortedRawSubs) {
+                const normSub = String(s.title || '').trim().toLowerCase();
+                if (!normSub || seenSubTitles.has(normSub)) continue;
+                seenSubTitles.add(normSub);
+                cleanSubs.push({
+                    subtopic_id: s.subtopic_id,
+                    title: s.title,
+                    sequence_order: cleanSubs.length + 1
+                });
+            }
+            return cleanSubs;
+        };
+
+        // Deduplicate topics by normalized title so reused topics across revisions/terms never show duplicate titles
+        const deduplicatedByTitle = new Map();
+        for (const t of topics) {
+            const tid = Number(t.topic_id);
+            const normTitle = String(t.title || '').trim().toLowerCase();
+            if (!normTitle) continue;
+
+            // Skip orientation-only topics when browsing regular weeks
+            if (!isOrientation && orientationTopicIdSet.has(tid) && !regularTopicIdSet.has(tid)) {
+                continue;
+            }
+
+            const isInCurrent = topicsInCurrentContext.has(tid);
+            if (!isInCurrent && (blockedTopicIds.has(tid) || blockedTitleSet.has(normTitle))) {
+                continue;
+            }
+
+            const prevMatchInfo = matchingPriorOrderByTitle.get(normTitle) || null;
+            const isPrevMatchingWeek = Boolean(prevMatchInfo);
+
+            const rawSubs =
+                subtopicsByTopicForCurrentContext[tid] ||
+                (isPrevMatchingWeek && prevMatchInfo.subtopics.length > 0 ? prevMatchInfo.subtopics : null) ||
+                subtopicsByTopicLatestWeek[tid] ||
+                [];
+            const cleanSubs = dedupeSubtopics(rawSubs);
+
+            const candidateEntry = {
+                topic_id: tid,
+                title: t.title,
+                subtopics: cleanSubs,
+                isPrevMatchingWeek,
+                prevRevisionNumber: isPrevMatchingWeek && latestPriorOffering ? Number(latestPriorOffering.revision_number) : null,
+                prevTermLabel: isPrevMatchingWeek && latestPriorOffering ? latestPriorOffering.termLabel : null,
+                _isInCurrent: isInCurrent,
+                _prevOrderIndex: isPrevMatchingWeek ? prevMatchInfo.orderIndex : Number.MAX_SAFE_INTEGER
+            };
+
+            if (!deduplicatedByTitle.has(normTitle)) {
+                deduplicatedByTitle.set(normTitle, candidateEntry);
+            } else {
+                const existingEntry = deduplicatedByTitle.get(normTitle);
+                if (
+                    (isInCurrent && !existingEntry._isInCurrent) ||
+                    (isPrevMatchingWeek && !existingEntry.isPrevMatchingWeek) ||
+                    (cleanSubs.length > 0 && existingEntry.subtopics.length === 0)
+                ) {
+                    deduplicatedByTitle.set(normTitle, {
+                        ...candidateEntry,
+                        subtopics: cleanSubs.length > 0 ? cleanSubs : existingEntry.subtopics
+                    });
+                }
+            }
+        }
+
+        const result = Array.from(deduplicatedByTitle.values())
+            .sort((a, b) => {
+                if (a.isPrevMatchingWeek && !b.isPrevMatchingWeek) return -1;
+                if (!a.isPrevMatchingWeek && b.isPrevMatchingWeek) return 1;
+                if (a.isPrevMatchingWeek && b.isPrevMatchingWeek) {
+                    return a._prevOrderIndex - b._prevOrderIndex;
+                }
+                return String(a.title || '').localeCompare(String(b.title || ''));
+            })
+            .map(({ _isInCurrent, _prevOrderIndex, ...item }) => item);
 
         return res.json(result);
     } catch (err) {
@@ -405,7 +624,15 @@ async function getAssignedTopics(req, res) {
         const isOrientation = parseIsOrientation(req.query.isOrientation ?? req.query.orientation);
         const week = await resolveWeekRecord(rawId);
         if (!week) return res.status(400).json({ message: 'Valid weekId is required' });
-        const weekId = week.week_id;
+        const weekId = Number(week.week_id);
+
+        const lineage = await resolveWeekLineageContext(weekId);
+        // Topics can only be continued within the SAME Course Outcome of the current offering
+        const earlierWeekIdsInCurrentCo = lineage
+            ? (lineage.orderedCurrentWeeks || [])
+                .filter((w) => Number(w.co_id) === Number(lineage.coId) && Number(w.week_id) < weekId)
+                .map((w) => Number(w.week_id))
+            : [];
 
         const subtopics = await Subtopic.findAll({
             where: { week_id: weekId, is_orientation: isOrientation },
@@ -419,13 +646,13 @@ async function getAssignedTopics(req, res) {
 
         const topicIds = [...new Set(subtopics.map(s => Number(s.topic_id)).filter(Boolean))];
 
-        // Check if any of these topics also appeared in an earlier week (making it a continued topic)
+        // Check if any of these topics also appeared in an earlier week OF THE SAME COURSE OUTCOME & OFFERING (making it a continued topic)
         let continuedTopicIds = new Set();
-        if (topicIds.length > 0 && !isOrientation) {
+        if (topicIds.length > 0 && !isOrientation && earlierWeekIdsInCurrentCo.length > 0) {
             const earlierSubtopics = await Subtopic.findAll({
                 where: {
                     topic_id: { [Op.in]: topicIds },
-                    week_id: { [Op.lt]: weekId },
+                    week_id: { [Op.in]: earlierWeekIdsInCurrentCo },
                     is_orientation: false
                 },
                 attributes: ['topic_id'],
@@ -473,8 +700,220 @@ async function getAssignedTopics(req, res) {
     }
 }
 
-// Master sync function: Creates custom topics, updates edits, and manages weekly Subtopic assignments
-// Preserves existing subtopic_id values so CommentTargets referencing subtopic_id remain intact!
+/**
+ * COMP-006: Fetch topics & subtopics from prior approved/historical revisions of the same course.
+ * Returns both:
+ * - matchingWeekTopics: topics assigned to the matching week_number in the previous revision(s)
+ * - allPreviousCourseTopics: deduplicated topics across all weeks/revisions of the same course
+ */
+async function getPreviousTopics(req, res) {
+    try {
+        const rawWeekId = req.params.weekId || req.query.weekId || req.params.iloId;
+        const isOrientation = parseIsOrientation(req.query.isOrientation ?? req.query.orientation);
+        const requestedPcOfferingId = req.query.sourcePcOfferingId
+            ? Number(req.query.sourcePcOfferingId)
+            : null;
+
+        const week = await resolveWeekRecord(rawWeekId);
+        if (!week) {
+            return res.status(400).json({ message: 'Valid weekId is required' });
+        }
+
+        const lineage = await resolveWeekLineageContext(week.week_id);
+        if (!lineage) {
+            return res.status(404).json({ message: 'Week lineage context not found' });
+        }
+
+        const priorOfferings = lineage.priorOfferings || [];
+        if (priorOfferings.length === 0) {
+            return res.json({
+                hasPreviousRevision: false,
+                weekNumber: lineage.weekNumber,
+                isOrientation: lineage.isOrientation,
+                revisions: [],
+                matchingWeekTopics: [],
+                allPreviousCourseTopics: []
+            });
+        }
+
+        // Determine topics already used in OTHER weeks of the current offering so we can flag or filter them
+        const otherCurrentWeekIds = lineage.allCurrentOfferingWeekIds.filter(
+            (wid) => Number(wid) !== Number(lineage.weekId)
+        );
+        const currentOfferingOtherSubtopics =
+            otherCurrentWeekIds.length > 0
+                ? await Subtopic.findAll({
+                      where: { week_id: { [Op.in]: otherCurrentWeekIds } },
+                      include: [{ model: Topic, as: 'topic', attributes: ['topic_id', 'title'] }],
+                      raw: true,
+                      nest: true
+                  })
+                : [];
+        const usedInCurrentOtherWeeksTitles = new Set(
+            currentOfferingOtherSubtopics
+                .map((s) => String(s.topic?.title || '').trim().toLowerCase())
+                .filter(Boolean)
+        );
+
+        // Select source prior offering (defaults to the highest-priority approved prior offering)
+        const targetPriorOffering =
+            (requestedPcOfferingId &&
+                priorOfferings.find((po) => Number(po.pc_offering_id) === requestedPcOfferingId)) ||
+            priorOfferings[0];
+
+        // 1. Fetch matching week topics from targetPriorOffering
+        const matchingPriorWeek = (targetPriorOffering.weeks || []).find(
+            (w) => Number(w.week_number) === Number(lineage.weekNumber)
+        );
+
+        const matchingWeekTopics = [];
+        if (matchingPriorWeek) {
+            const priorWeekSubs = await Subtopic.findAll({
+                where: {
+                    week_id: matchingPriorWeek.week_id,
+                    is_orientation: isOrientation
+                },
+                include: [{ model: Topic, as: 'topic', attributes: ['topic_id', 'title'] }],
+                order: [
+                    ['subtopic_id', 'ASC'],
+                    ['sequence_order', 'ASC']
+                ]
+            });
+
+            const byTopicTitle = new Map();
+            for (const s of priorWeekSubs) {
+                if (!s.topic) continue;
+                const normTitle = String(s.topic.title || '').trim().toLowerCase();
+                if (!normTitle) continue;
+
+                if (!byTopicTitle.has(normTitle)) {
+                    byTopicTitle.set(normTitle, {
+                        topic_id: Number(s.topic.topic_id),
+                        title: s.topic.title,
+                        sourceWeekNumber: Number(matchingPriorWeek.week_number),
+                        sourceRevisionNumber: Number(targetPriorOffering.revision_number),
+                        sourceTermLabel: targetPriorOffering.termLabel,
+                        sourcePcOfferingId: Number(targetPriorOffering.pc_offering_id),
+                        alreadyUsedInCurrentOffering: usedInCurrentOtherWeeksTitles.has(normTitle),
+                        subtopics: []
+                    });
+                }
+                const entry = byTopicTitle.get(normTitle);
+                const normSub = String(s.title || '').trim().toLowerCase();
+                if (!entry.subtopics.some((es) => String(es.title || '').trim().toLowerCase() === normSub)) {
+                    entry.subtopics.push({
+                        subtopic_id: Number(s.subtopic_id),
+                        title: s.title,
+                        sequence_order: entry.subtopics.length + 1
+                    });
+                }
+            }
+            matchingWeekTopics.push(...byTopicTitle.values());
+        }
+
+        // 2. Fetch all previous course topics across all prior revisions (deduplicated by normalized topic title)
+        const allPriorWeekMeta = new Map();
+        const allPriorWeekIds = [];
+        priorOfferings.forEach((po) => {
+            (po.weeks || []).forEach((w) => {
+                allPriorWeekIds.push(Number(w.week_id));
+                allPriorWeekMeta.set(Number(w.week_id), {
+                    weekNumber: Number(w.week_number),
+                    revisionNumber: Number(po.revision_number),
+                    termLabel: po.termLabel,
+                    pcOfferingId: Number(po.pc_offering_id),
+                    status: po.status
+                });
+            });
+        });
+
+        const allPreviousCourseTopics = [];
+        if (allPriorWeekIds.length > 0) {
+            const allPriorSubs = await Subtopic.findAll({
+                where: {
+                    week_id: { [Op.in]: allPriorWeekIds },
+                    is_orientation: isOrientation
+                },
+                include: [{ model: Topic, as: 'topic', attributes: ['topic_id', 'title'] }],
+                order: [
+                    ['week_id', 'DESC'],
+                    ['sequence_order', 'ASC'],
+                    ['subtopic_id', 'ASC']
+                ]
+            });
+
+            // Group by normalized topic title, keeping subtopics from the most recent revision/week where the topic appeared
+            const canonicalMap = new Map();
+            for (const s of allPriorSubs) {
+                if (!s.topic) continue;
+                const normTitle = String(s.topic.title || '').trim().toLowerCase();
+                if (!normTitle) continue;
+                const wid = Number(s.week_id);
+                const meta = allPriorWeekMeta.get(wid) || {};
+
+                if (!canonicalMap.has(normTitle)) {
+                    canonicalMap.set(normTitle, {
+                        topic_id: Number(s.topic.topic_id),
+                        title: s.topic.title,
+                        _sourceWeekId: wid,
+                        sourceWeekNumber: meta.weekNumber || 1,
+                        sourceRevisionNumber: meta.revisionNumber || 1,
+                        sourceTermLabel: meta.termLabel || 'Previous Term',
+                        sourcePcOfferingId: meta.pcOfferingId || null,
+                        alreadyUsedInCurrentOffering: usedInCurrentOtherWeeksTitles.has(normTitle),
+                        subtopics: []
+                    });
+                }
+
+                const entry = canonicalMap.get(normTitle);
+                // Only merge subtopics from the same canonical (most recent) week occurrence so subtopics don't multiply across revisions
+                if (entry._sourceWeekId === wid) {
+                    const normSub = String(s.title || '').trim().toLowerCase();
+                    if (!entry.subtopics.some((es) => String(es.title || '').trim().toLowerCase() === normSub)) {
+                        entry.subtopics.push({
+                            subtopic_id: Number(s.subtopic_id),
+                            title: s.title,
+                            sequence_order: entry.subtopics.length + 1
+                        });
+                    }
+                }
+            }
+
+            allPreviousCourseTopics.push(
+                ...Array.from(canonicalMap.values())
+                    .map(({ _sourceWeekId, ...rest }) => rest)
+                    .sort((a, b) => (a.sourceWeekNumber || 0) - (b.sourceWeekNumber || 0))
+            );
+        }
+
+        return res.json({
+            hasPreviousRevision: true,
+            weekNumber: lineage.weekNumber,
+            isOrientation: lineage.isOrientation,
+            selectedRevision: {
+                pc_offering_id: targetPriorOffering.pc_offering_id,
+                revision_number: targetPriorOffering.revision_number,
+                termLabel: targetPriorOffering.termLabel,
+                status: targetPriorOffering.status
+            },
+            revisions: priorOfferings.map((po) => ({
+                pc_offering_id: po.pc_offering_id,
+                revision_number: po.revision_number,
+                termLabel: po.termLabel,
+                status: po.status
+            })),
+            matchingWeekTopics,
+            allPreviousCourseTopics
+        });
+    } catch (err) {
+        console.error('getPreviousTopics error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+// Master sync function: Creates custom topics, applies Copy-on-Write (CoW) when an imported/shared topic title is edited,
+// reuses canonical Topic IDs when titles match (preventing duplicate Topic rows across revisions),
+// and manages weekly Subtopic assignments while preserving subtopic_id values for CommentTargets.
 async function assignTopicsToILO(req, res) {
     const t = await sequelize.transaction();
     try {
@@ -492,7 +931,11 @@ async function assignTopicsToILO(req, res) {
             await t.rollback();
             return res.status(404).json({ message: 'Week not found' });
         }
-        const week_id = week.week_id;
+        const week_id = Number(week.week_id);
+
+        const lineage = await resolveWeekLineageContext(week_id);
+        const courseId = lineage ? Number(lineage.courseId) : null;
+        const pcOfferingId = lineage ? Number(lineage.pcOfferingId) : null;
 
         // 1. Fetch existing subtopics for this (week_id, is_orientation) context so we can preserve subtopic_ids
         const existingSubtopics = await Subtopic.findAll({
@@ -507,33 +950,102 @@ async function assignTopicsToILO(req, res) {
         const finalTopicIds = [];
         const desiredSubtopics = [];
 
-        // 2. Process each topic and collect desired subtopic entries
+        // Helper: find an existing canonical Topic by title for this course
+        const findCanonicalTopicByTitle = async (cleanTitle) => {
+            const candidates = await Topic.findAll({
+                where: sequelize.where(
+                    sequelize.fn('LOWER', sequelize.fn('TRIM', sequelize.col('title'))),
+                    cleanTitle.toLowerCase()
+                ),
+                order: [['topic_id', 'ASC']],
+                transaction: t
+            });
+            if (candidates.length === 0) return null;
+            if (courseId) {
+                const exactCourseMatch = candidates.find((c) => Number(c.course_id) === courseId);
+                if (exactCourseMatch) return exactCourseMatch;
+                const unscopedMatch = candidates.find((c) => c.course_id == null);
+                if (unscopedMatch) {
+                    await unscopedMatch.update({ course_id: courseId }, { transaction: t });
+                    return unscopedMatch;
+                }
+            }
+            return candidates[0];
+        };
+
+        // 2. Process each topic with Copy-on-Write (CoW) and canonical deduplication
         for (const topicData of topics) {
             let currentTopicId = topicData.topic_id ? Number(topicData.topic_id) : null;
             const cleanTitle = (topicData.title || 'Untitled Topic').trim();
 
-            if (!currentTopicId) {
-                if (topicData.isContinuation) {
-                    const existingByTitle = await Topic.findOne({
-                        where: { title: cleanTitle },
-                        transaction: t
-                    });
-                    if (existingByTitle) {
-                        currentTopicId = existingByTitle.topic_id;
+            if (currentTopicId) {
+                const existingTopic = await Topic.findByPk(currentTopicId, { transaction: t });
+                if (!existingTopic) {
+                    currentTopicId = null;
+                } else {
+                    const oldTitle = (existingTopic.title || '').trim();
+                    if (courseId && !existingTopic.course_id) {
+                        await existingTopic.update({ course_id: courseId }, { transaction: t });
+                    }
+
+                    if (oldTitle !== cleanTitle && !topicData.isContinuation) {
+                        // Title was changed! Check if this topic_id is referenced by ANY other week (e.g. a previous approved learning plan)
+                        const externalUsageCount = await Subtopic.count({
+                            where: {
+                                topic_id: currentTopicId,
+                                week_id: { [Op.ne]: week_id }
+                            },
+                            transaction: t
+                        });
+
+                        if (externalUsageCount > 0) {
+                            // COPY-ON-WRITE: Do NOT mutate the historical Topic row!
+                            // Reuse an existing Topic with cleanTitle if one already exists, otherwise fork a new Topic row.
+                            const matchByNewTitle = await findCanonicalTopicByTitle(cleanTitle);
+                            if (matchByNewTitle) {
+                                currentTopicId = Number(matchByNewTitle.topic_id);
+                            } else {
+                                const forkedTopic = await Topic.create(
+                                    {
+                                        title: cleanTitle,
+                                        course_id: courseId,
+                                        parent_topic_id: currentTopicId
+                                    },
+                                    { transaction: t }
+                                );
+                                currentTopicId = Number(forkedTopic.topic_id);
+                            }
+                        } else {
+                            // Not referenced by any other week/learning plan: check if another Topic already has cleanTitle
+                            const matchByNewTitle = await findCanonicalTopicByTitle(cleanTitle);
+                            if (matchByNewTitle && Number(matchByNewTitle.topic_id) !== currentTopicId) {
+                                currentTopicId = Number(matchByNewTitle.topic_id);
+                            } else {
+                                await Topic.update(
+                                    { title: cleanTitle, ...(courseId ? { course_id: courseId } : {}) },
+                                    { where: { topic_id: currentTopicId }, transaction: t }
+                                );
+                            }
+                        }
                     }
                 }
+            }
 
-                if (!currentTopicId) {
-                    const newTopic = await Topic.create({
-                        title: cleanTitle
-                    }, { transaction: t });
-                    currentTopicId = newTopic.topic_id;
+            if (!currentTopicId) {
+                // New, manual, AI-suggested, or continuation topic without ID: check canonical topic by title first to avoid duplicates
+                const existingByTitle = await findCanonicalTopicByTitle(cleanTitle);
+                if (existingByTitle) {
+                    currentTopicId = Number(existingByTitle.topic_id);
+                } else {
+                    const newTopic = await Topic.create(
+                        {
+                            title: cleanTitle,
+                            course_id: courseId
+                        },
+                        { transaction: t }
+                    );
+                    currentTopicId = Number(newTopic.topic_id);
                 }
-            } else if (!topicData.isContinuation) {
-                await Topic.update(
-                    { title: cleanTitle },
-                    { where: { topic_id: currentTopicId }, transaction: t }
-                );
             }
 
             finalTopicIds.push(currentTopicId);
@@ -543,8 +1055,15 @@ async function assignTopicsToILO(req, res) {
                 : [{ title: '', sequence_order: 0 }];
 
             rawSubtopics.forEach((s, idx) => {
+                const incomingSubId = s.subtopic_id ? Number(s.subtopic_id) : null;
+                const isOwnExistingSubtopic = incomingSubId && existingById.has(incomingSubId);
+                const parentSubId = s.parent_subtopic_id
+                    ? Number(s.parent_subtopic_id)
+                    : (!isOwnExistingSubtopic && incomingSubId ? incomingSubId : null);
+
                 desiredSubtopics.push({
-                    incoming_subtopic_id: s.subtopic_id ? Number(s.subtopic_id) : null,
+                    incoming_subtopic_id: isOwnExistingSubtopic ? incomingSubId : null,
+                    parent_subtopic_id: parentSubId,
                     week_id: week_id,
                     topic_id: currentTopicId,
                     title: s.title != null ? String(s.title) : '',
@@ -554,7 +1073,7 @@ async function assignTopicsToILO(req, res) {
             });
         }
 
-        // Pass 1: Match by explicit incoming_subtopic_id
+        // Pass 1: Match by explicit incoming_subtopic_id belonging to THIS week
         for (const item of desiredSubtopics) {
             if (item.incoming_subtopic_id && existingById.has(item.incoming_subtopic_id) && !usedExistingIds.has(item.incoming_subtopic_id)) {
                 item.matched_subtopic_id = item.incoming_subtopic_id;
@@ -595,7 +1114,8 @@ async function assignTopicsToILO(req, res) {
                     topic_id: item.topic_id,
                     title: item.title,
                     sequence_order: item.sequence_order,
-                    is_orientation: item.is_orientation
+                    is_orientation: item.is_orientation,
+                    ...(item.parent_subtopic_id ? { parent_subtopic_id: item.parent_subtopic_id } : {})
                 }, {
                     where: { subtopic_id: item.matched_subtopic_id },
                     transaction: t
@@ -607,13 +1127,14 @@ async function assignTopicsToILO(req, res) {
                     topic_id: item.topic_id,
                     title: item.title,
                     sequence_order: item.sequence_order,
-                    is_orientation: item.is_orientation
+                    is_orientation: item.is_orientation,
+                    parent_subtopic_id: item.parent_subtopic_id || null
                 }, { transaction: t });
                 keptSubtopicIds.push(Number(created.subtopic_id));
             }
         }
 
-        // Delete any surplus existing subtopics that were removed
+        // Delete any surplus existing subtopics that were removed from THIS week
         const idsToDelete = existingSubtopics
             .map(es => Number(es.subtopic_id))
             .filter(id => !usedExistingIds.has(id));
@@ -623,6 +1144,11 @@ async function assignTopicsToILO(req, res) {
                 where: { subtopic_id: { [Op.in]: idsToDelete } },
                 transaction: t
             });
+        }
+
+        // Mark offering as modified (without incrementing revision_number while unapproved)
+        if (pcOfferingId) {
+            await markOfferingModified(pcOfferingId, t);
         }
 
         await t.commit();
@@ -1524,4 +2050,5 @@ function generateContextualWeightedTopics({
     return normalizeSuggestedTopicsWithWeights(pickedPrimary, pickedAlternatives, targetWeeklyMinutes);
 }
 
-module.exports = { getWeekContext, getAvailableTopics, getAssignedTopics, assignTopicsToILO, suggestTopicsWithAI };
+module.exports = { getWeekContext, getAvailableTopics, getAssignedTopics, getPreviousTopics, assignTopicsToILO, suggestTopicsWithAI };
+

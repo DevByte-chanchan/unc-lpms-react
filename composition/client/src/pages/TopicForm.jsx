@@ -7,6 +7,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import SideNavigation from "../components/SideNavigation.jsx";
 import TopicSelector from "../components/TopicSelector.jsx";
 import AiTopicSuggestModal from "../components/AiTopicSuggestModal.jsx";
+import ImportPreviousModal from "../components/ImportPreviousModal.jsx";
 import { checkSpelling } from "../utils/spellChecker.js";
 import { X, CheckCircle, MessageSquare, AlertCircle, ChevronsRight, ChevronDown } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
@@ -53,11 +54,11 @@ const STAKEHOLDER_NAME_BY_ROLE = {
     INSTRUCTOR: 'Monica Norton'
 };
 
-export function InlineModal({ isOpen, title, onClose, children, actions }) {
+export function InlineModal({ isOpen, title, onClose, children, actions, modalClassName = '' }) {
     if (!isOpen) return null;
     return (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-            <div className={styles.modal}>
+            <div className={`${styles.modal} ${modalClassName}`}>
                 <div className={styles.modalHeader}>
                     <h3>{title}</h3>
                     <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
@@ -192,7 +193,8 @@ const TopicSubForm = forwardRef(({
     cachedWeekTopics,
     previousWeekFrontendTopics,
     onTopicsChangeForWeek,
-    onOpenAiSuggest
+    onOpenAiSuggest,
+    isSingleColumn = false
 }, ref) => {
     const [availableTopics, setAvailableTopics] = useState([]);
     const [selectedTopics, setSelectedTopics] = useState([]);
@@ -456,6 +458,35 @@ const TopicSubForm = forwardRef(({
         },
         getSpellWarnings: collectTopicSpellWarnings,
         getSelectedTopics: () => selectedTopics,
+        importPreviousTopics: (incomingTopics) => {
+            if (!Array.isArray(incomingTopics) || incomingTopics.length === 0) return;
+            const existingTitles = new Set(
+                selectedTopics.map(t => String(t.title || '').trim().toLowerCase()).filter(Boolean)
+            );
+            const now = Date.now();
+            const toAdd = incomingTopics
+                .filter(t => {
+                    const title = String(t?.title || '').trim().toLowerCase();
+                    if (!title) return false;
+                    return !existingTitles.has(title);
+                })
+                .map((topic, idx) => ({
+                    topic_id: topic.topic_id || null,
+                    _temp_id: topic.topic_id ? null : `temp-prev-topic-${now}-${idx}`,
+                    title: topic.title,
+                    isContinuation: false,
+                    subtopics: (topic.subtopics || []).map((s, sIdx) => ({
+                        subtopic_id: null,
+                        parent_subtopic_id: s.subtopic_id || null,
+                        _temp_id: `temp-prev-sub-${now}-${idx}-${sIdx}-${Math.random()}`,
+                        title: s.title || '',
+                        sequence_order: s.sequence_order ?? sIdx
+                    }))
+                }));
+
+            if (toAdd.length === 0) return;
+            updateTopicsState([...selectedTopics, ...toAdd]);
+        },
         applyAiTopics: (newAiTopics) => {
             if (!Array.isArray(newAiTopics)) return;
             // Keep manual/continued topics; replace previously imported AI topics with the updated selection
@@ -519,16 +550,16 @@ const TopicSubForm = forwardRef(({
     return (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <TopicSelector
-                options={availableTopics}
                 value={selectedTopics}
                 onChange={updateTopicsState}
                 disabled={loading}
-                iloId={iloId}
+                isOrientation={isOrientation}
                 courseCode={courseCode}
                 weekNumber={isOrientation ? 1 : weekNumber}
                 weekIndexInCo={isOrientation ? 0 : weekIndexInCo}
                 previousWeekTopics={isOrientation ? [] : previousWeekTopics}
                 onOpenAiSuggest={onOpenAiSuggest}
+                isSingleColumn={isSingleColumn}
             />
         </div>
     );
@@ -546,7 +577,24 @@ const TopicForm = () => {
     const [isOrientation, setIsOrientation] = useState(initialIsOrientation);
 
     const [currentStep, setCurrentStep] = useState(0);
+    const [pinnedSteps, setPinnedSteps] = useState([true, true, true]);
+    const [isImportPrevOpen, setIsImportPrevOpen] = useState(false);
     const steps = ['Topics', 'Teaching & Learning Activities', 'References'];
+
+    const handleTogglePin = useCallback((stepIdx) => {
+        setPinnedSteps(prev => {
+            const isCurrentlyPinned = Boolean(prev[stepIdx]);
+            const pinnedCount = prev.filter(Boolean).length;
+            // Ensure at least 1 column remains pinned/visible
+            if (isCurrentlyPinned && pinnedCount <= 1) {
+                return prev;
+            }
+            const next = [...prev];
+            next[stepIdx] = !isCurrentlyPinned;
+            return next;
+        });
+        setCurrentStep(stepIdx);
+    }, []);
 
     // Weekly Planner & Course Outcome Context State
     const [weekContext, setWeekContext] = useState({
@@ -933,15 +981,33 @@ const TopicForm = () => {
 
     const handleOpenAiSuggest = () => {
         syncLiveTopicsToFrontendMap();
-        if (currentStep !== 0) {
-            setCurrentStep(0);
+        if (!pinnedSteps[0]) {
+            setPinnedSteps(prev => [true, prev[1], prev[2]]);
         }
+        setCurrentStep(0);
         setIsAiModalOpen(true);
     };
 
     const handleApplyAiTopicsFromModal = (newAiTopics) => {
         if (topicRef.current?.applyAiTopics) {
             topicRef.current.applyAiTopics(newAiTopics);
+        }
+    };
+
+    const handleImportPreviousSelected = ({ topics = [], tlas = [], references = [] }) => {
+        setPinnedSteps(prev => [
+            topics.length > 0 ? true : prev[0],
+            tlas.length > 0 ? true : prev[1],
+            references.length > 0 ? true : prev[2]
+        ]);
+        if (topics.length > 0 && topicRef.current?.importPreviousTopics) {
+            topicRef.current.importPreviousTopics(topics);
+        }
+        if (tlas.length > 0 && tlaRef.current?.importPreviousTlas) {
+            tlaRef.current.importPreviousTlas(tlas);
+        }
+        if (references.length > 0 && refRef.current?.importPreviousReferences) {
+            refRef.current.importPreviousReferences(references);
         }
     };
 
@@ -1071,27 +1137,61 @@ const TopicForm = () => {
             syncLiveTopicsToFrontendMap();
 
             const savedActiveKey = getWeekCacheKey(effectiveWeekId, isOrientation);
-            const entries = Object.entries(weekTopicsMap);
-            for (const [key, topicsArr] of entries) {
-                if (key === savedActiveKey) continue;
+            const activeWidNum = Number(effectiveWeekId) || 0;
+
+            const parseCachedEntry = ([key, topicsArr]) => {
                 const [prefix, rawWid] = key.split('-');
-                const wid = Number(rawWid);
-                if (wid && Array.isArray(topicsArr)) {
-                    await fetchJson(`/api/topics/assign`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            week_id: wid,
-                            ilo_id: wid,
-                            is_orientation: prefix === 'orient',
-                            topics: topicsArr
-                        })
-                    }).catch(() => {});
-                    initialWeekTopicsMapRef.current[key] = serializeTopics(topicsArr);
-                }
+                return {
+                    key,
+                    prefix,
+                    wid: Number(rawWid),
+                    isOrient: prefix === 'orient',
+                    topicsArr
+                };
+            };
+
+            const modifiedNonActiveEntries = Object.entries(weekTopicsMap)
+                .filter(([key, topicsArr]) => {
+                    if (key === savedActiveKey) return false;
+                    if (!Array.isArray(topicsArr)) return false;
+                    const initialSnap = initialWeekTopicsMapRef.current[key];
+                    if (initialSnap !== undefined && serializeTopics(topicsArr) === initialSnap) {
+                        return false;
+                    }
+                    return true;
+                })
+                .map(parseCachedEntry)
+                .filter((item) => Boolean(item.wid))
+                .sort((a, b) => a.wid - b.wid || (a.isOrient === b.isOrient ? 0 : a.isOrient ? -1 : 1));
+
+            const earlierEntries = modifiedNonActiveEntries.filter((item) => item.wid <= activeWidNum);
+            const laterEntries = modifiedNonActiveEntries.filter((item) => item.wid > activeWidNum);
+
+            const persistCachedWeek = async (item) => {
+                await fetchJson(`/api/topics/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        week_id: item.wid,
+                        ilo_id: item.wid,
+                        is_orientation: item.isOrient,
+                        topics: item.topicsArr
+                    })
+                }).catch(() => {});
+                initialWeekTopicsMapRef.current[item.key] = serializeTopics(item.topicsArr);
+            };
+
+            // Save earlier modified weeks first so any continued topic creates its canonical Topic row before later weeks reference it
+            for (const item of earlierEntries) {
+                await persistCachedWeek(item);
             }
 
             if (topicRef.current) await topicRef.current.save();
+
+            for (const item of laterEntries) {
+                await persistCachedWeek(item);
+            }
+
             if (tlaRef.current) await tlaRef.current.save();
             if (refRef.current) await refRef.current.save();
 
@@ -1372,6 +1472,27 @@ const TopicForm = () => {
         );
     };
 
+    // Organize validationErrors into 3 columns (Topics, Teaching & Learning Activities, References)
+    const validationColumns = useMemo(() => {
+        const toList = (val) => {
+            if (!val) return [];
+            return Array.isArray(val) ? val : [val];
+        };
+
+        const topicErrs = [...toList(validationErrors['Topics'])];
+        Object.entries(validationErrors).forEach(([k, v]) => {
+            if (k !== 'Topics' && k !== 'Teaching & Learning Activities' && k !== 'References' && k !== 'Form') {
+                toList(v).forEach(item => topicErrs.push(`${k}: ${item}`));
+            }
+        });
+
+        return [
+            { title: 'Topics', errors: topicErrs },
+            { title: 'Teaching & Learning Activities', errors: toList(validationErrors['Teaching & Learning Activities']) },
+            { title: 'References', errors: toList(validationErrors['References']) }
+        ];
+    }, [validationErrors]);
+
     return (
         <Skeleton
             header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
@@ -1384,6 +1505,12 @@ const TopicForm = () => {
                         onSave={handleSaveClick}
                         currentStep={currentStep}
                         setStep={setCurrentStep}
+                        pinnedSteps={pinnedSteps}
+                        onTogglePin={handleTogglePin}
+                        onOpenImportPrevious={() => {
+                            syncLiveTopicsToFrontendMap();
+                            setIsImportPrevOpen(true);
+                        }}
                         steps={steps}
                         weeks={weekContext.weeks}
                         activeWeekId={effectiveWeekId}
@@ -1401,51 +1528,73 @@ const TopicForm = () => {
 
                     <div className={styles.mainCont} style={{ position: 'relative', flex: 1, minHeight: 0, height: 'auto' }}>
 
-                        {/* -------------------- Sub Forms Wrapper Context -------------------- */}
-                        <div className={styles.leftCont} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                             <div className={styles['form-container']} style={{ padding: '20px 20px 40px 20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: currentStep === 1 ? 'auto' : 'hidden', boxSizing: 'border-box' }}>
+                        {/* -------------------- 3-Column Pinned Sub-Forms Wrapper -------------------- */}
+                        <div className={styles.leftCont} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0 }}>
+                            <div className={styles['form-container']} style={{ padding: '16px 18px 24px 18px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'hidden', boxSizing: 'border-box' }}>
+                                <div className={styles.threeColPlannerGrid}>
+                                    {/* Column 1: Topics */}
+                                    <div
+                                        className={styles.plannerColumn}
+                                        style={{ display: pinnedSteps[0] ? 'flex' : 'none' }}
+                                        onClick={() => setCurrentStep(0)}
+                                    >
+                                        <TopicSubForm
+                                            ref={topicRef}
+                                            iloId={effectiveWeekId}
+                                            previousWeekId={previousWeekId}
+                                            weekNumber={activeWeekNumber}
+                                            weekIndexInCo={activeWeekIndex >= 0 ? activeWeekIndex : 0}
+                                            isOrientation={isOrientation}
+                                            status={status}
+                                            setUnresolvedCount={handleTopicUnresolved}
+                                            onCommentsChange={handleTopicCommentsChange}
+                                            courseCode={weekContext.courseNo || courseCode}
+                                            cachedWeekTopics={currentWeekCachedTopics}
+                                            previousWeekFrontendTopics={previousWeekCachedTopics}
+                                            onTopicsChangeForWeek={handleTopicsChangeForWeek}
+                                            onOpenAiSuggest={handleOpenAiSuggest}
+                                            isSingleColumn={pinnedSteps.filter(Boolean).length === 1}
+                                        />
+                                    </div>
 
-                                 <div style={{ display: currentStep === 0 ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                     <TopicSubForm
-                                         ref={topicRef}
-                                         iloId={effectiveWeekId}
-                                         previousWeekId={previousWeekId}
-                                          weekNumber={activeWeekNumber}
-                                          weekIndexInCo={activeWeekIndex >= 0 ? activeWeekIndex : 0}
-                                         isOrientation={isOrientation}
-                                         status={status}
-                                         setUnresolvedCount={handleTopicUnresolved}
-                                         onCommentsChange={handleTopicCommentsChange}
-                                         courseCode={weekContext.courseNo || courseCode}
-                                         cachedWeekTopics={currentWeekCachedTopics}
-                                         previousWeekFrontendTopics={previousWeekCachedTopics}
-                                         onTopicsChangeForWeek={handleTopicsChangeForWeek}
-                                         onOpenAiSuggest={handleOpenAiSuggest}
-                                     />
-                                 </div>
-                                 <div style={{ display: currentStep === 1 ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                     <TLAForm
-                                         ref={tlaRef}
-                                         iloId={effectiveWeekId}
-                                         isOrientation={isOrientation}
-                                         status={status}
-                                         setUnresolvedCount={handleTlaUnresolved}
-                                         onCommentsChange={handleTlaCommentsChange}
-                                     />
-                                 </div>
-                                 <div style={{ display: currentStep === 2 ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                                     <ReferenceForm
-                                         ref={refRef}
-                                         iloId={effectiveWeekId}
-                                         isOrientation={isOrientation}
-                                         status={status}
-                                         setUnresolvedCount={handleRefUnresolved}
-                                         courseCode={courseCode || weekContext.courseNo}
-                                        pcOfferingId={weekContext.pc_offering_id}
-                                        onCommentsChange={handleRefCommentsChange}
-                                     />
-                                 </div>
-                             </div>
+                                    {/* Column 2: Teaching & Learning Activities */}
+                                    <div
+                                        className={styles.plannerColumn}
+                                        style={{ display: pinnedSteps[1] ? 'flex' : 'none' }}
+                                        onClick={() => setCurrentStep(1)}
+                                    >
+                                        <TLAForm
+                                            ref={tlaRef}
+                                            iloId={effectiveWeekId}
+                                            weekNumber={isOrientation ? 1 : activeWeekNumber}
+                                            isOrientation={isOrientation}
+                                            status={status}
+                                            setUnresolvedCount={handleTlaUnresolved}
+                                            onCommentsChange={handleTlaCommentsChange}
+                                            isSingleColumn={pinnedSteps.filter(Boolean).length === 1}
+                                        />
+                                    </div>
+
+                                    {/* Column 3: References */}
+                                    <div
+                                        className={styles.plannerColumn}
+                                        style={{ display: pinnedSteps[2] ? 'flex' : 'none' }}
+                                        onClick={() => setCurrentStep(2)}
+                                    >
+                                        <ReferenceForm
+                                            ref={refRef}
+                                            iloId={effectiveWeekId}
+                                            weekNumber={isOrientation ? 1 : activeWeekNumber}
+                                            isOrientation={isOrientation}
+                                            status={status}
+                                            setUnresolvedCount={handleRefUnresolved}
+                                            courseCode={courseCode || weekContext.courseNo}
+                                            pcOfferingId={weekContext.pc_offering_id}
+                                            onCommentsChange={handleRefCommentsChange}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
 
@@ -1466,6 +1615,21 @@ const TopicForm = () => {
                                                 </button>
                                             </div>
                                         </div>
+                                        <div className={styles.feedbackStepTabs}>
+                                            {['Topics', 'TLAs', 'References'].map((shortLabel, idx) => (
+                                                <button
+                                                    key={shortLabel}
+                                                    type="button"
+                                                    className={`${styles.feedbackStepTab} ${currentStep === idx ? styles.feedbackStepTabActive : ''}`}
+                                                    onClick={() => setCurrentStep(idx)}
+                                                >
+                                                    <span>{shortLabel}</span>
+                                                    {stepCommentCounts[idx] > 0 && (
+                                                        <span className={styles.roleOptionBadge}>{stepCommentCounts[idx]}</span>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
                                         {renderActiveCommentsList()}
                                     </div>
                                 ) : (
@@ -1483,6 +1647,19 @@ const TopicForm = () => {
 
 
                     </div>
+
+                    {/* --- Consolidated 3-Column Import Previous Term Content Modal --- */}
+                    <ImportPreviousModal
+                        isOpen={isImportPrevOpen}
+                        onClose={() => setIsImportPrevOpen(false)}
+                        weekId={effectiveWeekId}
+                        weekNumber={isOrientation ? 1 : activeWeekNumber}
+                        isOrientation={isOrientation}
+                        existingTopics={currentWeekCachedTopics || (topicRef.current?.getSelectedTopics ? topicRef.current.getSelectedTopics() : [])}
+                        existingTlas={tlaRef.current?.getTlas ? tlaRef.current.getTlas() : []}
+                        existingRefs={refRef.current?.getSelectedRefs ? refRef.current.getSelectedRefs() : []}
+                        onImportSelected={handleImportPreviousSelected}
+                    />
 
                     {/* --- AI Topic & Subtopic Suggestion Modal --- */}
                     <AiTopicSuggestModal
@@ -1505,37 +1682,67 @@ const TopicForm = () => {
                         onUpdateWeekAiCache={handleUpdateWeekAiCache}
                     />
 
-                    {/* --- Validation Requirements Modal (No Save Anyway for Hard Requirements) --- */}
+                    {/* --- 3-Column Validation Requirements Modal (No Save Anyway for Hard Requirements) --- */}
                     <InlineModal
                         isOpen={showValidationModal}
                         title="Validation Notice"
                         onClose={() => setShowValidationModal(false)}
+                        modalClassName={styles.wideModal}
                         actions={
                             <button type="button" className={styles.modalCancelBtn} onClick={() => setShowValidationModal(false)}>
                                 Review & Edit
                             </button>
                         }
                     >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <AlertCircle size={22} color="#E53E3E" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div className={styles.validationBanner}>
+                            <AlertCircle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: '1px' }} />
                             <div>
-                                <p style={{ margin: '0 0 8px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
-                                    Requirements Not Met
+                                <p className={styles.validationBannerTitle}>Requirements Not Met</p>
+                                <p className={styles.validationBannerSubtext}>
+                                    Please review and resolve the highlighted items across the three weekly content sections before saving.
                                 </p>
-                                <p style={{ margin: 0, fontSize: '12.5px', color: '#64748B', lineHeight: 1.5 }}>
-                                    Please review and address the following requirements before saving:
-                                </p>
-                                <ul className={styles.errorList} style={{ maxHeight: '260px', overflowY: 'auto' }}>
-                                    {Object.entries(validationErrors).map(([section, msg]) => {
-                                        if (Array.isArray(msg)) {
-                                            return msg.map((m, idx) => (
-                                                <li key={`${section}-${idx}`}><strong>{section}:</strong> {m}</li>
-                                            ));
-                                        }
-                                        return <li key={section}><strong>{section}:</strong> {msg}</li>;
-                                    })}
-                                </ul>
                             </div>
+                        </div>
+
+                        {validationErrors['Form'] && (
+                            <div className={styles.validationNoChangeBanner}>
+                                <AlertCircle size={16} />
+                                <span>{validationErrors['Form']}</span>
+                            </div>
+                        )}
+
+                        <div className={styles.validationThreeColGrid}>
+                            {validationColumns.map((col) => {
+                                const hasErr = col.errors.length > 0;
+                                return (
+                                    <div key={col.title} className={styles.validationCol}>
+                                        <div className={styles.validationColHeader}>
+                                            <span className={styles.validationColTitle}>{col.title}</span>
+                                            {hasErr ? (
+                                                <span className={styles.validationColBadgeErr}>
+                                                    {col.errors.length} {col.errors.length === 1 ? 'Issue' : 'Issues'}
+                                                </span>
+                                            ) : (
+                                                <span className={styles.validationColBadgeOk}>Ready</span>
+                                            )}
+                                        </div>
+                                        <div className={styles.validationColBody}>
+                                            {hasErr ? (
+                                                <ul className={styles.validationColList}>
+                                                    {col.errors.map((errText, idx) => (
+                                                        <li key={idx}>{errText}</li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <div className={styles.validationColEmpty}>
+                                                    <CheckCircle size={14} />
+                                                    <span>All requirements met</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </InlineModal>
 

@@ -25,47 +25,137 @@
 .stickyHeader
   background: #F8FAFC
   border-bottom: 1px solid #DCE2F0
-  padding: 12px
+  min-height: 56px
+  height: auto
+  padding: 8px 12px
+  display: flex
+  align-items: center
+  box-sizing: border-box
   position: sticky
   top: 0
   z-index: 10
 
 .headerRow
+  width: 100%
   display: flex
-  gap: 10px
-  align-items: stretch
+  gap: 8px
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+
+.headerTitleGroup
+  display: flex
+  align-items: center
+  gap: 7px
+  min-width: 0
+
+.headerTitleIcon
+  color: #3182CE
+  flex-shrink: 0
+
+.headerTitleText
+  font-size: 13px
+  font-weight: 700
+  color: #1E293B
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.headerCountBadge
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  min-width: 20px
+  height: 19px
+  padding: 0 6px
+  border-radius: 999px
+  font-size: 11px
+  font-weight: 700
+  background: #E2E8F0
+  color: #334155
+  flex-shrink: 0
+
+.headerActionsGroup
+  display: flex
+  align-items: center
+  gap: 7px
+  margin-left: auto
+  flex-wrap: wrap
+  justify-content: flex-end
 
 .searchBar
   flex: 1
+  min-width: 0
+  height: 36px
+  box-sizing: border-box
   display: flex
   align-items: center
-  gap: 10px
+  gap: 8px
   background: #fff
   border: 1px solid #E2E8F0
-  padding: 8px 12px
+  padding: 0 3px 0 10px
   border-radius: 6px
+  transition: border-color 0.16s ease
+  &:focus-within
+    border-color: #93C5FD
   input
     border: none
     outline: none
     flex: 1
-    font-size: 14px
+    min-width: 0
+    font-size: 13px
+    color: #2D3748
+    background: transparent
+
+.searchIcon
+  color: #94A3B8
+  flex-shrink: 0
+
+.searchPrevToggleBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 5px
+  height: 28px
+  padding: 0 9px
+  margin: 0
+  border-radius: 5px
+  background: #F1F5F9
+  color: #475569
+  border: 1px solid #E2E8F0
+  font-size: 12px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  flex-shrink: 0
+  transition: all 0.16s ease
+  &:hover
+    background: #E2E8F0
+    color: #1E293B
+    border-color: #CBD5E1
+  &.active
+    background: #EFF6FF
+    color: #1D4ED8
+    border-color: #BFDBFE
 
 .continueTopicWrapper
   position: relative
   display: flex
-  align-items: stretch
+  align-items: center
 
 .continueTopicBtn
   display: flex
   align-items: center
   justify-content: center
-  gap: 6px
+  gap: 5px
+  height: 34px
+  box-sizing: border-box
   background: #ffffff
   color: #334155
   border: 1px solid #CBD5E1
-  padding: 8px 14px
+  padding: 0 10px
   border-radius: 6px
-  font-size: 13px
+  font-size: 12px
   font-weight: 600
   cursor: pointer
   white-space: nowrap
@@ -89,8 +179,8 @@
 .continueDropdown
   position: absolute
   top: calc(100% + 6px)
-  right: 0
-  width: 340px
+  left: 0
+  width: min(300px, 82vw)
   background: #ffffff
   border: 1px solid #DCE2F0
   border-radius: 8px
@@ -148,16 +238,19 @@
   display: flex
   align-items: center
   justify-content: center
-  gap: 6px
+  gap: 5px
+  height: 34px
+  box-sizing: border-box
   background: #3182CE
   color: white
   border: none
-  padding: 8px 16px
+  padding: 0 12px
   border-radius: 6px
-  font-size: 13px
+  font-size: 12.5px
   font-weight: 600
   cursor: pointer
   white-space: nowrap
+  flex-shrink: 0
   transition: background 0.2s
   &:hover
     background: #2B6CB0
@@ -166,18 +259,21 @@
   display: flex
   align-items: center
   justify-content: center
-  gap: 7px
+  gap: 6px
+  height: 34px
+  box-sizing: border-box
   background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
   background-size: 200% 200%
   color: white
   border: none
-  padding: 8px 16px
+  padding: 0 12px
   border-radius: 6px
-  font-size: 13px
+  font-size: 12.5px
   font-weight: 700
-  letter-spacing: 0.3px
+  letter-spacing: 0.2px
   cursor: pointer
   white-space: nowrap
+  flex-shrink: 0
   box-shadow: 0 2px 10px rgba(139, 92, 246, 0.35)
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1)
   animation: magicalGlow 6s ease infinite alternate
@@ -233,7 +329,7 @@
     background: #2B6CB0
 
 .btnIcon
-  margin-bottom: 0px // Flex vertically centers it nicely
+  margin-bottom: 0px
 
 .chevron
   color: #718096
@@ -275,7 +371,7 @@
     font-size: 11px
     color: #A0AEC0
 
-// --- SCROLLING AREA ---
+// --- SCROLLING AREA (1 item per row normally, 2 per row when single content is pinned) ---
 
 .scrollContainer
   flex: 1
@@ -285,14 +381,17 @@
   flex-direction: column
 
 .configArea
-  padding: 15px
+  padding: 12px
   display: grid
-  grid-template-columns: repeat(1, 1fr)
-  gap: 15px
+  grid-template-columns: minmax(0, 1fr)
+  gap: 12px
 
-@media (min-width: 768px)
-  .configArea
-    grid-template-columns: repeat(2, 1fr)
+.configAreaTwoCol
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+
+@media (max-width: 820px)
+  .configAreaTwoCol
+    grid-template-columns: minmax(0, 1fr)
 
 .topicCard
   border: 1px solid #E2E8F0
@@ -302,7 +401,8 @@
   transition: all 0.3s ease
   display: flex
   flex-direction: column
-  height: 315px
+  height: 440px
+  box-sizing: border-box
 
 .continuedTopicCard
   border-color: #93C5FD
@@ -320,15 +420,21 @@
     border-bottom: 1px solid #DDD6FE
 
 .newEntry
-  animation: slideInHighlight 0.6s ease-out
+  animation: slideInHighlight 0.65s cubic-bezier(0.16, 1, 0.3, 1)
 
 @keyframes slideInHighlight
   0%
+    opacity: 0.45
     transform: translateY(-10px)
     background: #EBF8FF
+    border-color: #93C5FD
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.16)
   100%
+    opacity: 1
     transform: translateY(0)
     background: white
+    border-color: #E2E8F0
+    box-shadow: none
 
 .topicHeaderCard
   padding: 10px 15px
@@ -502,7 +608,8 @@
   border: 2px dashed #E2E8F0
   border-radius: 8px
   background: transparent
-  height: 315px
+  height: 440px
+  box-sizing: border-box
   display: flex
   flex-direction: column
   opacity: 0.6
@@ -555,3 +662,211 @@
     background: #EDF2F7
     border-color: #3182CE
     color: #3182CE
+
+// --- COMP-006: SEARCH DROPDOWN — PREVIOUS REVISION MATCHING-WEEK & COURSE LIBRARY ---
+
+.pickerDropdown
+  max-height: 360px
+  overflow: hidden
+  display: flex
+  flex-direction: column
+
+.optionsList
+  max-height: 350px
+  overflow-y: auto
+
+.dropdownSectionHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 10px
+  padding: 8px 14px
+  font-size: 11.5px
+  font-weight: 700
+  letter-spacing: 0.03em
+  text-transform: uppercase
+  position: sticky
+  top: 0
+  z-index: 2
+
+.prevWeekSectionHeader
+  background: #ECFDF5
+  color: #065F46
+  border-bottom: 1px solid #A7F3D0
+
+.prevWeekHeaderLeft
+  display: flex
+  align-items: center
+  gap: 7px
+  min-width: 0
+  flex-wrap: wrap
+
+.prevRevMetaPill
+  font-size: 10.5px
+  font-weight: 600
+  text-transform: none
+  letter-spacing: 0
+  background: #D1FAE5
+  color: #047857
+  padding: 2px 8px
+  border-radius: 999px
+  border: 1px solid #A7F3D0
+
+.addAllPrevBtn
+  background: #059669
+  color: #FFFFFF
+  border: none
+  border-radius: 5px
+  padding: 3px 10px
+  font-size: 11px
+  font-weight: 600
+  text-transform: none
+  letter-spacing: 0
+  cursor: pointer
+  white-space: nowrap
+  transition: background 0.15s ease
+  &:hover:not(:disabled)
+    background: #047857
+  &:disabled
+    background: #A7F3D0
+    color: #065F46
+    cursor: default
+
+.prevWeekOptionItem
+  background: #F0FDF4
+  border-left: 3px solid #10B981
+  border-bottom: 1px solid #DCFCE7
+  padding-left: 12px
+  &:hover
+    background: #DCFCE7
+  &.selectedOpt
+    background: #D1FAE5
+    border-left-color: #059669
+
+.prevWeekOptionTitle
+  font-weight: 600
+  color: #064E3B
+
+.prevWeekOptionMeta
+  margin-left: auto
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-shrink: 0
+
+.prevWeekBadge
+  font-size: 10.5px
+  font-weight: 700
+  background: #D1FAE5
+  color: #065F46
+  padding: 2px 8px
+  border-radius: 999px
+  white-space: nowrap
+
+.courseLibraryHeader
+  background: #F8FAFC
+  color: #475569
+  border-top: 1px solid #E2E8F0
+  border-bottom: 1px solid #E2E8F0
+
+.courseLibraryCount
+  font-size: 10.5px
+  font-weight: 700
+  background: #E2E8F0
+  color: #475569
+  padding: 1px 7px
+  border-radius: 999px
+
+// --- EMPTY-STATE FIRST GHOST GRID CARD (Topics & TLAs) ---
+
+.emptyPromptCard
+  border: 2px dashed #CBD5E1
+  border-radius: 8px
+  background: #F8FAFC
+  height: 440px
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  text-align: center
+  padding: 28px 24px
+  box-sizing: border-box
+  gap: 10px
+  opacity: 1
+  transition: border-color 0.2s ease, background 0.2s ease
+
+.emptyPromptIcon
+  width: 44px
+  height: 44px
+  border-radius: 50%
+  background: #EFF6FF
+  border: 1px solid #DBEAFE
+  color: #3B82F6
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+
+.emptyPromptTitle
+  font-size: 14px
+  font-weight: 700
+  color: #334155
+  line-height: 1.35
+
+.emptyPromptText
+  font-size: 12.5px
+  color: #64748B
+  line-height: 1.55
+  max-width: 290px
+
+// --- TLA DROPDOWN OPTION PILLS ---
+
+.tlaOptionTextCol
+  display: flex
+  flex-direction: column
+  gap: 2px
+  min-width: 0
+  flex: 1
+
+.tlaOptionDescPreview
+  font-size: 11.5px
+  color: #64748B
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.tlaOptionMeta
+  margin-left: auto
+  display: flex
+  align-items: center
+  gap: 6px
+  flex-shrink: 0
+  flex-wrap: wrap
+  justify-content: flex-end
+
+.tlaMetaPill
+  font-size: 10.5px
+  font-weight: 600
+  background: #EDF2F7
+  color: #475569
+  padding: 2px 7px
+  border-radius: 999px
+  white-space: nowrap
+
+.tlaLabPill
+  font-size: 10.5px
+  font-weight: 700
+  background: #DBEAFE
+  color: #1D4ED8
+  padding: 2px 7px
+  border-radius: 999px
+  white-space: nowrap
+
+.tlaAssessmentPill
+  font-size: 10.5px
+  font-weight: 600
+  background: #FEF3C7
+  color: #92400E
+  padding: 2px 7px
+  border-radius: 999px
+  white-space: nowrap

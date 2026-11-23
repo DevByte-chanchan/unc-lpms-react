@@ -42,6 +42,7 @@ const serializeComments = (comments) => {
 
 const ReferenceForm = forwardRef(({
     iloId,
+    weekNumber = 1,
     isOrientation = false,
     status,
     setUnresolvedCount,
@@ -282,7 +283,9 @@ const ReferenceForm = forwardRef(({
                         author: newRefDraft.author.trim(),
                         isbn: type === 'Online Resources' ? null : (newRefDraft.isbn ? newRefDraft.isbn.trim() : null),
                         link: type === 'Textbook' ? null : (newRefDraft.link ? newRefDraft.link.trim() : null),
-                        publication_year: sanitizedYear
+                        publication_year: sanitizedYear,
+                        week_id: Number(iloId) || null,
+                        pc_offering_id: Number(pcOfferingId) || null
                     };
 
                     const updated = await fetchJson(`/api/references/${editingRef.reference_id}`, {
@@ -379,6 +382,57 @@ const ReferenceForm = forwardRef(({
                 return "Please select at least one reference assignment.";
             }
             return null;
+        },
+        getSelectedRefs: () => selectedRefs,
+        importPreviousReferences: (incomingRefs) => {
+            if (!Array.isArray(incomingRefs) || incomingRefs.length === 0) return;
+            const normalizedIncoming = incomingRefs.map(pr => ({
+                reference_id: pr.reference_id != null ? Number(pr.reference_id) : null,
+                title: pr.title || '',
+                type: pr.type || '',
+                author: pr.author || pr.authors || '',
+                isbn: pr.isbn || '',
+                link: pr.link || '',
+                publication_year: pr.publication_year
+                    ? (typeof pr.publication_year === 'string' ? pr.publication_year.split('T')[0] : pr.publication_year)
+                    : null
+            }));
+
+            const allRefIds = new Set(allReferences.map(r => Number(r.reference_id)).filter(Boolean));
+            const allRefTitles = new Set(allReferences.map(r => String(r.title || '').trim().toLowerCase()));
+            const missingFromPool = normalizedIncoming.filter(pr => {
+                const hasId = pr.reference_id != null && allRefIds.has(Number(pr.reference_id));
+                const hasTitle = allRefTitles.has(String(pr.title || '').trim().toLowerCase());
+                return !hasId && !hasTitle;
+            });
+            if (missingFromPool.length > 0) {
+                setAllReferences(prev => [...prev, ...missingFromPool]);
+            }
+
+            const resolvedIncoming = normalizedIncoming.map(pr => {
+                const matchById = pr.reference_id != null
+                    ? allReferences.find(ar => ar.reference_id != null && Number(ar.reference_id) === Number(pr.reference_id))
+                    : null;
+                if (matchById) return matchById;
+                const matchByTitle = allReferences.find(
+                    ar => String(ar.title || '').trim().toLowerCase() === String(pr.title || '').trim().toLowerCase()
+                );
+                return matchByTitle || pr;
+            });
+
+            const existingIds = new Set(selectedRefs.map(r => Number(r.reference_id)).filter(Boolean));
+            const existingTitles = new Set(selectedRefs.map(r => String(r.title || '').trim().toLowerCase()));
+
+            const newlyAdded = [];
+            resolvedIncoming.forEach(pr => {
+                if (pr.reference_id != null && existingIds.has(Number(pr.reference_id))) return;
+                if (existingTitles.has(String(pr.title || '').trim().toLowerCase())) return;
+                newlyAdded.push(pr);
+            });
+
+            if (newlyAdded.length > 0) {
+                setSelectedRefs(prev => [...prev, ...newlyAdded]);
+            }
         },
         hasChanges: () => {
             if (initialRefsRef.current === null) return false;

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from "react";
 import TextField from "../components/TextField.jsx";
 import Dropdown from "../components/Dropdown.jsx";
 import TextArea from "../components/TextArea.jsx";
 import SpellCheckInput from "../components/SpellCheckInput.jsx";
 import { checkSpelling } from "../utils/spellChecker.js";
-import { Plus, Award, X, Edit2 } from "react-feather";
+import { Activity, Plus, Award, X, Edit2, PlusCircle } from "react-feather";
 import { fetchJson } from "../utils/api.js";
 import styles from "../styles/Form.module.sass";
 import tStyles from "../styles/TopicSelector.module.sass";
@@ -31,7 +31,23 @@ const serializeComments = (comments) => {
     })));
 };
 
-const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, onCommentsChange, label }, ref) => {
+const formatPerformedByLabel = (val) => {
+    if (!val) return 'Student';
+    const v = String(val).trim().toLowerCase();
+    if (v === 't' || v === 'instructor' || v === 'teacher') return 'Instructor';
+    return 'Student';
+};
+
+const TLAForm = forwardRef(({
+    iloId,
+    weekNumber = 1,
+    isOrientation = false,
+    status,
+    setUnresolvedCount,
+    onCommentsChange,
+    label,
+    isSingleColumn = false
+}, ref) => {
     const ALL_PHASES = ['Asynchronous', 'Synchronous', 'Pre-class', 'In-class', 'Post-class'];
 
     const [isLoading, setIsLoading] = useState(true);
@@ -55,14 +71,14 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
         return val;
     };
 
-    const mapDbToUi = (tla) => {
+    const mapDbToUi = useCallback((tla) => {
         return {
             ...tla,
-            performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
+            performedBy: formatPerformedByLabel(tla.performedBy),
             classPhase: normalizeClassPhase(tla.classPhase),
-            isLab: Boolean(tla.isLab || tla.is_lab || false)
+            isLab: Boolean(tla.isLab || tla.is_lab || tla.laboratory || false)
         };
-    };
+    }, []);
 
     const mapUiToDb = (tla) => ({
         ...tla,
@@ -102,13 +118,9 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                     setTlas(mappedTlas);
                     initialTlasRef.current = serializeTlas(mappedTlas);
                 } else {
-                    const defaultTlas = [{
-                        id: Date.now(), classPhase: '', performedBy: '',
-                        tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
-                        assessmentType: '', assessmentDetail: ''
-                    }];
-                    setTlas(defaultTlas);
-                    initialTlasRef.current = serializeTlas(defaultTlas);
+                    // COMP-004 & COMP-011: Start with a truly blank TLA canvas [] by default
+                    setTlas([]);
+                    initialTlasRef.current = serializeTlas([]);
                 }
                 initialCommentsRef.current = serializeComments(initialComments);
             } catch (error) {
@@ -119,7 +131,7 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
         };
         fetchTlaData();
         return () => { mounted = false; };
-    }, [iloId, isOrientation, status]);
+    }, [iloId, isOrientation, status, mapDbToUi]);
 
     useEffect(() => {
         if (setUnresolvedCount) {
@@ -130,32 +142,58 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
         }
     }, [reviewComments, setUnresolvedCount, onCommentsChange]);
 
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            if (scrollContainerRef.current) {
-                scrollContainerRef.current.scrollTo({
-                    top: scrollContainerRef.current.scrollHeight,
-                    behavior: 'smooth'
-                });
-            }
-        }, 100);
+    // Only scroll when the newly added card extends outside the visible scroll viewport (i.e. container is full)
+    const scrollCardIntoViewIfNeeded = (cardId) => {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                const container = scrollContainerRef.current;
+                if (!container) return;
+                const cardEl = container.querySelector(`[data-card-id="${String(cardId).replace(/"/g, '\\"')}"]`);
+                if (!cardEl) return;
+                const containerRect = container.getBoundingClientRect();
+                const cardRect = cardEl.getBoundingClientRect();
+
+                if (cardRect.top >= containerRect.top && cardRect.bottom <= containerRect.bottom) {
+                    return;
+                }
+                if (cardRect.height > containerRect.height || cardRect.top < containerRect.top) {
+                    const targetTop = container.scrollTop + (cardRect.top - containerRect.top) - 12;
+                    container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+                    return;
+                }
+                const targetTop = container.scrollTop + (cardRect.bottom - containerRect.bottom) + 12;
+                container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+            }, 60);
+        });
     };
 
-    const handleTlaAdd = () => {
+    const buildTlaEntryFromOption = (opt, offsetIdx = 0) => {
+        const generatedId = Date.now() + offsetIdx + Math.random();
+        return {
+            ...mapDbToUi(opt),
+            id: generatedId,
+            assessmentType: opt.assessmentType || '',
+            assessmentDetail: opt.assessmentDetail || '',
+            assessmentIloId: opt.assessmentIloId ?? null,
+            assessmentPeriod: opt.assessmentPeriod ?? null,
+            assessmentWeight: opt.assessmentWeight ?? null
+        };
+    };
+
+    const handleTlaAdd = (initialName = '') => {
+        const nameStr = typeof initialName === 'string' ? initialName.trim() : '';
         const generatedId = Date.now() + Math.random();
         setNewestCardId(generatedId);
-        setTlas([...tlas, {
+        setTlas(prev => [...prev, {
             id: generatedId, classPhase: '', performedBy: '',
-            tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
+            tlaName: nameStr, tlaDescription: '', laboratory: false, isLab: false,
             assessmentType: '', assessmentDetail: ''
         }]);
-
         setTimeout(() => setNewestCardId(null), 1500);
-        scrollToBottom();
+        scrollCardIntoViewIfNeeded(generatedId);
     };
 
     const handleTlaDelete = (idToDelete) => {
-        if (tlas.length === 1) return;
         setTlas(tlas.filter((item) => item.id !== idToDelete));
     };
 
@@ -258,6 +296,24 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
 
     useImperativeHandle(ref, () => ({
         validate: validateForm,
+        getTlas: () => tlas,
+        importPreviousTlas: (incomingList) => {
+            if (!Array.isArray(incomingList) || incomingList.length === 0) return;
+            const existingNames = new Set(tlas.map(t => String(t.tlaName || '').trim().toLowerCase()).filter(Boolean));
+            const toAdd = incomingList
+                .filter(opt => {
+                    const name = String(opt.tlaName || '').trim().toLowerCase();
+                    if (!name) return true;
+                    return !existingNames.has(name);
+                })
+                .map((opt, idx) => buildTlaEntryFromOption(opt, idx));
+            if (toAdd.length === 0) return;
+            const lastAddedId = toAdd[toAdd.length - 1].id;
+            setNewestCardId(lastAddedId);
+            setTlas(prev => [...prev, ...toAdd]);
+            setTimeout(() => setNewestCardId(null), 1500);
+            scrollCardIntoViewIfNeeded(lastAddedId);
+        },
         hasChanges: () => {
             if (initialTlasRef.current === null) return false;
             const tlasChanged = serializeTlas(tlas) !== initialTlasRef.current;
@@ -311,17 +367,35 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
 
     if (isLoading) return <div className={styles.emptyChecklist}>Loading TLA Configurations...</div>;
 
-    const emptySpots = Math.max(4, tlas.length + (tlas.length % 2 === 1 ? 1 : 0)) - tlas.length;
-    const placeholderCards = Array.from({ length: emptySpots }).map((_, i) => (
-        <div key={`placeholder-${i}`} className={`${tStyles.placeholderCard} ${styles.tlaPlaceholderScale}`}>
-            <div className={tStyles.placeholderHeader} />
-            <div className={tStyles.placeholderBody} style={{ padding: '20px' }}>
-                <div className={tStyles.placeholderLine} style={{ height: '38px', marginBottom: '8px' }} />
-                <div className={tStyles.placeholderLine} style={{ height: '38px', marginBottom: '8px' }} />
-                <div className={tStyles.placeholderLine} style={{ height: '90px' }} />
+    const emptySpots = Math.max(2, tlas.length) - tlas.length;
+    const placeholderCards = Array.from({ length: emptySpots }).map((_, i) => {
+        if (tlas.length === 0 && i === 0) {
+            return (
+                <div key="placeholder-empty-prompt" className={`${tStyles.emptyPromptCard} ${styles.tlaPlaceholderScale}`}>
+                    <div className={tStyles.emptyPromptIcon}>
+                        <PlusCircle size={20} />
+                    </div>
+                    <div className={tStyles.emptyPromptTitle}>
+                        No activities added for {isOrientation ? 'orientation' : `week ${weekNumber}`} yet
+                    </div>
+                    <div className={tStyles.emptyPromptText}>
+                        Click <strong>Add TLA</strong> to create a new activity, or click <strong>Import Previous</strong> in the top bar.
+                    </div>
+                </div>
+            );
+        }
+        return (
+            <div key={`placeholder-${i}`} className={`${tStyles.placeholderCard} ${styles.tlaPlaceholderScale}`}>
+                <div className={tStyles.placeholderHeader} />
+                <div className={tStyles.placeholderBody} style={{ padding: '14px', gap: '10px' }}>
+                    <div className={tStyles.placeholderLine} style={{ height: '42px' }} />
+                    <div className={tStyles.placeholderLine} style={{ height: '40px' }} />
+                    <div className={tStyles.placeholderLine} style={{ height: '96px' }} />
+                    <div className={tStyles.placeholderLine} style={{ height: '96px' }} />
+                </div>
             </div>
-        </div>
-    ));
+        );
+    });
 
     return (
         <div className={tStyles.container} style={{ display: "flex", flexDirection: "column", height: "100%", flexGrow: 1, minHeight: 0 }}>
@@ -329,21 +403,37 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
 
             <div className={tStyles.mainWrapper}>
                 <div className={tStyles.stickyHeader}>
-                    <div className={tStyles.headerRow} style={{ justifyContent: 'flex-end' }}>
-                        <button className={tStyles.mainAddBtn} onClick={handleTlaAdd}>
-                            <Plus size={16} className={tStyles.btnIcon} /> <span>Add TLA</span>
-                        </button>
+                    <div className={tStyles.headerRow}>
+                        <div className={tStyles.headerTitleGroup}>
+                            <Activity size={15} className={tStyles.headerTitleIcon} />
+                            <span className={tStyles.headerTitleText}>Teaching & Learning Activities</span>
+                            <span className={tStyles.headerCountBadge}>{tlas.length}</span>
+                        </div>
+
+                        <div className={tStyles.headerActionsGroup}>
+                            <button
+                                type="button"
+                                className={tStyles.mainAddBtn}
+                                onClick={() => handleTlaAdd()}
+                            >
+                                <Plus size={15} className={tStyles.btnIcon} /> <span>Add TLA</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div className={tStyles.scrollContainer} ref={scrollContainerRef}>
-                    <div className={tStyles.configArea}>
+                    <div className={`${tStyles.configArea} ${isSingleColumn ? tStyles.configAreaTwoCol : ''}`}>
                         {tlas.map((item) => {
                             const isNewlyAdded = item.id === newestCardId;
                             const hasAssessmentData = Boolean(item.assessmentType || item.assessmentDetail);
 
                             return (
-                                <div key={item.id} className={`${styles.tlaCardCopycat} ${isNewlyAdded ? tStyles.newEntry : ''}`}>
+                                <div
+                                    key={item.id}
+                                    data-card-id={item.id}
+                                    className={`${styles.tlaCardCopycat} ${isNewlyAdded ? tStyles.newEntry : ''}`}
+                                >
                                     <div className={tStyles.topicHeaderCard}>
                                         <div className={tStyles.topicTitleGroup}>
                                             <div className={`${styles.tlaLabDot} ${item.isLab ? styles.activeLabDot : ''}`} title={item.isLab ? "Laboratory" : "Standard"} />
@@ -357,11 +447,9 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                                                 />
                                             </div>
                                         </div>
-                                        {tlas.length > 1 && (
-                                            <button className={tStyles.removeTopicBtn} onClick={() => handleTlaDelete(item.id)}>
-                                                <X color={"white"} size={16} />
-                                            </button>
-                                        )}
+                                        <button type="button" className={tStyles.removeTopicBtn} onClick={() => handleTlaDelete(item.id)} title="Remove TLA">
+                                            <X color={"white"} size={16} />
+                                        </button>
                                     </div>
 
                                     <div className={styles.tlaBodyCopycat}>
@@ -413,7 +501,7 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                                                 value={item.tlaDescription}
                                                 onChange={(val) => handleTlaChange(item.id, 'tlaDescription', val)}
                                                 error={errors[`tla_${item.id}_tlaDescription`]}
-                                                rows={5}
+                                                rows={3}
                                                 placeholder="Describe the activity..."
                                             />
                                         </div>

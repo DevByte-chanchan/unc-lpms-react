@@ -28,18 +28,32 @@ const SyllabusSections = () => {
     const [suggestionsModal, setSuggestionsModal] = useState({ isOpen: false, data: [] });
     const [infoModal, setInfoModal] = useState({ isOpen: false, title: '', message: '' });
 
-    const handleRevisionsClick = (e) => {
+    const handleRevisionsClick = async (e) => {
         e.stopPropagation();
         setIsOpen(false);
         const rev = Number(revisionNum || 1);
-        if (rev <= 1) {
+        if (rev > 1) {
+            setIsRevisionsOpen(true);
+            return;
+        }
+        try {
+            const res = await fetchJson(`/api/revisions/${offeringID}`);
+            const list = Array.isArray(res?.revisions) ? res.revisions : [];
+            if (list.length > 1) {
+                setIsRevisionsOpen(true);
+            } else {
+                setInfoModal({
+                    isOpen: true,
+                    title: 'Revisions',
+                    message: 'This learning plan has no revisions yet. It is the first submission.'
+                });
+            }
+        } catch (err) {
             setInfoModal({
                 isOpen: true,
                 title: 'Revisions',
                 message: 'This learning plan has no revisions yet. It is the first submission.'
             });
-        } else {
-            setIsRevisionsOpen(true);
         }
     };
 

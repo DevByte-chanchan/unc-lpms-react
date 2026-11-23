@@ -1,5 +1,6 @@
 // controllers/courseDetailsController.js
 const { Course, ProgramCourseOffering, Prerequisite } = require('../models');
+const { findOfferingByPcIdAndRev, markOfferingModified } = require('../utils/versionHelper');
 
 async function getCourseDetailsByPcOffering(req, res) {
     try {
@@ -11,11 +12,7 @@ async function getCourseDetailsByPcOffering(req, res) {
         }
 
         // 1. Fetch the specific version of the Program Course Offering
-        const pco = await ProgramCourseOffering.findOne({
-            where: {
-                pc_offering_id: pcId,
-                revision_number: revNum
-            },
+        const pco = await findOfferingByPcIdAndRev(pcId, revNum, {
             include: [{
                 model: Course,
                 attributes: [
@@ -77,35 +74,41 @@ async function updateCourseDetailsByPcOffering(req, res) {
 
         if (!pcId || !revNum) return res.status(400).json({ message: 'pcId and revNum are required' });
 
-        const pco = await ProgramCourseOffering.findOne({
-            where: { pc_offering_id: pcId, revision_number: revNum },
+        const pco = await findOfferingByPcIdAndRev(pcId, revNum, {
             include: [Course]
         });
 
         if (!pco) return res.status(404).json({ message: 'Program Course Offering version not found' });
 
+        let hasAnyChanges = false;
         // Update ProgramCourseOffering (course_description)
-        if (description !== undefined) {
+        if (description !== undefined && description !== pco.course_description) {
             pco.course_description = description;
             await pco.save();
+            hasAnyChanges = true;
         }
 
         // Update Course if other fields were provided
         const course = pco.Course;
         if (course) {
             let hasCourseChanges = false;
-            if (code !== undefined) { course.course_no = code; hasCourseChanges = true; }
-            if (name !== undefined) { course.course_title = name; hasCourseChanges = true; }
-            if (credits !== undefined) { course.credit = credits; hasCourseChanges = true; }
-            if (contact !== undefined) { course.contact_hrs = contact; hasCourseChanges = true; }
-            if (classification !== undefined) { course.classification = classification; hasCourseChanges = true; }
-            if (cmo !== undefined) { course.cmo = cmo; hasCourseChanges = true; }
-            if (year !== undefined) { course.year_lvl = year; hasCourseChanges = true; }
-            if (sem !== undefined) { course.term = sem; hasCourseChanges = true; }
+            if (code !== undefined && code !== course.course_no) { course.course_no = code; hasCourseChanges = true; }
+            if (name !== undefined && name !== course.course_title) { course.course_title = name; hasCourseChanges = true; }
+            if (credits !== undefined && String(credits) !== String(course.credit)) { course.credit = credits; hasCourseChanges = true; }
+            if (contact !== undefined && contact !== course.contact_hrs) { course.contact_hrs = contact; hasCourseChanges = true; }
+            if (classification !== undefined && classification !== course.classification) { course.classification = classification; hasCourseChanges = true; }
+            if (cmo !== undefined && cmo !== course.cmo) { course.cmo = cmo; hasCourseChanges = true; }
+            if (year !== undefined && year !== course.year_lvl) { course.year_lvl = year; hasCourseChanges = true; }
+            if (sem !== undefined && sem !== course.term) { course.term = sem; hasCourseChanges = true; }
 
             if (hasCourseChanges) {
                 await course.save();
+                hasAnyChanges = true;
             }
+        }
+
+        if (hasAnyChanges) {
+            await markOfferingModified(pco.pc_offering_id);
         }
 
         return res.json({ message: 'Successfully updated', description: pco.course_description });

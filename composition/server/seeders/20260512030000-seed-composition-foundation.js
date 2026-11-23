@@ -148,20 +148,50 @@ module.exports = {
 
         // ============================================================================
         // 5) ProgramCourseOfferings
+        //    - pc_offering_id = 1: Previous term Approved Learning Plan (Revision 1)
+        //      Owns the canonical 32 Topics, 96 Subtopics, 96 TLAs, 48 TLAAssessments,
+        //      28 References, and 32 WeeklyReferences.
+        //    - pc_offering_id = 2: Current term Draft Assignment (Revision 1, unincremented
+        //      until modified & approved by the Dean; base_pc_offering_id = 1)
+        //      Owns its isolated Course Details, COs, PO Alignments, ILOs (with COAEP
+        //      assessment weights), and 16 Weeks, while weekly content starts blank by default.
         // ============================================================================
+        const hciDescription = `This course explores the principles and practices of Human-Computer Interaction (HCI), focusing on how people engage with digital systems and how to design technology that enhances user experience.
+
+Students will examine user-centered design methodologies, usability principles, interaction design processes, and evaluation techniques. The course also emphasizes the integration of emerging technologies for software product design (UI/UX), equipping students with insights into modern tools and trends that shape interactive systems.
+
+Through lectures, hands-on projects, and usability testing, learners will develop practical skills in designing intuitive and user-friendly interfaces that address real human needs. Drawing from foundational theories in psychology, design, and computer science, this course prepares students to create digital products that are both functional and forward-thinking, aligning with current and future developments in UI/UX design.`;
+
+        const prevTermAssigned = new Date('2025-06-01T08:00:00Z');
+        const prevTermSubmitted = new Date('2025-06-10T09:00:00Z');
+        const prevTermApproved = new Date('2025-06-15T16:00:00Z');
+
         await queryInterface.bulkInsert('ProgramCourseOfferings', [
             {
                 pc_offering_id: 1,
                 revision_number: 1,
+                base_pc_offering_id: null,
+                has_modifications: false,
+                is_revision_incremented: false,
                 course_id: 1,
                 program_id: 1,
                 dept_id: 3,
-                course_description: `This course explores the principles and practices of Human-Computer Interaction (HCI), focusing on how people engage with digital systems and how to design technology that enhances user experience.
-
-Students will examine user-centered design methodologies, usability principles, interaction design processes, and evaluation techniques. The course also emphasizes the integration of emerging technologies for software product design (UI/UX), equipping students with insights into modern tools and trends that shape interactive systems.
-
-Through lectures, hands-on projects, and usability testing, learners will develop practical skills in designing intuitive and user-friendly interfaces that address real human needs. Drawing from foundational theories in psychology, design, and computer science, this course prepares students to create digital products that are both functional and forward-thinking, aligning with current and future developments in UI/UX design.`,
-                createdAt: now, updatedAt: now
+                course_description: hciDescription,
+                createdAt: prevTermAssigned,
+                updatedAt: prevTermApproved
+            },
+            {
+                pc_offering_id: 2,
+                revision_number: 1,
+                base_pc_offering_id: 1,
+                has_modifications: false,
+                is_revision_incremented: false,
+                course_id: 1,
+                program_id: 1,
+                dept_id: 3,
+                course_description: hciDescription,
+                createdAt: now,
+                updatedAt: now
             }
         ], {});
 
@@ -169,10 +199,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         // 6) CourseOutcomes (4 COs per Program Course Offering)
         // ============================================================================
         await queryInterface.bulkInsert('CourseOutcomes', [
-            { co_id: 1, pc_offering_id: 1, co_description: 'CO1: Implement the core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing User Interface (UI) design for a software application.', createdAt: now, updatedAt: now },
-            { co_id: 2, pc_offering_id: 1, co_description: 'CO2: Create User Experience (UX) designs for software applications by employing the User-Centered Design (UCD) process and integrating ISO 9241-210 standards', createdAt: now, updatedAt: now },
-            { co_id: 3, pc_offering_id: 1, co_description: 'CO3: Develop a Front-End Prototype for the proposed software application that follows HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines', createdAt: now, updatedAt: now },
-            { co_id: 4, pc_offering_id: 1, co_description: 'CO4: Defend the front-end prototype through usability testing and evaluation in UI/UX design.', createdAt: now, updatedAt: now }
+            // Instance 1 (pc_offering_id = 1: Approved Previous Term)
+            { co_id: 1, pc_offering_id: 1, co_description: 'CO1: Implement the core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing User Interface (UI) design for a software application.', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { co_id: 2, pc_offering_id: 1, co_description: 'CO2: Create User Experience (UX) designs for software applications by employing the User-Centered Design (UCD) process and integrating ISO 9241-210 standards', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { co_id: 3, pc_offering_id: 1, co_description: 'CO3: Develop a Front-End Prototype for the proposed software application that follows HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { co_id: 4, pc_offering_id: 1, co_description: 'CO4: Defend the front-end prototype through usability testing and evaluation in UI/UX design.', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+
+            // Instance 2 (pc_offering_id = 2: Current Term Draft Assignment - COAEP carried over)
+            { co_id: 5, pc_offering_id: 2, co_description: 'CO1: Implement the core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing User Interface (UI) design for a software application.', createdAt: now, updatedAt: now },
+            { co_id: 6, pc_offering_id: 2, co_description: 'CO2: Create User Experience (UX) designs for software applications by employing the User-Centered Design (UCD) process and integrating ISO 9241-210 standards', createdAt: now, updatedAt: now },
+            { co_id: 7, pc_offering_id: 2, co_description: 'CO3: Develop a Front-End Prototype for the proposed software application that follows HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines', createdAt: now, updatedAt: now },
+            { co_id: 8, pc_offering_id: 2, co_description: 'CO4: Defend the front-end prototype through usability testing and evaluation in UI/UX design.', createdAt: now, updatedAt: now }
         ], {});
 
         // ============================================================================
@@ -194,21 +231,39 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         // 8) ProgramOutcomeAlignments
         // ============================================================================
         await queryInterface.bulkInsert('ProgramOutcomeAlignments', [
-            { po_alignment_id: 1, co_id: 1, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 2, co_id: 1, po_id: 5, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 3, co_id: 1, po_id: 9, attainment_level: 'D', createdAt: now, updatedAt: now },
+            // Alignments for Instance 1 (co_id 1..4)
+            { po_alignment_id: 1, co_id: 1, po_id: 2, attainment_level: 'I', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 2, co_id: 1, po_id: 5, attainment_level: 'E', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 3, co_id: 1, po_id: 9, attainment_level: 'D', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
 
-            { po_alignment_id: 4, co_id: 2, po_id: 3, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 5, co_id: 2, po_id: 6, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 6, co_id: 2, po_id: 10, attainment_level: 'D', createdAt: now, updatedAt: now },
+            { po_alignment_id: 4, co_id: 2, po_id: 3, attainment_level: 'E', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 5, co_id: 2, po_id: 6, attainment_level: 'I', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 6, co_id: 2, po_id: 10, attainment_level: 'D', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
 
-            { po_alignment_id: 7, co_id: 3, po_id: 4, attainment_level: 'D', createdAt: now, updatedAt: now },
-            { po_alignment_id: 8, co_id: 3, po_id: 1, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 9, co_id: 3, po_id: 7, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { po_alignment_id: 7, co_id: 3, po_id: 4, attainment_level: 'D', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 8, co_id: 3, po_id: 1, attainment_level: 'I', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 9, co_id: 3, po_id: 7, attainment_level: 'E', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
 
-            { po_alignment_id: 10, co_id: 4, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 11, co_id: 4, po_id: 8, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 12, co_id: 4, po_id: 5, attainment_level: 'D', createdAt: now, updatedAt: now }
+            { po_alignment_id: 10, co_id: 4, po_id: 2, attainment_level: 'I', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 11, co_id: 4, po_id: 8, attainment_level: 'E', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { po_alignment_id: 12, co_id: 4, po_id: 5, attainment_level: 'D', createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+
+            // Alignments for Instance 2 (co_id 5..8)
+            { po_alignment_id: 13, co_id: 5, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { po_alignment_id: 14, co_id: 5, po_id: 5, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { po_alignment_id: 15, co_id: 5, po_id: 9, attainment_level: 'D', createdAt: now, updatedAt: now },
+
+            { po_alignment_id: 16, co_id: 6, po_id: 3, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { po_alignment_id: 17, co_id: 6, po_id: 6, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { po_alignment_id: 18, co_id: 6, po_id: 10, attainment_level: 'D', createdAt: now, updatedAt: now },
+
+            { po_alignment_id: 19, co_id: 7, po_id: 4, attainment_level: 'D', createdAt: now, updatedAt: now },
+            { po_alignment_id: 20, co_id: 7, po_id: 1, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { po_alignment_id: 21, co_id: 7, po_id: 7, attainment_level: 'E', createdAt: now, updatedAt: now },
+
+            { po_alignment_id: 22, co_id: 8, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { po_alignment_id: 23, co_id: 8, po_id: 8, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { po_alignment_id: 24, co_id: 8, po_id: 5, attainment_level: 'D', createdAt: now, updatedAt: now }
         ], {});
 
         // ============================================================================
@@ -218,7 +273,16 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             {
                 pc_offering_id: 1,
                 stakeholder_id: '1',
-                date_assigned: now,
+                date_assigned: prevTermAssigned,
+                date_submitted: prevTermSubmitted,
+                date_updated: prevTermApproved,
+                createdAt: prevTermAssigned,
+                updatedAt: prevTermApproved
+            },
+            {
+                pc_offering_id: 2,
+                stakeholder_id: '1',
+                date_assigned: new Date('2026-06-01T08:00:00Z'),
                 date_submitted: null,
                 date_updated: null,
                 createdAt: now,
@@ -226,14 +290,69 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             }
         ], {});
 
-        const foundationAssign = await queryInterface.sequelize.query(
+        const prevAssign = await queryInterface.sequelize.query(
             `SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = 1 ORDER BY co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        if (foundationAssign.length > 0) {
+        if (prevAssign.length > 0) {
+            const prevAssignId = prevAssign[0].co_assign_id;
             await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
                 {
-                    co_assign_id: foundationAssign[0].co_assign_id,
+                    co_assign_id: prevAssignId,
+                    stakeholder_id: '2',
+                    actor_role: 'PROGRAM_HEAD',
+                    action_type: 'ASSIGNED',
+                    is_viewed: true,
+                    createdAt: prevTermAssigned,
+                    updatedAt: prevTermAssigned
+                },
+                {
+                    co_assign_id: prevAssignId,
+                    stakeholder_id: '1',
+                    actor_role: 'INSTRUCTOR',
+                    action_type: 'SUBMITTED',
+                    is_viewed: true,
+                    createdAt: prevTermSubmitted,
+                    updatedAt: prevTermSubmitted
+                },
+                {
+                    co_assign_id: prevAssignId,
+                    stakeholder_id: '3',
+                    actor_role: 'LIBRARY_DIRECTOR',
+                    action_type: 'ACCEPTED',
+                    is_viewed: true,
+                    createdAt: new Date('2025-06-11T10:00:00Z'),
+                    updatedAt: new Date('2025-06-11T10:00:00Z')
+                },
+                {
+                    co_assign_id: prevAssignId,
+                    stakeholder_id: '2',
+                    actor_role: 'PROGRAM_HEAD',
+                    action_type: 'ACCEPTED',
+                    is_viewed: true,
+                    createdAt: new Date('2025-06-12T14:00:00Z'),
+                    updatedAt: new Date('2025-06-12T14:00:00Z')
+                },
+                {
+                    co_assign_id: prevAssignId,
+                    stakeholder_id: '5',
+                    actor_role: 'DEAN',
+                    action_type: 'ACCEPTED',
+                    is_viewed: true,
+                    createdAt: prevTermApproved,
+                    updatedAt: prevTermApproved
+                }
+            ], {});
+        }
+
+        const draftAssign = await queryInterface.sequelize.query(
+            `SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = 2 ORDER BY co_assign_id DESC LIMIT 1;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        if (draftAssign.length > 0) {
+            await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
+                {
+                    co_assign_id: draftAssign[0].co_assign_id,
                     stakeholder_id: '2',
                     actor_role: 'PROGRAM_HEAD',
                     action_type: 'ASSIGNED',
@@ -280,52 +399,101 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             { reference_id: 25, course_id: 1, course_no: 'BIT313L', title: 'Ethical, Human-Centric AI Design Frameworks and Dark Pattern Prevention', author: 'LinkedIn Learning & Kat Holmes', isbn: '978-1-4919-9876-5', link: 'https://www.linkedin.com/learning/ethical-human-centric-ai', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
             { reference_id: 26, course_id: 1, course_no: 'BIT313L', title: 'Design to Code: Bridging Figma Design Systems with React Front-Ends', author: 'LinkedIn Learning Engineering & Emmanuel Henri', isbn: '978-1-4919-1239-0', link: 'https://www.linkedin.com/learning/design-to-code-faster', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
             { reference_id: 27, course_id: 1, course_no: 'BIT313L', title: 'UNC Student Handbook & Institutional Academic Policies', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
-            { reference_id: 28, course_id: 1, course_no: 'BIT313L', title: 'CCS Vision, Mission, and Quality Objectives Curated Syllabi Kit', author: 'CCS Dean's Office', isbn: '978-971-0000-01-1', link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now }
+            { reference_id: 28, course_id: 1, course_no: 'BIT313L', title: 'CCS Vision, Mission, and Quality Objectives Curated Syllabi Kit', author: "CCS Dean's Office", isbn: '978-971-0000-01-1', link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('References', references, {});
 
         // ============================================================================
         // 11) Intended Learning Outcomes (4 for CO1 with orientation, 3 each for CO2..CO4)
+        //     - Instance 1 (co_id 1..4): ilo_id 1..13
+        //     - Instance 2 (co_id 5..8): ilo_id 14..26 (COAEP carried over with assessment weights & target)
         // ============================================================================
         const ilos = [
+            // ---------------- Instance 1 (pc_offering_id = 1, co_id 1..4) ----------------
             // CO1 (Prelim Academic Period) - 4 ILOs (1 Orientation + 3 Graded)
             {
                 ilo_id: 1,
                 co_id: 1,
                 description: " Cite the value and relevance \n of  the University's and the \n College's VMO as related to \n the course ",
                 is_orientation: true,
+                prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60,
+                createdAt: prevTermAssigned,
+                updatedAt: prevTermApproved
+            },
+            { ilo_id: 2, co_id: 1, description: 'Distinguish the core concepts, principles, and theories in designing user interfaces.', assessment_tool: 'Objective Type Quiz', prelim_weight: 20, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 3, co_id: 1, description: 'Determine how to use design tools proficiently in creating and refining user interface elements.', assessment_tool: 'Objective Type Activity (Figma)', prelim_weight: 30, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 4, co_id: 1, description: 'Propose a comprehensive User Interface (UI) design for a specified software application by applying the core HCI concepts, theories, and principles.', assessment_tool: 'UI Design Proposal', prelim_weight: 50, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+
+            // CO2 (Midterm Academic Period) - 3 ILOs
+            { ilo_id: 5, co_id: 2, description: 'Distinguish user research methodologies, user personas, and user-centered design (UCD) process frameworks.', assessment_tool: 'Objective Type Quiz (UCD)', prelim_weight: 0, midterm_weight: 20, semi_weight: 0, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 6, co_id: 2, description: 'Determine how to build structurally-sound wireframes and layout compositions based on usability conventions.', assessment_tool: 'UCD Process Document', prelim_weight: 0, midterm_weight: 30, semi_weight: 0, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 7, co_id: 2, description: 'Propose a cohesive User Experience (UX) wireframe package and user journey framework applying standard UCD principles.', assessment_tool: 'UI/UX Design Presentation', prelim_weight: 0, midterm_weight: 50, semi_weight: 0, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+
+            // CO3 (Semifinal Academic Period) - 3 ILOs
+            { ilo_id: 8, co_id: 3, description: 'Distinguish dynamic visual architectures, advanced component patterns, and global accessibility standards.', assessment_tool: 'Objective Type Quiz (UX laws and Accessibility Standards)', prelim_weight: 0, midterm_weight: 0, semi_weight: 20, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 9, co_id: 3, description: 'Determine how to implement screen reader and keyboard navigation considerations in interactive prototype elements.', assessment_tool: 'UI/UX Design Implementation Document', prelim_weight: 0, midterm_weight: 0, semi_weight: 30, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 10, co_id: 3, description: 'Propose a fully-interactive high-fidelity mockup with micro-interactions, conforming to WCAG 2.1 regulatory standards.', assessment_tool: 'Front-end Code Presentation', prelim_weight: 0, midterm_weight: 0, semi_weight: 50, final_weight: 0, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+
+            // CO4 (Final Academic Period) - 3 ILOs
+            { ilo_id: 11, co_id: 4, description: 'Distinguish qualitative and quantitative usability metrics, testing methodologies, and analytical protocols.', assessment_tool: 'Objective type Quiz (Usability Testing)', prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 20, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 12, co_id: 4, description: 'Determine how to analyze user performance data, time-on-task, and error rates from moderated evaluative tests.', assessment_tool: 'Prototype Evaluation Document', prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 30, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+            { ilo_id: 13, co_id: 4, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', assessment_tool: 'Front-End Prototype Presentation', prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 50, target: 60, createdAt: prevTermAssigned, updatedAt: prevTermApproved },
+
+            // ---------------- Instance 2 (pc_offering_id = 2, co_id 5..8: COAEP carried over) ----------------
+            // CO1 (Prelim Academic Period)
+            {
+                ilo_id: 14,
+                co_id: 5,
+                description: " Cite the value and relevance \n of  the University's and the \n College's VMO as related to \n the course ",
+                is_orientation: true,
+                prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60,
                 createdAt: now,
                 updatedAt: now
             },
-            { ilo_id: 2, co_id: 1, description: 'Distinguish the core concepts, principles, and theories in designing user interfaces.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { ilo_id: 3, co_id: 1, description: 'Determine how to use design tools proficiently in creating and refining user interface elements.', assessment_tool: 'Objective Type Activity (Figma)', createdAt: now, updatedAt: now },
-            { ilo_id: 4, co_id: 1, description: 'Propose a comprehensive User Interface (UI) design for a specified software application by applying the core HCI concepts, theories, and principles.', assessment_tool: 'UI Design Proposal', createdAt: now, updatedAt: now },
+            { ilo_id: 15, co_id: 5, description: 'Distinguish the core concepts, principles, and theories in designing user interfaces.', assessment_tool: 'Objective Type Quiz', prelim_weight: 20, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 16, co_id: 5, description: 'Determine how to use design tools proficiently in creating and refining user interface elements.', assessment_tool: 'Objective Type Activity (Figma)', prelim_weight: 30, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 17, co_id: 5, description: 'Propose a comprehensive User Interface (UI) design for a specified software application by applying the core HCI concepts, theories, and principles.', assessment_tool: 'UI Design Proposal', prelim_weight: 50, midterm_weight: 0, semi_weight: 0, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
 
-            // CO2 (Midterm Academic Period) - 3 ILOs
-            { ilo_id: 5, co_id: 2, description: 'Distinguish user research methodologies, user personas, and user-centered design (UCD) process frameworks.', assessment_tool: 'Objective Type Quiz (UCD)', createdAt: now, updatedAt: now },
-            { ilo_id: 6, co_id: 2, description: 'Determine how to build structurally-sound wireframes and layout compositions based on usability conventions.', assessment_tool: 'UCD Process Document', createdAt: now, updatedAt: now },
-            { ilo_id: 7, co_id: 2, description: 'Propose a cohesive User Experience (UX) wireframe package and user journey framework applying standard UCD principles.', assessment_tool: 'UI/UX Design Presentation', createdAt: now, updatedAt: now },
+            // CO2 (Midterm Academic Period)
+            { ilo_id: 18, co_id: 6, description: 'Distinguish user research methodologies, user personas, and user-centered design (UCD) process frameworks.', assessment_tool: 'Objective Type Quiz (UCD)', prelim_weight: 0, midterm_weight: 20, semi_weight: 0, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 19, co_id: 6, description: 'Determine how to build structurally-sound wireframes and layout compositions based on usability conventions.', assessment_tool: 'UCD Process Document', prelim_weight: 0, midterm_weight: 30, semi_weight: 0, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 20, co_id: 6, description: 'Propose a cohesive User Experience (UX) wireframe package and user journey framework applying standard UCD principles.', assessment_tool: 'UI/UX Design Presentation', prelim_weight: 0, midterm_weight: 50, semi_weight: 0, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
 
-            // CO3 (Semifinal Academic Period) - 3 ILOs
-            { ilo_id: 8, co_id: 3, description: 'Distinguish dynamic visual architectures, advanced component patterns, and global accessibility standards.', assessment_tool: 'Objective Type Quiz (UX laws and Accessibility Standards)', createdAt: now, updatedAt: now },
-            { ilo_id: 9, co_id: 3, description: 'Determine how to implement screen reader and keyboard navigation considerations in interactive prototype elements.', assessment_tool: 'UI/UX Design Implementation Document', createdAt: now, updatedAt: now },
-            { ilo_id: 10, co_id: 3, description: 'Propose a fully-interactive high-fidelity mockup with micro-interactions, conforming to WCAG 2.1 regulatory standards.', assessment_tool: 'Front-end Code Presentation', createdAt: now, updatedAt: now },
+            // CO3 (Semifinal Academic Period)
+            { ilo_id: 21, co_id: 7, description: 'Distinguish dynamic visual architectures, advanced component patterns, and global accessibility standards.', assessment_tool: 'Objective Type Quiz (UX laws and Accessibility Standards)', prelim_weight: 0, midterm_weight: 0, semi_weight: 20, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 22, co_id: 7, description: 'Determine how to implement screen reader and keyboard navigation considerations in interactive prototype elements.', assessment_tool: 'UI/UX Design Implementation Document', prelim_weight: 0, midterm_weight: 0, semi_weight: 30, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 23, co_id: 7, description: 'Propose a fully-interactive high-fidelity mockup with micro-interactions, conforming to WCAG 2.1 regulatory standards.', assessment_tool: 'Front-end Code Presentation', prelim_weight: 0, midterm_weight: 0, semi_weight: 50, final_weight: 0, target: 60, createdAt: now, updatedAt: now },
 
-            // CO4 (Final Academic Period) - 3 ILOs
-            { ilo_id: 11, co_id: 4, description: 'Distinguish qualitative and quantitative usability metrics, testing methodologies, and analytical protocols.', assessment_tool: 'Objective type Quiz (Usability Testing)', createdAt: now, updatedAt: now },
-            { ilo_id: 12, co_id: 4, description: 'Determine how to analyze user performance data, time-on-task, and error rates from moderated evaluative tests.', assessment_tool: 'Prototype Evaluation Document', createdAt: now, updatedAt: now },
-            { ilo_id: 13, co_id: 4, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', assessment_tool: 'Front-End Prototype Presentation', createdAt: now, updatedAt: now }
+            // CO4 (Final Academic Period)
+            { ilo_id: 24, co_id: 8, description: 'Distinguish qualitative and quantitative usability metrics, testing methodologies, and analytical protocols.', assessment_tool: 'Objective type Quiz (Usability Testing)', prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 20, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 25, co_id: 8, description: 'Determine how to analyze user performance data, time-on-task, and error rates from moderated evaluative tests.', assessment_tool: 'Prototype Evaluation Document', prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 30, target: 60, createdAt: now, updatedAt: now },
+            { ilo_id: 26, co_id: 8, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', assessment_tool: 'Front-End Prototype Presentation', prelim_weight: 0, midterm_weight: 0, semi_weight: 0, final_weight: 50, target: 60, createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
 
         // ============================================================================
-        // 12) Weeks (4 weeks per Course Outcome = 16 Weeks total, hours = 5.00 each)
+        // 12) Weeks (4 weeks per Course Outcome = 16 Weeks per Offering, hours = 5.00 each)
+        //     - week_id 1..16: Instance 1 (pc_offering_id = 1, Approved) -> owns the 32 Topics, 96 Subtopics, 96 TLAs, 48 Assessments, 32 WeeklyReferences
+        //     - week_id 17..32: Instance 2 (pc_offering_id = 2, Current Term Draft) -> blank weekly content by default (COMP-004)
         // ============================================================================
         const weeks = [];
         let weekCounter = 1;
+        // Instance 1 Weeks (week_id 1..16)
         for (let coId = 1; coId <= 4; coId++) {
+            for (let w = 1; w <= 4; w++) {
+                weeks.push({
+                    week_id: weekCounter++,
+                    co_id: coId,
+                    hours: 5.00,
+                    createdAt: prevTermAssigned,
+                    updatedAt: prevTermApproved
+                });
+            }
+        }
+        // Instance 2 Weeks (week_id 17..32)
+        for (let coId = 5; coId <= 8; coId++) {
             for (let w = 1; w <= 4; w++) {
                 weeks.push({
                     week_id: weekCounter++,
@@ -747,6 +915,8 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                 const currentTopicId = topicIdCounter++;
                 topicsToInsert.push({
                     topic_id: currentTopicId,
+                    course_id: 1,
+                    parent_topic_id: null,
                     title: topicObj.title,
                     createdAt: now,
                     updatedAt: now
@@ -757,6 +927,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                         subtopic_id: subtopicIdCounter++,
                         week_id: weekBlock.week_id,
                         topic_id: currentTopicId,
+                        parent_subtopic_id: null,
                         title: subTitle,
                         sequence_order: idx + 1,
                         is_orientation: Boolean(topicObj.is_orientation),

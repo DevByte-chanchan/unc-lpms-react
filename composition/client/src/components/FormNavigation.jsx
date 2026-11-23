@@ -7,9 +7,16 @@ import {
     BookOpen,
     Activity,
     Bookmark,
-    Layers
+    Layers,
+    RotateCcw
 } from "react-feather";
 import styles from "../styles/FormNavigation.module.sass";
+
+const PushPinIcon = () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 3l5 5-2 2-3-1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4-1-3 2-2z" />
+    </svg>
+);
 
 const FormNavigation = ({
     goBack,
@@ -17,6 +24,9 @@ const FormNavigation = ({
     currentStep,
     setStep,
     steps,
+    pinnedSteps,
+    onTogglePin,
+    onOpenImportPrevious,
     weeks = [],
     activeWeekId,
     onSelectWeek,
@@ -45,6 +55,8 @@ const FormNavigation = ({
             </div>
         );
     }
+
+    const isMultiPinMode = Array.isArray(pinnedSteps);
 
     const getContentIcon = (idx) => {
         if (idx === 0) return <BookOpen size={14} className={styles.tabIcon} />;
@@ -88,6 +100,14 @@ const FormNavigation = ({
             return co.weeks.reduce((sum, w) => sum + getWeekUnresolvedCount(w), 0);
         }
         return Number(co.unresolvedTotal) || 0;
+    };
+
+    const handleContentBtnClick = (idx) => {
+        if (isMultiPinMode && onTogglePin) {
+            onTogglePin(idx);
+        } else if (setStep) {
+            setStep(idx);
+        }
     };
 
     return (
@@ -203,28 +223,60 @@ const FormNavigation = ({
 
                     <div className={styles.barDivider} />
 
-                    {/* Non-Sequential Content Selector Tabs with Comment Badges */}
+                    {/* Pinned Content Selector Buttons + Compact Responsive Actions */}
                     <div className={styles.contentSelectorGroup}>
-                        {steps.map((stepLabel, idx) => {
-                            const isActive = idx === currentStep;
-                            const badgeCount = isReturned ? (Number(stepCommentCounts[idx]) || 0) : 0;
-                            return (
+                        <div className={styles.pinnedTabsCluster}>
+                            {steps.map((stepLabel, idx) => {
+                                const isPinned = isMultiPinMode ? Boolean(pinnedSteps[idx]) : idx === currentStep;
+                                const badgeCount = isReturned ? (Number(stepCommentCounts[idx]) || 0) : 0;
+                                return (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        className={`${styles.contentTabBtn} ${isPinned ? styles.activeContentTab : ""} ${badgeCount > 0 ? styles.contentTabHasComment : ""}`}
+                                        onClick={() => handleContentBtnClick(idx)}
+                                        title={isPinned ? `Click to unpin ${stepLabel}` : `Click to pin ${stepLabel}`}
+                                    >
+                                        {getContentIcon(idx)}
+                                        <span>{stepLabel}</span>
+                                        {badgeCount > 0 && (
+                                            <span className={styles.contentCommentBadge}>
+                                                {badgeCount}
+                                            </span>
+                                        )}
+                                        {isPinned && (
+                                            <span className={styles.pinCornerBadge} aria-hidden="true">
+                                                <PushPinIcon />
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {!isExpanded && (
+                            <div className={styles.mobileActionCluster}>
+                                {onOpenImportPrevious && (
+                                    <button
+                                        type="button"
+                                        className={styles.importPrevInlineMobile}
+                                        onClick={onOpenImportPrevious}
+                                        title="Import previous term Topics, Teaching & Learning Activities, and References for this week"
+                                    >
+                                        <RotateCcw size={13} />
+                                        <span>Import Previous</span>
+                                    </button>
+                                )}
                                 <button
-                                    key={idx}
                                     type="button"
-                                    className={`${styles.contentTabBtn} ${isActive ? styles.activeContentTab : ""} ${badgeCount > 0 ? styles.contentTabHasComment : ""}`}
-                                    onClick={() => setStep(idx)}
+                                    className={styles.saveInlineMobile}
+                                    onClick={onSave}
                                 >
-                                    {getContentIcon(idx)}
-                                    <span>{stepLabel}</span>
-                                    {badgeCount > 0 && (
-                                        <span className={styles.contentCommentBadge}>
-                                            {badgeCount}
-                                        </span>
-                                    )}
+                                    <CheckCircle size={15} />
+                                    <span>Save</span>
                                 </button>
-                            );
-                        })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -276,16 +328,32 @@ const FormNavigation = ({
                 </div>
             </div>
 
-            <button
-                type="button"
-                className={`${styles.save} ${isExpanded ? styles.saveHidden : ""}`}
-                onClick={onSave}
-                tabIndex={isExpanded ? -1 : 0}
-                aria-hidden={isExpanded}
-            >
-                <CheckCircle size={18} />
-                <span>Save</span>
-            </button>
+            <div className={`${styles.rightActionsGroup} ${isExpanded ? styles.rightActionsHidden : ""}`}>
+                {onOpenImportPrevious && (
+                    <button
+                        type="button"
+                        className={styles.importPrevBtn}
+                        onClick={onOpenImportPrevious}
+                        title="Import previous term Topics, Teaching & Learning Activities, and References for this week"
+                        tabIndex={isExpanded ? -1 : 0}
+                        aria-hidden={isExpanded}
+                    >
+                        <RotateCcw size={15} />
+                        <span>Import Previous</span>
+                    </button>
+                )}
+
+                <button
+                    type="button"
+                    className={styles.save}
+                    onClick={onSave}
+                    tabIndex={isExpanded ? -1 : 0}
+                    aria-hidden={isExpanded}
+                >
+                    <CheckCircle size={18} />
+                    <span>Save</span>
+                </button>
+            </div>
         </div>
     );
 };

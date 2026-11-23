@@ -30,6 +30,26 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: false,
             allowNull: true,
         },
+        prelim_weight: {
+            type: DataTypes.DECIMAL(5, 2),
+            allowNull: true
+        },
+        midterm_weight: {
+            type: DataTypes.DECIMAL(5, 2),
+            allowNull: true
+        },
+        semi_weight: {
+            type: DataTypes.DECIMAL(5, 2),
+            allowNull: true
+        },
+        final_weight: {
+            type: DataTypes.DECIMAL(5, 2),
+            allowNull: true
+        },
+        target: {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        },
     }, {
         tableName: 'IntendedLearningOutcomes'
     });
