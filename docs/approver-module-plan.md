@@ -1,9 +1,9 @@
 # Approver module: finalized plan
 
-Written 2026-10-27, brought up to date 2026-11-08. This joins everything we found: the transcript review, the
+Written 2026-10-27, brought up to date 2026-11-24. This joins everything we found: the transcript review, the
 code review, the tests, the notes taken from three GitHub repos (Plexus, Syllus, Library-Management-System), and
 the goal of automating the Program Head's chasing. Nothing in this plan is built yet unless it says "done".
-Section 8d lists what changed since the first version.
+Sections 8d and 8e list what changed since the first version.
 
 ## 1. Scope and rules
 
@@ -30,7 +30,7 @@ Section 8d lists what changed since the first version.
 - A role named like an Object member (`__proto__`) gets no permissions, and the role matrix is frozen.
 - Export, the review record, notifications, a daily notification clean-up job, and optional e-mail (SMTP)
   exist. The manual reminder (poke) was removed with its button; the automatic reminders cover it.
-- 361 server tests and 236 client tests pass (2026-11-08).
+- 444 server tests and 258 client tests pass (2026-11-24).
 
 ## 3. The plan, in phases
 
@@ -78,13 +78,13 @@ Status of 2.1 to 2.4: built and checked in the real UI. The list is the **Not su
 |---|---|---|---|
 | 4.1 | **Director dashboard:** plans waiting, references by type, outdated, unavailable, no ISBN, duplicates. | The reference counts are done as a summary line on the Reference Library. A separate page for plans waiting is not built; the approvals list already shows them. | partly done |
 | 4.2 | **Reference health report** with export. | Built, then removed in the UI cleanup (`40a031e`) on the owner's choice. The health summary line stays. | removed |
-| 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules. | The server row and `PUT /api/catalog-settings` stay, and everyone reads them (currently 5 years). The Director's **Rules** button was removed in the UI cleanup on the owner's choice, so the values cannot be changed from the app until a screen for it comes back. | partly (no editor) |
+| 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules. | The server row and `PUT /api/catalog-settings`, read by everyone. The **Reference rules** button (sliders icon) on the Reference Library is back and changes them for everyone. | done |
 | 4.4 | **Title request queue** (Director side): approve and add, or reject with a reason. | After the Director interview. The instructor's "request" button belongs to the instructor module. | M |
 | 4.5 | **VPAA term archive:** approved plans by semester and program. | Only if the OVPAA interview says it is needed. (Idea: Syllus archive.) | M |
 
 ### Phase 5: decisions we still need (nothing to build until answered)
 
-- Who manages users: the Dean, the Program Head, or the superuser. The transcripts disagree. (Today: the superuser.)
+- ~~Who manages users~~: built as the **VPAA and the superuser** (User Accounts page). The Dean and Program Head do not. Change it only if the Dean interview says otherwise.
 - ~~Does the Consultant comment only, or also approve?~~ Answered in the third interview: comment only, outside the approval flow; their comments are kept as the basis for the next version of the syllabus.
 - ~~When the Dean returns a plan, does it go straight to the instructor or through the Program Head?~~ Answered by the owner: **through the Program Head**, who forwards it to the instructor or sends it back to the Dean with a reason. Built (8d).
 - ~~Whether the Dean may read the other approvers' comments before deciding.~~ Answered by the owner: **yes, all of them.** Built (8d).
@@ -177,6 +177,20 @@ Not automated on purpose: approving, returning, rejecting, archiving a reference
 | **Removed in the UI cleanup (`40a031e`, owner's choice)** | Poke and its server code, the missing-list CSV, the reference health report, the Rules button, the Dean's sample pages and the separate consultants page; later also the dead `/record-comments` page and the `export-pdf` stub. |
 
 Issues found in modules we do not own are in `docs/issues-for-other-owners.md`.
+
+## 8e. Bug sweep and additions (November 2026)
+
+| Change | Notes |
+|---|---|
+| **Dean escalation** | A plan still not submitted 7 days after its due date (then every 7 days) is sent to the Dean of its program's department, one summary a day, naming the late courses. Opens the Dean's Not submitted list. |
+| **Program Head weekly summary names the late courses** | "4 overdue (BIT202, BIT302, …)". |
+| **One reminder a day per plan** | From anyone (system or person), in the school's time zone; a returned plan due on its 7th day gets one reminder, not two. |
+| **Return needs a comment, on the server too** | `POST /api/assignments/action` refuses RETURNED unless that reviewer has an open comment on the plan. |
+| **PDF export locked down** | The server's headless Chrome page gets a Content-Security-Policy and pop-ups are blocked; WebSockets and `window.open` could reach the network before. |
+| **References** | ISBN-10 and ISBN-13 of one book are duplicates; an ISBN with a wrong check digit (or an ISSN) is flagged "ISBN not valid"; "date received" uses the local day, not UTC. |
+| **Comments** | A deleted target is named "since removed from the plan" instead of being re-pointed, by a read, at the week's first item; 2000-character limit; resend after a partial save. |
+| **Plain error messages** | No raw server or technical text in alerts anywhere; a friendly error page with the mascot. |
+| **Mascot** | Noto Animated Emoji (CC BY 4.0) with Fluent 3D still faces for reduced motion; credit on the sign-in page. |
 
 ## 9. Not in this plan
 
