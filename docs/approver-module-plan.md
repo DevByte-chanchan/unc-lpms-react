@@ -80,7 +80,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The list is the **Not su
 | 4.2 | **Reference health report** with export. | Built, then removed in the UI cleanup (`40a031e`) on the owner's choice. The health summary line stays. | removed |
 | 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules. | The server row and `PUT /api/catalog-settings`, read by everyone. The **Reference rules** button (sliders icon) on the Reference Library is back and changes them for everyone. | done |
 | 4.4 | **Title request queue** (Director side): approve and add, or reject with a reason. | After the Director interview. The instructor's "request" button belongs to the instructor module. | M |
-| 4.5 | **VPAA term archive:** approved plans by semester and program. | Only if the OVPAA interview says it is needed. (Idea: Syllus archive.) | M |
+| 4.5 | **VPAA term archive:** approved plans by semester and program. | The VPAA's approved list: school year, semester and now a **Program** picker; "Export all as ZIP" gives that term (and program)'s plans, one PDF each with its program's front pages. Built before the OVPAA interview, on the owner's instruction. (Idea: Syllus archive.) | done |
 
 ### Phase 5: decisions we still need (nothing to build until answered)
 

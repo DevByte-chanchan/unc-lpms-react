@@ -99,6 +99,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
 
     // The VPAA and the Industry Consultant see Dean-approved plans only (the server lists nothing else for them).
     const approvedOnly = role === 'vpaa' || role === 'industry-consultant';
+    // The VPAA's term archive (approver plan 4.5): the approved plans of one term, narrowed to one program if wanted;
+    // "Export all as ZIP" then gives that term and program's plans.
+    const [selectedProgram, setSelectedProgram] = useState('');
     // The Program Head's list also has the plans still waiting on their instructor, as its fourth tab.
     const statuses = approvedOnly ? ["APPROVED"] : ['program-head', 'dean'].includes(role) ? ["PENDING", "RETURNED", "APPROVED", "NOT_SUBMITTED"] : ["PENDING", "RETURNED", "APPROVED"];
     const STATUS_LABEL = { NOT_SUBMITTED: 'Not submitted' };
@@ -216,7 +219,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
       if (files.length) {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(new Blob([makeZip(files)], { type: 'application/zip' }));
-        link.download = `Approved learning plans ${selectedYear}-${Number(selectedYear) + 1} ${selectedSem}.zip`.replace(/\s+/g, ' ');
+        link.download = `Approved learning plans ${selectedYear}-${Number(selectedYear) + 1} ${selectedSem}${selectedProgram ? ` ${selectedProgram}` : ''}.zip`.replace(/\s+/g, ' ');
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 10000);
       }
@@ -277,7 +280,10 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     };
 
     // What the table shows: the chosen tab, narrowed by what was typed in the top bar's search.
+    const programOf = (row) => row.ProgramCourseOffering?.Program?.name || '';
+    const termPrograms = role === 'vpaa' ? [...new Set(rowsFor(selectedStatus).map(programOf).filter(Boolean))].sort() : [];
     const filteredRows = rowsFor(selectedStatus)
+        .filter(row => !selectedProgram || programOf(row) === selectedProgram)
         .filter(row => matchesSearch(query, [getCode(row), getName(row)]));
 
 
@@ -390,6 +396,12 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     <Select variant="pill" value={selectedSem} onChange={(e) => setSelectedSem(e.target.value)} aria-label="Semester">
                         {semOptions.map(sem => <option key={sem} value={sem}>{SEM_NAME[sem]}</option>)}
                     </Select>
+                    {termPrograms.length > 0 && (
+                        <Select variant="pill" value={termPrograms.includes(selectedProgram) ? selectedProgram : ''} onChange={(e) => setSelectedProgram(e.target.value)} aria-label="Program">
+                            <option value="">All programs</option>
+                            {termPrograms.map(name => <option key={name} value={name}>{name}</option>)}
+                        </Select>
+                    )}
                 </div>
 
                 <div className={styles.fill}></div>
