@@ -47,7 +47,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         selected = 'Syllabus';
     }
 
-    if (location.pathname === '/dashboard') selected = 'Dashboard';
+    if (location.pathname === '/dashboard' || location.pathname === '/role/director-of-libraries/dashboard') selected = 'Dashboard';
 
     // LPSM Program Head pages
     if (location.pathname.startsWith(routes.coaepView())) {
@@ -184,6 +184,10 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'director-of-libraries' && (
                     <>
+                        {/* the Director's dashboard: plans waiting on them and the library's health (approver plan 4.1) */}
+                        <div onClick={() => { navigate('/role/director-of-libraries/dashboard') }} className={`${styles.list} ${selected === 'Dashboard' ? styles.selected : ''}`} role="link" tabIndex={0} title="Dashboard" aria-label="Dashboard" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/dashboard'))}>
+                            <NavigationIcon label="Dashboard" /> <span className={styles.listText}>Dashboard</span>
+                        </div>
                         <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`} role="link" tabIndex={0} title="Reference Library" aria-label="Reference Library" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/reference-library'))}>
                             <NavigationIcon label="Reference Library" /> <span className={styles.listText}>Reference Library</span>
                         </div>

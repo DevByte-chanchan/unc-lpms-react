@@ -35,6 +35,7 @@ const IndustryConsultant = lazy(() => import('./pages/IndustryConsultant.jsx'))
 const ProgramDocuments = lazy(() => import('./pages/lpsm/ProgramHead/OutcomesAlignment.jsx'))
 const CourseAssignment = lazy(() => import('./pages/lpsm/ProgramHead/CourseAssignment.jsx'))
 const DirectorReferenceLibrary = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx'))
+const DirectorDashboard = lazy(() => import('./pages/lpsm/DirectorOfLibraries/DirectorDashboard.jsx'))
 const DirectorAddReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/AddReference.jsx'))
 const DirectorViewReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ViewReference.jsx'))
 const ApprovalSyllabus = lazy(() => import('./pages/ApprovalSyllabus.jsx'))
@@ -147,6 +148,7 @@ function App() {
                         <Route path={'/role/program-head/po-peo-alignment'} element={<Navigate to="/role/program-head/program-documents?tab=program" replace />} />
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/dashboard'} element={<ErrorBoundary><DirectorDashboard /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/course-references'} element={<Navigate to="/role/director-of-libraries/reference-library" replace />} />
                         <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/view-reference/:refId'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />

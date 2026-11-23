@@ -76,7 +76,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The list is the **Not su
 
 | # | Task | Notes | Effort |
 |---|---|---|---|
-| 4.1 | **Director dashboard:** plans waiting, references by type, outdated, unavailable, no ISBN, duplicates. | The reference counts are done as a summary line on the Reference Library. A separate page for plans waiting is not built; the approvals list already shows them. | partly done |
+| 4.1 | **Director dashboard:** plans waiting, references by type, outdated, unavailable, no ISBN, duplicates. | **Dashboard** in the Director's sidebar: the plans waiting on them across every term, longest wait first, each opening the plan (`GET /api/assignments/waiting-on-me`, the same rule as the waiting reminders; the Program Head and Dean get their own plans from it too), and the library: titles by type and what needs attention, by reason. Duplicates are refused on entry, so none to count. | done |
 | 4.2 | **Reference health report** with export. | Built, then removed in the UI cleanup (`40a031e`) on the owner's choice. The health summary line stays. | removed |
 | 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules. | The server row and `PUT /api/catalog-settings`, read by everyone. The **Reference rules** button (sliders icon) on the Reference Library is back and changes them for everyone. | done |
 | 4.4 | **Title request queue** (Director side): approve and add, or reject with a reason. | After the Director interview. The instructor's "request" button belongs to the instructor module. | M |

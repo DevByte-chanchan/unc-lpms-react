@@ -33,6 +33,9 @@ router.get('/offering/:pcId/history', requireOfferingAccess, getVersionHistory);
 router.get('/offering/:pcId/signatures', requireOfferingAccess, getOfferingSignatures);
 
 // GET /api/assignments/:id
+// GET /api/assignments/waiting-on-me — the plans waiting on this approver, every term (the dashboard)
+router.get('/waiting-on-me', require('../controllers/waitingOnMeController').waitingOnMe);
+
 router.get('/:id', assignmentController.getAssignmentById);
 
 module.exports = router;

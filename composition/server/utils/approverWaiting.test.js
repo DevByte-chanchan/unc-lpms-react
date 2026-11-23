@@ -173,3 +173,19 @@ test('a returned plan due the same day as its day-7 reminder: the instructor get
         await Log.destroy({ where: { day: '2031-03-17' } });
     }
 });
+
+test('waiting on me: each approver gets only the plans waiting on them', async () => {
+    const { waitingOnMe } = require('../controllers/waitingOnMeController');
+    const ask = async (id, role) => {
+        const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
+        await waitingOnMe({ user: { id, role } }, res, (err) => { throw err; });
+        return res;
+    };
+    const mine = (res) => (res.body.plans || []).map(p => p.courseCode).filter(code => /^ZZW/.test(code)).sort();
+    assert.deepEqual(mine(await ask(ids.director, 'director-of-libraries')), ['ZZWA'], 'A waits on the Director (and the Program Head)');
+    assert.deepEqual(mine(await ask(ids.head, 'program-head')), ['ZZWA']);
+    assert.deepEqual(mine(await ask(ids.dean, 'dean')), ['ZZWB'], 'B waits on the Dean');
+    assert.equal((await ask(ids.instructor, 'instructor')).code, 403);
+    const [plan] = (await ask(ids.director, 'director-of-libraries')).body.plans.filter(p => p.courseCode === 'ZZWA');
+    assert.ok(plan.courseTitle && plan.schoolYear && Number.isInteger(plan.waitedDays));
+});
