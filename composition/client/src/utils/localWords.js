@@ -5,6 +5,7 @@
 
 const FILIPINO = `
 ako ikaw siya kami tayo kayo sila akin amin atin inyo kanila kaniya kanya niya nila natin namin ninyo
+inyong aming ating kanilang kaniyang kanyang niyang nilang ninyong naming tulong tulungan tumulong pakitulong pakiayos
 ito iyan iyon dito diyan doon rito riyan roon ganito ganyan ganoon gayon ganun ganon
 hindi huwag wala walang meron mayroon mayron mayroong kasi naman lang lamang talaga sobra medyo
 baka siguro sana dapat kailangan kelangan pwede puwede maaari maari gusto ayaw ayoko kaya kaso

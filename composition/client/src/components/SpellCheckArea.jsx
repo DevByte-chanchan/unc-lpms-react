@@ -3,6 +3,7 @@ import { Zap, Check, CircleAlert as AlertCircle, X } from 'lucide-react'
 import { findIssues, mergeIssues, segmentText, applySuggestion, issueAt, isReady, loadWordList, termWords } from '../utils/spellSuggest.js'
 import { autoCorrect, ATTRIBUTION_URL, ONLINE_SERVICE_CONFIG } from '../utils/autoCorrect.js'
 import { findGrammarIssues } from '../utils/grammarRules.js'
+import { harperIssues, withHarper } from '../utils/harperGrammar.js'
 import Spinner from './Spinner.jsx'
 import styles from '../styles/SpellCheckArea.module.sass'
 import { confirmDialog } from '../utils/appDialog.jsx'
@@ -85,6 +86,8 @@ const SpellCheckArea = ({
     const [notice, setNotice] = useState(null)
     const [open, setOpen] = useState(null)          // { issue, top, left }
     const [localIssues, setLocalIssues] = useState([])
+    // Harper's grammar (utils/harperGrammar.js), with the text it was found in: offsets mean nothing for other text.
+    const [harper, setHarper] = useState({ text: '', issues: [] })
     // The ~33,000-word dictionary is a separate chunk, fetched the first time
     // one of these is mounted. Until it lands there is no checker, and the bar
     // must not claim a clean bill of health it has not earned.
@@ -122,6 +125,16 @@ const SpellCheckArea = ({
         return () => clearTimeout(handle)
     }, [value, ready, skip, checkCapitals])
 
+    // Harper after the same pause, in its worker; a result for text that has since changed is dropped.
+    useEffect(() => {
+        if (disabled) return undefined
+        let live = true
+        const handle = setTimeout(() => {
+            harperIssues(value).then(found => { if (live && alive.current) setHarper({ text: value, issues: found }) })
+        }, 400)
+        return () => { live = false; clearTimeout(handle) }
+    }, [value, disabled])
+
     // The service's findings are about the text it was given. The moment the
     // text changes they are about nothing, and their offsets point at the
     // wrong words — so they go, rather than underlining whatever has since
@@ -136,10 +149,12 @@ const SpellCheckArea = ({
         setOpen(null)
     }, [value])
 
-    const issues = useMemo(
-        () => mergeIssues(localIssues, serviceMatches, value),
-        [localIssues, serviceMatches, value]
-    )
+    const issues = useMemo(() => {
+        const own = harper.text === value
+            ? withHarper(localIssues, harper.issues.filter(h => !skip.has(String(h.word).toLowerCase())), IGNORED)
+            : localIssues
+        return mergeIssues(own, serviceMatches, value)
+    }, [localIssues, harper, skip, serviceMatches, value])
 
     const segments = useMemo(() => segmentText(value, issues), [value, issues])
 
