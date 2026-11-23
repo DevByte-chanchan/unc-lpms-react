@@ -34,6 +34,8 @@ const KIND = {
   reference_health: { tag: 'Library', tone: 'teal', title: 'Reference Check', Icon: BookOpen },
   reference_flags: { tag: 'Library', tone: 'teal', title: 'References Flagged', Icon: BookOpen },
   reference_unavailable: { tag: 'Library', tone: 'teal', title: 'Reference Unavailable', Icon: BookOpen },
+  title_request: { tag: 'Library', tone: 'teal', title: 'Title Requested', Icon: BookOpen },
+  title_request_answered: { tag: 'Library', tone: 'teal', title: 'Title Request Answered', Icon: BookOpen },
 }
 
 // "BIT321L — submitted for review by Instructor" -> title "Plan Submitted: BIT321L", sentence "Submitted for review by

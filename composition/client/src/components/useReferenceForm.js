@@ -28,8 +28,10 @@ const serverFieldErrors = (err) => {
   try { return JSON.parse(raw.slice(start)).errors || {}; } catch { return {}; }
 };
 
-export const useReferenceForm = (record, active = true) => {
-  const [values, setValues] = useState(() => fromRecord(record));
+// prefill: { title, authors } for a new reference started from an instructor's title request.
+export const useReferenceForm = (record, active = true, prefill = null) => {
+  const start = useCallback(() => fromRecord(record || prefill), [record, prefill]);
+  const [values, setValues] = useState(start);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [typesReady, setTypesReady] = useState(false);
@@ -38,9 +40,9 @@ export const useReferenceForm = (record, active = true) => {
   // Reset whenever the form is (re)opened for a different record.
   useEffect(() => {
     if (!active) return;
-    setValues(fromRecord(record));
+    setValues(start());
     setErrors({});
-  }, [record, active]);
+  }, [start, active]);
 
   useEffect(() => {
     let live = true;
@@ -63,7 +65,7 @@ export const useReferenceForm = (record, active = true) => {
     setErrors(prev => ({ ...prev, [fieldKey]: fieldError(field, value !== undefined ? value : values[fieldKey]) }));
   }, [values]);
 
-  // Resolves { ok: true } or { ok: false, message } (field errors are set on the form).
+  // Resolves { ok: true, created } (created: the new row, when adding) or { ok: false, message } (field errors are set on the form).
   const save = useCallback(async () => {
     const missing = formErrors(values.type, values);
     if (Object.keys(missing).length > 0) {
@@ -72,9 +74,8 @@ export const useReferenceForm = (record, active = true) => {
     }
     setSaving(true);
     try {
-      if (record) await updateReference(record, values);
-      else await createReference(values);
-      return { ok: true };
+      if (record) { await updateReference(record, values); return { ok: true }; }
+      return { ok: true, created: await createReference(values) };
     } catch (err) {
       const fieldErrors = serverFieldErrors(err);
       setErrors(fieldErrors);
@@ -88,7 +89,7 @@ export const useReferenceForm = (record, active = true) => {
   }, [values, record]);
 
   // Something entered that is not saved yet: what is in the form differs from what it was opened with.
-  const dirty = JSON.stringify(values) !== JSON.stringify(fromRecord(record));
+  const dirty = JSON.stringify(values) !== JSON.stringify(start());
 
   return { values, errors, change, check, save, saving, typesReady, typesError, dirty };
 };

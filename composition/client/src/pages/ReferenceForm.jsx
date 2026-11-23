@@ -12,6 +12,8 @@ import { getReferenceTypes } from "../utils/referenceTypes.js";
 import { getSession } from "../utils/session.js";
 import { checkSpelling } from '../utils/spellChecker.js';
 import styles from '../styles/Form.module.sass';
+import askStyles from '../styles/TitleRequests.module.sass';
+import { toast } from '../utils/toast.jsx';
 
 export function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
@@ -68,6 +70,23 @@ const ReferenceForm = forwardRef(({
     // The picker scopes its list to this course and suggests by this week's topics, so it needs both.
     const [course, setCourse] = useState({ code: '', name: '' });
     const [weekTopics, setWeekTopics] = useState([]);
+
+    // "Ask the library": the instructor requests a title the library does not have (approver plan 4.4). The Director
+    // of Libraries adds it or declines with a reason, and the instructor is told in their notifications.
+    const [ask, setAsk] = useState(null); // null, or { title, authors, note, sending }
+    const sendAsk = async () => {
+        setAsk(a => ({ ...a, sending: true }));
+        try {
+            await fetchJson('/api/title-requests', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: ask.title, authors: ask.authors, note: ask.note, pcId: pcOfferingId || undefined })
+            });
+            setAsk(null);
+            toast('Sent to the Director of Libraries. You will be told when it is answered.');
+        } catch (err) {
+            setAsk(a => ({ ...a, sending: false, error: apiErrorMessage(err, 'The request was not sent.') }));
+        }
+    };
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -577,6 +596,25 @@ const ReferenceForm = forwardRef(({
                 courseTitle={course.name}
                 topics={weekTopics}
             />
+            {getSession()?.role === 'instructor' && (status === 'draft' || status === 'returned') && (
+                ask ? (
+                    <div className={askStyles.askBox}>
+                        <p className={askStyles.meta}>Ask the Director of Libraries for a title the library does not have.</p>
+                        <TextField label="Title" value={ask.title} onChange={(v) => setAsk(a => ({ ...a, title: v, error: '' }))} placeholder="e.g. Clean Architecture" />
+                        <TextField label="Author(s) (if known)" value={ask.authors} onChange={(v) => setAsk(a => ({ ...a, authors: v }))} />
+                        <TextField label="Why it is needed (optional)" value={ask.note} onChange={(v) => setAsk(a => ({ ...a, note: v }))} />
+                        {ask.error && <p role="alert" style={{ margin: 0, color: 'var(--danger)', fontSize: 'var(--fs-sm)' }}>{ask.error}</p>}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAsk(null)}>Cancel</button>
+                            <button type="button" className="btn btn-primary btn-sm" disabled={ask.sending || String(ask.title).trim().length < 2} onClick={sendAsk}>Send request</button>
+                        </div>
+                    </div>
+                ) : (
+                    <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: 8, alignSelf: 'flex-start' }} onClick={() => setAsk({ title: '', authors: '', note: '', sending: false, error: '' })}>
+                        Not in the library? Ask for a title
+                    </button>
+                )
+            )}
 
             <InlineModal
                 isOpen={isModalOpen}

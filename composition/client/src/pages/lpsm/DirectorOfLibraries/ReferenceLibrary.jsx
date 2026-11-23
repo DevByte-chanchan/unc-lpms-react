@@ -1,6 +1,6 @@
 import Select from '../../../components/Select.jsx'
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   BookOpen,
@@ -21,6 +21,7 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
+import TitleRequestsPanel from '../../../components/TitleRequestsPanel.jsx';
 import CatalogRulesDialog from '../../../components/CatalogRulesDialog.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
@@ -77,6 +78,32 @@ const ReferenceLibrary = () => {
   const [courseAssignments, setCourseAssignments] = useState(null);
   const [addRefOpen, setAddRefOpen] = useState(false);
   const [editRef, setEditRef] = useState(null);
+  // Instructors' requests for titles the library lacks (approver plan 4.4); ?requests=1 (a notification) opens them.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [titleRequests, setTitleRequests] = useState([]);
+  const [requestsOpen, setRequestsOpen] = useState(() => searchParams.get('requests') === '1');
+  const [requestToAdd, setRequestToAdd] = useState(null);
+  const requestPrefill = useMemo(() => (requestToAdd ? { title: requestToAdd.title, authors: requestToAdd.authors || '' } : null), [requestToAdd]);
+  const loadRequests = React.useCallback(() => fetchJson('/api/title-requests')
+    .then(data => setTitleRequests(data?.requests || []))
+    .catch(() => setTitleRequests([])), []);
+  useEffect(() => { loadRequests(); }, [loadRequests]);
+  const pendingRequests = titleRequests.filter(r => r.status === 'pending').length;
+  const closeRequests = () => {
+    setRequestsOpen(false);
+    if (searchParams.get('requests')) setSearchParams(p => { const next = new URLSearchParams(p); next.delete('requests'); return next; }, { replace: true });
+  };
+  const declineRequest = async (request, reason) => {
+    try {
+      await fetchJson(`/api/title-requests/${request.id}/declined`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
+      await loadRequests();
+      toast('Declined. The instructor is told why.');
+      return true;
+    } catch (err) {
+      alertDialog(apiErrorMessage(err, 'The request was not declined.'), { title: 'Not sent' });
+      return false;
+    }
+  };
   const [query, setQuery] = useState('');
   const [searchField, setSearchField] = useState('all');
   const [filterType, setFilterType] = useState('');
@@ -438,6 +465,9 @@ const ReferenceLibrary = () => {
               <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={16} /> Bulk Upload
               </button>
+              <button className="btn btn-secondary" type="button" onClick={() => setRequestsOpen(true)} title="Titles instructors asked the library for">
+                <BookOpen size={16} /> Requests{pendingRequests ? ` (${pendingRequests})` : ''}
+              </button>
               {/* A once-in-a-while setting: an icon button, so the row reads as Add and Bulk Upload. A menu holding only
                   this would cost an extra click for nothing. */}
               <button className="app-icon-btn" type="button" onClick={() => setRulesOpen(true)}
@@ -762,10 +792,30 @@ const ReferenceLibrary = () => {
       />
       <AddReferenceModal
         show={addRefOpen}
-        onClose={() => setAddRefOpen(false)}
+        onClose={() => { setAddRefOpen(false); setRequestToAdd(null); }}
         refToEdit={editRef}
-        onSaved={handleModalSaved}
+        prefill={requestPrefill}
+        onSaved={async (result) => {
+          handleModalSaved(result);
+          // Added from a request: that request is answered with the new title, and its instructor is told.
+          if (requestToAdd && result?.created?.reference_id) {
+            try {
+              await fetchJson(`/api/title-requests/${requestToAdd.id}/added`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: result.created.reference_id }) });
+              toast('Added, and the instructor who asked is told.');
+            } catch (err) {
+              alertDialog(apiErrorMessage(err, 'The title was added, but the request was not marked answered.'), { title: 'Request not updated' });
+            }
+            loadRequests();
+          }
+        }}
         onError={handleModalError}
+      />
+      <TitleRequestsPanel
+        open={requestsOpen}
+        onClose={closeRequests}
+        requests={titleRequests}
+        onAdd={(request) => { closeRequests(); setEditRef(null); setRequestToAdd(request); setAddRefOpen(true); }}
+        onDecline={declineRequest}
       />
     </>
   );

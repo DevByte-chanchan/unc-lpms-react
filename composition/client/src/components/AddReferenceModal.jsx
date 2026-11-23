@@ -8,11 +8,12 @@ import styles from '../styles/AddReferenceModal.module.sass';
 
 // Add / edit one reference in a dialog. The fields come from the server's type definitions and the
 // save goes to the server (Director of Libraries only). `refToEdit` is a library record.
-const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
+// prefill: { title, authors } to start a new reference from an instructor's title request; onSaved gets `created`.
+const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, prefill = null }) => {
   const isEditMode = !!refToEdit;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const form = useReferenceForm(refToEdit, show);
+  const form = useReferenceForm(refToEdit, show, prefill);
   const dialogRef = useRef(null);
   useDialogFocus(dialogRef, show);
   useEffect(() => { if (!show) setSaveError(''); }, [show]);
@@ -41,7 +42,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
       setSaveError(result.message); // stays in the dialog until the next try
       return;
     }
-    onSaved?.({ message: isEditMode ? 'Reference updated successfully!' : 'Reference added successfully!', type: 'success' });
+    onSaved?.({ message: isEditMode ? 'Reference updated successfully!' : 'Reference added successfully!', type: 'success', created: result.created || null });
     onClose();
   };
 
