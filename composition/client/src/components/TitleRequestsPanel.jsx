@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import EmptyState from './EmptyState.jsx';
 import styles from '../styles/TitleRequests.module.sass';
@@ -13,6 +13,13 @@ const TitleRequestsPanel = ({ open, onClose, requests = [], onAdd, onDecline }) 
   const [declining, setDeclining] = useState(null); // request id whose reason box is open
   const [reason, setReason] = useState('');
   const [sending, setSending] = useState(false);
+  // Escape closes it, as the other windows do.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
   if (!open) return null;
   const pending = requests.filter(r => r.status === 'pending');
   const answered = requests.filter(r => r.status !== 'pending');

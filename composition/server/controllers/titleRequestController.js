@@ -89,13 +89,18 @@ const openRequest = async (req, res) => {
     return { ...row, requesterId: owner.requested_by };
 };
 
+// Resolves false when another answer got there first (two Directors, or a double click): nobody is told twice.
 const decide = async (req, row, status, fields, text) => {
     const now = new Date();
-    await sequelize.query(
+    // Only the answer that changed the row (still pending) counts; QueryTypes.UPDATE gives the changed-row count.
+    const [, changed] = await sequelize.query(
         `UPDATE TitleRequests SET status = ?, reason = ?, reference_id = ?, decided_by = ?, decided_at = ?, updatedAt = ? WHERE request_id = ? AND status = 'pending'`,
-        { replacements: [status, fields.reason ?? null, fields.referenceId ?? null, req.user.id, now, now, row.id] });
+        { replacements: [status, fields.reason ?? null, fields.referenceId ?? null, req.user.id, now, now, row.id], type: Sequelize.QueryTypes.UPDATE });
+    if (!changed) return false;
     await notify([row.requesterId], 'title_request_answered', row.offeringId || null, notice(row.courseCode, text), 'director-of-libraries', now);
+    return true;
 };
+const ANSWERED = 'This request was already answered.';
 
 const markAdded = async (req, res, next) => {
     try {
@@ -104,7 +109,7 @@ const markAdded = async (req, res, next) => {
         const referenceId = asId(req.body?.reference_id);
         const reference = referenceId ? await Reference.findByPk(referenceId, { attributes: ['reference_id', 'title', 'archived'], raw: true }) : null;
         if (!reference || reference.archived) return res.status(400).json({ error: 'Pick the library title that answers this request.' });
-        await decide(req, row, 'added', { referenceId }, `the title you asked for is in the library: ${reference.title}`);
+        if (!(await decide(req, row, 'added', { referenceId }, `the title you asked for is in the library: ${reference.title}`))) return res.status(409).json({ error: ANSWERED });
         return res.json({ id: row.id, status: 'added', referenceId });
     } catch (error) {
         return next(error);
@@ -117,7 +122,7 @@ const markDeclined = async (req, res, next) => {
         if (!row) return undefined;
         const reason = clean(req.body?.reason, 1000);
         if (reason.length < 5) return res.status(400).json({ error: 'Say why, so the instructor knows (a few words).' });
-        await decide(req, row, 'declined', { reason }, `your title request was declined: ${reason}`);
+        if (!(await decide(req, row, 'declined', { reason }, `your title request was declined: ${reason}`))) return res.status(409).json({ error: ANSWERED });
         return res.json({ id: row.id, status: 'declined' });
     } catch (error) {
         return next(error);

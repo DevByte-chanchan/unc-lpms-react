@@ -70,3 +70,15 @@ test('the Director adds it (naming the library title) or declines it with a reas
     const [stored] = await sequelize.query('SELECT status, reason FROM TitleRequests WHERE request_id = ?', { replacements: [second.body.id], type: Sequelize.QueryTypes.SELECT });
     assert.deepEqual(stored, { status: 'declined', reason: 'Out of print; use the 2nd edition' });
 });
+
+test('two answers to one request: the second is refused and nobody is told twice', async () => {
+    const asked = await call(controller.createRequest, instructor, { body: { title: `ZZ Race ${stamp}` } });
+    const id = String(asked.body.id);
+    const before = (await inbox(instructor, 'title_request_answered')).length;
+    const [a, b] = await Promise.all([
+        call(controller.markDeclined, director, { params: { id }, body: { reason: 'First answer here' } }),
+        call(controller.markDeclined, director, { params: { id }, body: { reason: 'Second answer here' } })
+    ]);
+    assert.deepEqual([a.code, b.code].sort(), [200, 409]);
+    assert.equal((await inbox(instructor, 'title_request_answered')).length, before + 1);
+});
