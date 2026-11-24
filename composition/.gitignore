@@ -24,3 +24,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# graphify knowledge-graph cache (generated)
+graphify-out/
