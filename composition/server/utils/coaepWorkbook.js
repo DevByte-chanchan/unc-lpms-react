@@ -1,14 +1,16 @@
 'use strict';
 
-// The COAEP as an Excel file in the layout of the official form (UNC-FM-VPAA-02), the same content as the PDF
-// export (client: utils/syllabusPdfHtml.js buildCoaepHtml): the UNC header, the faculty / course block, one row per
-// ILO with its CO number and statement merged down, the signatures and the reminders. A plan that is not fully
-// approved is marked DRAFT at the top.
+// The COAEP as an Excel file. A plan that fits the official form (up to 4 COs of up to 3 ILOs) is written into the
+// university's own workbook (assets/coaep-template.xlsx, sent by the BSIT Program Head, Nov 2026): its "Course
+// AssessPlan" sheet is filled, and the Course Assessment Data and Report sheets read it through their own formulas.
+// A larger plan gets a drawn sheet in the same layout (UNC-FM-VPAA-02), the same content as the PDF export
+// (client: utils/syllabusPdfHtml.js buildCoaepHtml). A plan that is not fully approved is marked DRAFT.
 
 const path = require('path');
 const ExcelJS = require('exceljs');
 
 const LOGO = path.join(__dirname, '..', 'assets', 'unclogo.png');
+const TEMPLATE = path.join(__dirname, '..', 'assets', 'coaep-template.xlsx');
 const DEFAULT_TARGET = 'At least 90% of enrolled students with a rating of at least 60% of the total score';
 const REMINDERS = 'This template should be accomplished for each course handled by the faculty.';
 const NOTES = 'Course Outcomes and ILOs must be SMART; Each CO should be granularized into an introductory, enabling and demonstrative ILO; ILOs should NOT be teaching learning activities; Sample Performance target:  At least 70% of students with 60% proficiency or score 12 out of 20.';
@@ -41,8 +43,53 @@ const cleanRecord = (raw) => {
     };
 };
 
+// The official workbook, filled. Its plan sheet has fixed rows: CO n on rows 11 + 3(n-1), its ILOs on that row and the
+// two below; columns C (CO statement, merged C:D), E (ILO), F (assessment tool), G (performance target).
+const TEMPLATE_COS = 4;
+const TEMPLATE_ILOS = 3;
+const fitsTemplate = (r) => r.cos.length <= TEMPLATE_COS && r.cos.every(co => co.ilos.length <= TEMPLATE_ILOS);
+
+const fillTemplate = async (r) => {
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.readFile(TEMPLATE);
+    const plan = book.getWorksheet('Course AssessPlan');
+    plan.getCell('D7').value = r.header.facultyName;
+    plan.getCell('D8').value = r.header.course;
+    plan.getCell('G7').value = r.header.schoolYear;
+    plan.getCell('G8').value = r.header.semester;
+    for (let n = 0; n < TEMPLATE_COS; n++) {
+        const co = r.cos[n];
+        const top = 11 + n * TEMPLATE_ILOS;
+        plan.getCell(`B${top}`).value = co ? n + 1 : null;
+        plan.getCell(`C${top}`).value = co ? co.statement : null;
+        for (let i = 0; i < TEMPLATE_ILOS; i++) {
+            const ilo = co?.ilos[i];
+            plan.getCell(`E${top + i}`).value = ilo ? ilo.outcome : null;
+            plan.getCell(`F${top + i}`).value = ilo ? ilo.assessments.join('\n') : null;
+            plan.getCell(`G${top + i}`).value = ilo ? (ilo.performanceTarget || r.performanceTarget || DEFAULT_TARGET) : null;
+        }
+    }
+    // The template's own sample names and dates are replaced, blank when the plan has none yet.
+    plan.getCell('D26').value = r.dateSubmitted;
+    plan.getCell('F25').value = `Approved by:   ${r.approvedBy}`;
+    plan.getCell('F26').value = `Date:   ${r.approvedByDate}`;
+    book.getWorksheet('4_Course Assess Report Template').getCell('G25').value = r.approvedBy;
+    if (!r.approved) {
+        const mark = plan.getCell('B6');
+        mark.value = 'DRAFT – NOT APPROVED. This plan has not been fully approved; this COAEP is not final.';
+        mark.font = { name: FONT, bold: true, color: { argb: 'FFB45309' } };
+    }
+    // The other sheets copy the plan sheet by formula; their saved results are the template's, so Excel recalculates.
+    book.calcProperties = { ...(book.calcProperties || {}), fullCalcOnLoad: true };
+    return Buffer.from(await book.xlsx.writeBuffer());
+};
+
 const buildCoaepWorkbook = async (raw) => {
     const r = cleanRecord(raw);
+    return fitsTemplate(r) ? fillTemplate(r) : buildDrawnWorkbook(r);
+};
+
+const buildDrawnWorkbook = async (r) => {
     const book = new ExcelJS.Workbook();
     book.creator = 'UNC LPMS';
     const ws = book.addWorksheet('COAEP', {
