@@ -24,6 +24,39 @@ function parseIsOrientation(val) {
     return false;
 }
 
+function getCoPeriodInfo(coNumber, totalCos = 4) {
+    const num = Number(coNumber);
+    if (!num || num <= 0) {
+        return { periodShort: 'Orientation', periodLabel: 'Course Orientation' };
+    }
+    if (totalCos <= 2) {
+        if (num === 1) return { periodShort: 'Midterm', periodLabel: 'Midterm' };
+        return { periodShort: 'Final', periodLabel: 'Final' };
+    }
+    if (totalCos === 3) {
+        const map3 = {
+            1: { periodShort: 'Prelim', periodLabel: 'Prelim' },
+            2: { periodShort: 'Midterm', periodLabel: 'Midterm' },
+            3: { periodShort: 'Final', periodLabel: 'Final' }
+        };
+        return map3[num] || { periodShort: `Period ${num}`, periodLabel: `Period ${num}` };
+    }
+    const map = {
+        1: { periodShort: 'Prelim', periodLabel: 'Prelim' },
+        2: { periodShort: 'Midterm', periodLabel: 'Midterm' },
+        3: { periodShort: 'Semi-Final', periodLabel: 'Semi-Final' },
+        4: { periodShort: 'Final', periodLabel: 'Final' }
+    };
+    return map[num] || { periodShort: `Period ${num}`, periodLabel: `Period ${num}` };
+}
+
+function parseEstimatedMinutes(raw) {
+    if (raw === null || raw === undefined || raw === '') return null;
+    const parsed = parseInt(String(raw).replace(/\D/g, '').slice(0, 3), 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return Math.min(999, parsed);
+}
+
 // Helper: Resolve a Week record and its parent CourseOutcome from a weekId (or fallback coId/iloId)
 async function resolveWeekRecord(rawId) {
     const id = Number(rawId);
@@ -267,6 +300,8 @@ async function getWeekContext(req, res) {
             co_id: firstCoId,
             coNumber: 0,
             isOrientation: true,
+            periodShort: 'Orientation',
+            periodLabel: 'Course Orientation',
             coDescription: orientationDescription,
             ilos: orientationIlos,
             weeks: orientationWeeks,
@@ -279,10 +314,13 @@ async function getWeekContext(req, res) {
             const cWeeks = weeksByCo[cid] || [];
             const cIlos = ilosByCo[cid] || [];
             const totalUnresolved = cWeeks.reduce((sum, w) => sum + (w.unresolvedComments?.total || 0), 0);
+            const periodInfo = getCoPeriodInfo(idx + 1, allCos.length);
             return {
                 co_id: cid,
                 coNumber: idx + 1,
                 isOrientation: false,
+                periodShort: periodInfo.periodShort,
+                periodLabel: periodInfo.periodLabel,
                 coDescription: (c.co_description || '').replace(/^CO\s*\d+\s*:\s*/i, '').trim(),
                 ilos: cIlos,
                 weeks: cWeeks,
@@ -304,6 +342,8 @@ async function getWeekContext(req, res) {
             ? returnedWeeks[0].week_id
             : week.week_id;
 
+        const activePeriodInfo = getCoPeriodInfo(coNumber, allCos.length);
+
         return res.json({
             activeWeekId,
             isOrientation,
@@ -319,6 +359,8 @@ async function getWeekContext(req, res) {
             labContactHours,
             totalWeeklyHours,
             coNumber,
+            periodShort: activePeriodInfo.periodShort,
+            periodLabel: activePeriodInfo.periodLabel,
             coDescription: isOrientation
                 ? orientationDescription
                 : (currentCo.co_description || '').replace(/^CO\s*\d+\s*:\s*/i, '').trim(),
@@ -380,7 +422,7 @@ async function getAvailableTopics(req, res) {
             allCourseWeekIds.size > 0
                 ? await Subtopic.findAll({
                       where: { week_id: { [Op.in]: [...allCourseWeekIds] } },
-                      attributes: ['subtopic_id', 'week_id', 'topic_id', 'title', 'sequence_order', 'is_orientation'],
+                      attributes: ['subtopic_id', 'week_id', 'topic_id', 'title', 'sequence_order', 'is_orientation', 'estimated_minutes'],
                       order: [
                           ['week_id', 'DESC'],
                           ['sequence_order', 'ASC'],
@@ -431,7 +473,8 @@ async function getAvailableTopics(req, res) {
                 subtopicsByTopicForCurrentContext[tid].push({
                     subtopic_id: sub.subtopic_id,
                     title: sub.title,
-                    sequence_order: sub.sequence_order
+                    sequence_order: sub.sequence_order,
+                    estimated_minutes: sub.estimated_minutes != null ? Number(sub.estimated_minutes) : null
                 });
             } else if (currentOfferingWeekIdSet.has(wid)) {
                 // Only exclude topics used in OTHER weeks of the CURRENT learning plan offering,
@@ -448,7 +491,8 @@ async function getAvailableTopics(req, res) {
                 subtopicsByTopicLatestWeek[tid].push({
                     subtopic_id: sub.subtopic_id,
                     title: sub.title,
-                    sequence_order: sub.sequence_order
+                    sequence_order: sub.sequence_order,
+                    estimated_minutes: sub.estimated_minutes != null ? Number(sub.estimated_minutes) : null
                 });
             }
         }
@@ -469,7 +513,8 @@ async function getAvailableTopics(req, res) {
             matchingPriorSubtopicsByTopic[tid].push({
                 subtopic_id: sub.subtopic_id,
                 title: sub.title,
-                sequence_order: sub.sequence_order
+                sequence_order: sub.sequence_order,
+                estimated_minutes: sub.estimated_minutes != null ? Number(sub.estimated_minutes) : null
             });
         }
 
@@ -538,7 +583,8 @@ async function getAvailableTopics(req, res) {
                 cleanSubs.push({
                     subtopic_id: s.subtopic_id,
                     title: s.title,
-                    sequence_order: cleanSubs.length + 1
+                    sequence_order: cleanSubs.length + 1,
+                    estimated_minutes: s.estimated_minutes != null ? Number(s.estimated_minutes) : null
                 });
             }
             return cleanSubs;
@@ -683,7 +729,8 @@ async function getAssignedTopics(req, res) {
                 topic_id: tid,
                 title: s.title,
                 sequence_order: s.sequence_order,
-                is_orientation: Boolean(s.is_orientation)
+                is_orientation: Boolean(s.is_orientation),
+                estimated_minutes: s.estimated_minutes != null ? Number(s.estimated_minutes) : null
             });
         }
 
@@ -804,7 +851,8 @@ async function getPreviousTopics(req, res) {
                     entry.subtopics.push({
                         subtopic_id: Number(s.subtopic_id),
                         title: s.title,
-                        sequence_order: entry.subtopics.length + 1
+                        sequence_order: entry.subtopics.length + 1,
+                        estimated_minutes: s.estimated_minutes != null ? Number(s.estimated_minutes) : null
                     });
                 }
             }
@@ -873,7 +921,8 @@ async function getPreviousTopics(req, res) {
                         entry.subtopics.push({
                             subtopic_id: Number(s.subtopic_id),
                             title: s.title,
-                            sequence_order: entry.subtopics.length + 1
+                            sequence_order: entry.subtopics.length + 1,
+                            estimated_minutes: s.estimated_minutes != null ? Number(s.estimated_minutes) : null
                         });
                     }
                 }
@@ -1068,7 +1117,8 @@ async function assignTopicsToILO(req, res) {
                     topic_id: currentTopicId,
                     title: s.title != null ? String(s.title) : '',
                     sequence_order: s.sequence_order ?? (idx + 1),
-                    is_orientation: isOrientation
+                    is_orientation: isOrientation,
+                    estimated_minutes: parseEstimatedMinutes(s.estimated_minutes ?? s.minutes)
                 });
             });
         }
@@ -1115,6 +1165,7 @@ async function assignTopicsToILO(req, res) {
                     title: item.title,
                     sequence_order: item.sequence_order,
                     is_orientation: item.is_orientation,
+                    estimated_minutes: item.estimated_minutes,
                     ...(item.parent_subtopic_id ? { parent_subtopic_id: item.parent_subtopic_id } : {})
                 }, {
                     where: { subtopic_id: item.matched_subtopic_id },
@@ -1128,6 +1179,7 @@ async function assignTopicsToILO(req, res) {
                     title: item.title,
                     sequence_order: item.sequence_order,
                     is_orientation: item.is_orientation,
+                    estimated_minutes: item.estimated_minutes,
                     parent_subtopic_id: item.parent_subtopic_id || null
                 }, { transaction: t });
                 keptSubtopicIds.push(Number(created.subtopic_id));

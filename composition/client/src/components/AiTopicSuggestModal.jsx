@@ -487,7 +487,7 @@ const AiTopicSuggestModal = ({
             });
         }
 
-        // Transform into format accepted by TopicSelector (with isAiSuggested: true for gradient border, and NO weights attached)
+        // Transform into format accepted by TopicSelector (with isAiSuggested: true for gradient border and estimated_minutes preserved for COMP-008)
         const formattedForForm = selectedTopicsList.map((t, idx) => {
             const activeSubs = t.subtopics.filter(s => s.checked);
             return {
@@ -503,6 +503,7 @@ const AiTopicSuggestModal = ({
                     _temp_id: `temp-sub-ai-${Date.now()}-${idx}-${sIdx}`,
                     aiSourceSubtopicId: s.id,
                     title: s.title,
+                    estimated_minutes: Math.max(1, Math.min(999, Math.round(Number(s.minutes) || 30))),
                     sequence_order: sIdx
                 }))
             };
@@ -537,10 +538,13 @@ const AiTopicSuggestModal = ({
                                 {t.title}
                             </h4>
                             <div className={styles.topicMetaSubrow}>
-                                <span className={`${styles.topicDurationBadge} ${isCardChecked ? styles.topicDurationActive : styles.topicDurationMuted}`}>
+                                <span
+                                    className={`${styles.topicDurationBadge} ${isCardChecked ? styles.topicDurationActive : styles.topicDurationMuted}`}
+                                    title="Estimated average instructional duration"
+                                >
                                     <Clock size={11} />
                                     <span>
-                                        {formatMinutesToDuration(displayedTopicMins)}
+                                        ~{formatMinutesToDuration(displayedTopicMins)} avg
                                         {isCardChecked && activeTopicMins !== fullTopicMins
                                             ? ` of ${formatMinutesToDuration(fullTopicMins)}`
                                             : ''}
@@ -582,8 +586,11 @@ const AiTopicSuggestModal = ({
                                     </span>
                                 </div>
                                 <div className={styles.subtopicRightMeta}>
-                                    <span className={`${styles.subtopicWeightPill} ${isSubChecked ? styles.subtopicWeightActive : styles.subtopicWeightMuted}`}>
-                                        {s.minutes} mins
+                                    <span
+                                        className={`${styles.subtopicWeightPill} ${isSubChecked ? styles.subtopicWeightActive : styles.subtopicWeightMuted}`}
+                                        title="Estimated average instructional time (editable per subtopic after applying)"
+                                    >
+                                        ~{s.minutes} mins avg
                                     </span>
                                     <label
                                         className={styles.checkboxLabel}

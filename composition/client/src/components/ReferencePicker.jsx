@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styles from '../styles/ReferencePicker.module.sass';
 import { Book, Bookmark, Globe, Unlock, ExternalLink, Plus, Edit2, PlusCircle } from 'react-feather';
+import ColumnValidationBar from './ColumnValidationBar.jsx';
 
 // Layout metrics synced with ReferencePicker.module.sass for height-driven ghost grid calculation
 const LIST_VERTICAL_PADDING = 24; // 12px top + 12px bottom
@@ -19,6 +20,7 @@ const EMPTY_PROMPT_HEIGHT = 176;  // 2 * 82 + 12 (matches exactly 2 card slots)
  * - disabled: boolean
  * - onAddReference: (defaultType) => void
  * - onEditReference: (ref) => void
+ * - validationState: { contentIssues: string[], isValid: boolean }
  */
 const ReferencePicker = ({
     options = [],
@@ -27,7 +29,8 @@ const ReferencePicker = ({
     error,
     disabled,
     onAddReference,
-    onEditReference
+    onEditReference,
+    validationState = null
 }) => {
     const [activeFilter, setActiveFilter] = useState('Textbook');
     const [listHeight, setListHeight] = useState(0);
@@ -229,43 +232,55 @@ const ReferencePicker = ({
     return (
         <div className={styles.container} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
             <div className={styles.pickerWrapper + (error ? ` ${styles.error}` : '')} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                {/* Header: Title + total badge (left) | filter buttons (middle) | Add Reference (right) */}
+                {/* 2-Row Header: Row 1 = Title + Validation Bar | Row 2 = Filter Tabs + Add Reference */}
                 <div className={styles.header}>
-                    <div className={styles.headerTitleGroup}>
-                        <Bookmark size={15} className={styles.headerTitleIcon} />
-                        <span className={styles.headerTitleText}>References</span>
-                        <span className={styles.headerCountBadge}>{(value || []).length}</span>
+                    <div className={styles.headerTopRow}>
+                        <div className={styles.headerTitleGroup}>
+                            <Bookmark size={15} className={styles.headerTitleIcon} />
+                            <span className={styles.headerTitleText}>References</span>
+                        </div>
+
+                        {validationState && (
+                            <ColumnValidationBar
+                                columnName="References"
+                                contentIssues={validationState.contentIssues || []}
+                                validItemCount={validationState.validItemCount ?? 0}
+                                validSummaryText={validationState.validSummaryText || ''}
+                            />
+                        )}
                     </div>
 
-                    <div className={styles.filterTabs}>
-                        {filterTabs.map(tab => {
-                            const isActive = activeFilter === tab.key;
-                            const count = selectedCountByTabKey[normalizeTypeKey(tab.key)] || 0;
-                            return (
-                                <button
-                                    key={tab.key}
-                                    type="button"
-                                    className={`${styles.tab} ${isActive ? styles.activeTab : ''}`}
-                                    onClick={() => setActiveFilter(tab.key)}
-                                >
-                                    <span>{tab.label}</span>
-                                    {count > 0 && (
-                                        <span className={styles.tabCountBadge}>{count}</span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <div className={styles.headerBottomRow}>
+                        <div className={styles.filterTabs}>
+                            {filterTabs.map(tab => {
+                                const isActive = activeFilter === tab.key;
+                                const count = selectedCountByTabKey[normalizeTypeKey(tab.key)] || 0;
+                                return (
+                                    <button
+                                        key={tab.key}
+                                        type="button"
+                                        className={`${styles.tab} ${isActive ? styles.activeTab : ''}`}
+                                        onClick={() => setActiveFilter(tab.key)}
+                                    >
+                                        <span>{tab.label}</span>
+                                        {count > 0 && (
+                                            <span className={styles.tabCountBadge}>{count}</span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
 
-                    <button
-                        className={styles.mainAddBtn}
-                        type="button"
-                        onClick={() => onAddReference && onAddReference(activeFilter)}
-                        disabled={disabled}
-                    >
-                        <Plus size={15} />
-                        <span>Add Reference</span>
-                    </button>
+                        <button
+                            className={styles.mainAddBtn}
+                            type="button"
+                            onClick={() => onAddReference && onAddReference(activeFilter)}
+                            disabled={disabled}
+                        >
+                            <Plus size={15} />
+                            <span>Add Reference</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Card List with dynamic height-based ghost grid placeholders */}

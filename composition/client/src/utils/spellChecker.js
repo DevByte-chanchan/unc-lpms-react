@@ -3,6 +3,7 @@ import affData from '../../node_modules/dictionary-en/index.aff?raw';
 import dicData from '../../node_modules/dictionary-en/index.dic?raw';
 
 const SESSION_WHITELIST_STORAGE_KEY = 'lpms_spellcheck_session_whitelist_v1';
+const PERSONAL_DICTIONARY_STORAGE_KEY = 'lpms_spellcheck_personal_dictionary_v1';
 
 // Pre-seeded academic, computing, and institution domain terms so valid curriculum terms aren't false-flagged
 const DEFAULT_WHITELIST = new Set([
@@ -195,36 +196,47 @@ let spellInstance = null;
 const sessionWhitelist = new Set();
 const whitelistListeners = new Set();
 
-function loadSessionWhitelist() {
-    try {
-        const raw = sessionStorage.getItem(SESSION_WHITELIST_STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                parsed.forEach(w => {
-                    if (typeof w === 'string' && w.trim()) {
-                        sessionWhitelist.add(w.trim().toLowerCase());
-                    }
-                });
-            }
+function loadPersonalWhitelist() {
+    const parseAndMerge = (raw) => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            parsed.forEach(w => {
+                if (typeof w === 'string' && w.trim()) {
+                    sessionWhitelist.add(w.trim().toLowerCase());
+                }
+            });
         }
-    } catch {
-        // Ignore storage errors
-    }
-}
+    };
 
-function saveSessionWhitelist() {
     try {
-        sessionStorage.setItem(
-            SESSION_WHITELIST_STORAGE_KEY,
-            JSON.stringify(Array.from(sessionWhitelist))
-        );
+        parseAndMerge(localStorage.getItem(PERSONAL_DICTIONARY_STORAGE_KEY));
+    } catch {
+        // Ignore storage errors
+    }
+
+    try {
+        parseAndMerge(sessionStorage.getItem(SESSION_WHITELIST_STORAGE_KEY));
     } catch {
         // Ignore storage errors
     }
 }
 
-loadSessionWhitelist();
+function savePersonalWhitelist() {
+    const serialized = JSON.stringify(Array.from(sessionWhitelist));
+    try {
+        localStorage.setItem(PERSONAL_DICTIONARY_STORAGE_KEY, serialized);
+    } catch {
+        // Ignore storage errors
+    }
+    try {
+        sessionStorage.setItem(SESSION_WHITELIST_STORAGE_KEY, serialized);
+    } catch {
+        // Ignore storage errors
+    }
+}
+
+loadPersonalWhitelist();
 
 export function getSpellChecker() {
     if (!spellInstance) {
@@ -255,7 +267,7 @@ function notifyWhitelistListeners() {
 }
 
 /**
- * Adds a word to the custom session whitelist so it won't be flagged again.
+ * Adds a word to the persistent personal dictionary so it won't be flagged again.
  * @param {string} word
  */
 export function addToWhitelist(word) {
@@ -267,8 +279,36 @@ export function addToWhitelist(word) {
     const checker = getSpellChecker();
     checker.add(cleaned);
     checker.add(lower);
-    saveSessionWhitelist();
+    savePersonalWhitelist();
     notifyWhitelistListeners();
+}
+
+/**
+ * Batch-adds multiple words to the persistent personal dictionary (used by "Accept All").
+ * @param {string[]} words
+ */
+export function addWordsToWhitelist(words) {
+    if (!Array.isArray(words) || words.length === 0) return;
+    const checker = getSpellChecker();
+    let changed = false;
+
+    words.forEach(rawWord => {
+        if (!rawWord || typeof rawWord !== 'string') return;
+        const cleaned = cleanWordToken(rawWord);
+        if (!cleaned) return;
+        const lower = cleaned.toLowerCase();
+        if (!sessionWhitelist.has(lower)) {
+            sessionWhitelist.add(lower);
+            changed = true;
+        }
+        checker.add(cleaned);
+        checker.add(lower);
+    });
+
+    if (changed) {
+        savePersonalWhitelist();
+        notifyWhitelistListeners();
+    }
 }
 
 export function isWhitelisted(word) {

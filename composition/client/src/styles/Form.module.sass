@@ -649,8 +649,13 @@
     .confirmBtn
       background: #3182CE
       color: white
-      &:hover
+      &:hover:not(:disabled)
         background: #2B6CB0
+      &:disabled
+        background: #CBD5E1
+        color: #64748B
+        cursor: not-allowed
+        opacity: 0.85
 
 @keyframes fadeIn
   from
@@ -665,7 +670,7 @@
   display: flex
   flex-direction: column
   gap: 8px
-  max-height: 240px
+  max-height: 260px
   overflow-y: auto
   margin-top: 6px
 
@@ -676,7 +681,7 @@
   padding: 9px 12px
   display: flex
   flex-direction: column
-  gap: 6px
+  gap: 8px
 
 .spellWarningHeaderRow
   display: flex
@@ -718,6 +723,92 @@
   text-decoration-line: underline
   text-decoration-style: wavy
   text-decoration-color: #EF4444
+
+.refSpellWordRow
+  display: flex
+  flex-direction: column
+  gap: 6px
+  background: #FFFFFF
+  border: 1px solid #FDE68A
+  border-radius: 6px
+  padding: 8px 10px
+
+.refSpellWordTop
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  flex-wrap: wrap
+
+.refSpellDictBtn
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  padding: 3px 9px
+  border-radius: 5px
+  border: 1px solid #FDBA74
+  background: #FFF7ED
+  color: #C2410C
+  font-size: 11px
+  font-weight: 600
+  cursor: pointer
+  transition: all 0.15s ease
+  &:hover
+    background: #FFEDD5
+    border-color: #FB923C
+    color: #9A3412
+
+.refSpellSuggestionsRow
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 5px
+
+.refSpellSuggestLabel
+  font-size: 11px
+  font-weight: 600
+  color: #64748B
+  margin-right: 2px
+
+.refSpellSuggestChip
+  padding: 2px 8px
+  border-radius: 999px
+  border: 1px solid #BFDBFE
+  background: #EFF6FF
+  color: #1D4ED8
+  font-size: 11.5px
+  font-weight: 600
+  cursor: pointer
+  transition: all 0.15s ease
+  &:hover
+    background: #DBEAFE
+    border-color: #60A5FA
+
+.refSpellNoSuggest
+  font-size: 11px
+  color: #94A3B8
+  font-style: italic
+
+.refInlineSpellHint
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  padding: 6px 9px
+  border-radius: 6px
+  background: #FFFBEB
+  border: 1px solid #FDE68A
+  font-size: 11.5px
+  color: #92400E
+  margin-top: -4px
+
+.refInlineSpellHintText
+  display: flex
+  align-items: center
+  gap: 6px
+  min-width: 0
+  flex: 1
+  line-height: 1.35
 
 .refModalBodyContent
   display: flex
@@ -778,15 +869,16 @@
   transition: all 0.3s ease
   display: flex
   flex-direction: column
-  height: 440px
+  height: var(--planner-card-height, 392px)
   box-sizing: border-box
 
 .tlaBodyCopycat
-  padding: 12px 14px
+  padding: 10px 14px 12px 14px
   display: flex
   flex-direction: column
-  gap: 10px
+  gap: 9px
   flex: 1
+  min-height: 0
   overflow-y: auto
   box-sizing: border-box
 
@@ -850,9 +942,20 @@
 .tlaDescriptionHigh
   display: flex
   flex-direction: column
+  flex: 1
+  min-height: 78px
+
+  :global(.generic-field-container)
+    display: flex
+    flex-direction: column
+    flex: 1
+    min-height: 0
+    height: 100%
+
   textarea, :global(.textfield), :global(.generic-field-input)
-    height: auto !important
-    min-height: 68px !important
+    flex: 1
+    height: 100% !important
+    min-height: 58px !important
     resize: none
 
 .fieldsGridThree
@@ -882,7 +985,7 @@
   border: 1px solid #EDF2F7
   padding: 5px 10px
   border-radius: 6px
-  height: 34px
+  height: 32px
   box-sizing: border-box
   display: flex
   align-items: center
@@ -909,17 +1012,18 @@
 
 .tlaAssessmentSection
   border-top: 1px dashed #E2E8F0
-  padding-top: 10px
+  padding-top: 8px
+  flex-shrink: 0
 
 .assessmentCopycatBox
   background-color: #F8FAFC
   border: 1px solid #E2E8F0
   border-radius: 6px
-  padding: 9px 10px
+  padding: 8px 10px
   position: relative
   display: flex
   flex-direction: column
-  gap: 8px
+  gap: 7px
 
 .assessmentBoxHeader
   display: flex
@@ -948,8 +1052,8 @@
     color: #E53E3E
 
 .tlaPlaceholderScale
-  height: 440px !important
-  min-height: 440px !important
+  height: var(--planner-card-height, 392px) !important
+  min-height: var(--planner-card-height, 392px) !important
   box-sizing: border-box
 
 // =============================================
@@ -1121,32 +1225,126 @@
 // =============================================
 // --- 3-COLUMN WEEKLY CONTENT PLANNER GRID ---
 // =============================================
+@keyframes columnPinArrival
+  0%
+    box-shadow: 0 0 0 0 rgba(49, 130, 206, 0)
+  28%
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.36), 0 8px 22px rgba(49, 130, 206, 0.16)
+  100%
+    box-shadow: 0 0 0 0 rgba(49, 130, 206, 0)
+
 .threeColPlannerGrid
   display: flex
   flex-direction: row
   align-items: stretch
-  gap: 14px
+  gap: 0
   flex: 1
   min-height: 0
-  width: 100%
+  width: calc(100% + 14px)
+  margin: 0 -7px
   box-sizing: border-box
 
 .plannerColumn
+  position: relative
   display: flex
   flex-direction: column
-  flex: 1 1 300px
   min-width: 0
   min-height: 0
+  border-radius: 9px
+  transform-origin: center top
+
+.plannerColumnPinned
+  flex: 1 1 0%
+  margin: 0 7px
+  opacity: 1
+  transform: none
+  visibility: visible
+  pointer-events: auto
+  overflow: visible
+  transition: flex-grow 0.34s cubic-bezier(0.22, 1, 0.36, 1), margin 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.26s ease 0.05s, transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0s
+
+.plannerColumnUnpinned
+  flex: 0 0 0%
+  margin: 0
+  opacity: 0
+  transform: translateY(-10px) scale(0.96)
+  visibility: hidden
+  pointer-events: none
+  overflow: hidden
+  transition: flex-grow 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.3s
+
+.plannerColumnJustPinned
+  overflow: hidden
+  animation: columnPinArrival 0.68s cubic-bezier(0.22, 1, 0.36, 1)
 
 @media (max-width: 1040px)
   .threeColPlannerGrid
     flex-direction: column
+    width: 100%
+    margin: 0
     overflow-y: auto
     padding-bottom: 12px
-  .plannerColumn
-    flex: none
+
+  .plannerColumnPinned
+    flex: 0 0 auto
     height: 520px
     min-height: 460px
+    margin: 0 0 14px 0
+    transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1), min-height 0.32s cubic-bezier(0.22, 1, 0.36, 1), margin 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease 0.05s, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0s
+
+  .plannerColumnUnpinned
+    flex: 0 0 auto
+    height: 0
+    min-height: 0
+    margin: 0
+    transform: translateY(-8px) scale(0.97)
+    transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1), min-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), margin 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease, transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.28s
+
+@media (prefers-reduced-motion: reduce)
+  .plannerColumnPinned,
+  .plannerColumnUnpinned,
+  .formLoadingOverlay
+    transition: none
+  .plannerColumnJustPinned
+    animation: none
+
+// =============================================
+// --- FORM INITIAL LOADING OVERLAY ---
+// =============================================
+@keyframes formSpinnerSpin
+  0%
+    transform: rotate(0deg)
+  100%
+    transform: rotate(360deg)
+
+.formLoadingOverlay
+  position: absolute
+  inset: 0
+  width: 100%
+  height: 100%
+  min-height: 300px
+  background: #FFFFFF
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 40
+  opacity: 1
+  visibility: visible
+  transition: opacity 0.22s ease, visibility 0s linear 0s
+
+.formLoadingOverlayHidden
+  opacity: 0
+  visibility: hidden
+  pointer-events: none
+  transition: opacity 0.22s ease, visibility 0s linear 0.22s
+
+.formLoadingSpinner
+  width: 40px
+  height: 40px
+  border: 4px solid rgba(0, 0, 0, 0.1)
+  border-left-color: #19282C
+  border-radius: 50%
+  animation: formSpinnerSpin 0.8s linear infinite
 
 // =============================================
 // --- 3-COLUMN VALIDATION NOTICE MODAL ---

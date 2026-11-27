@@ -300,7 +300,22 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                 <div className={styles.coZoneHeader}>
                                                     <div className={styles.coTitleGroup}>
                                                         <span className={styles.coTitle}>
-                                                            Course Outcome {co.coNumber}
+                                                            {(() => {
+                                                                const totalCos = iloData.courseOutcomes.length || 4;
+                                                                const n = Number(co.coNumber);
+                                                                let period = '';
+                                                                if (totalCos <= 2) {
+                                                                    period = n === 1 ? 'Midterm' : 'Final';
+                                                                } else if (totalCos === 3) {
+                                                                    period = n === 1 ? 'Prelim' : n === 2 ? 'Midterm' : 'Final';
+                                                                } else {
+                                                                    const map = { 1: 'Prelim', 2: 'Midterm', 3: 'Semi-Final', 4: 'Final' };
+                                                                    period = map[n] || '';
+                                                                }
+                                                                return period
+                                                                    ? `Course Outcome ${co.coNumber} — ${period}`
+                                                                    : `Course Outcome ${co.coNumber}`;
+                                                            })()}
                                                         </span>
                                                     </div>
                                                     <div className={styles.weekHourBadge}>

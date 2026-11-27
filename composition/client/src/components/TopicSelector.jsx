@@ -1,8 +1,19 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import styles from '../styles/TopicSelector.module.sass';
-import { BookOpen, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock, PlusCircle } from 'react-feather';
+import { BookOpen, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock, PlusCircle, Clock } from 'react-feather';
 import { GeminiStar } from './AiTopicSuggestModal.jsx';
 import SpellCheckInput from './SpellCheckInput.jsx';
+import ColumnValidationBar from './ColumnValidationBar.jsx';
+
+const formatTopicDuration = (totalMinutes) => {
+    const mins = Math.max(0, Math.round(Number(totalMinutes) || 0));
+    if (mins === 0) return '0m';
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    if (hrs === 0) return `${rem}m`;
+    if (rem === 0) return `${hrs}h`;
+    return `${hrs}h ${rem}m`;
+};
 
 const TopicSelector = ({
     label,
@@ -15,7 +26,11 @@ const TopicSelector = ({
     weekIndexInCo = 0,
     previousWeekTopics = [],
     onOpenAiSuggest,
-    isSingleColumn = false
+    isSingleColumn = false,
+    validationState = null,
+    onFixSpellField,
+    highlightedFieldId = null,
+    onClearHighlight
 }) => {
     const [isContinueOpen, setIsContinueOpen] = useState(false);
     const [lastAddedId, setLastAddedId] = useState(null);
@@ -75,12 +90,13 @@ const TopicSelector = ({
         const manualTopic = {
             topic_id: null,
             _temp_id: tempId,
-            title: "New Custom Topic",
+            title: "",
             isContinuation: false,
             subtopics: [{
                 subtopic_id: null,
                 _temp_id: `temp-sub-${Date.now()}`,
                 title: "",
+                estimated_minutes: "",
                 sequence_order: 0
             }],
             isManual: true
@@ -114,6 +130,7 @@ const TopicSelector = ({
                     subtopic_id: null,
                     _temp_id: `temp-sub-${Date.now()}`,
                     title: "",
+                    estimated_minutes: "",
                     sequence_order: 0
                 }
             ]
@@ -148,6 +165,24 @@ const TopicSelector = ({
         }));
     };
 
+    const updateSubtopicMinutes = (topicTarget, subTarget, rawValue) => {
+        // Strictly numeric, max 3 digits (0 - 999)
+        const digitsOnly = String(rawValue ?? '').replace(/\D/g, '').slice(0, 3);
+        const parsedMinutes = digitsOnly === '' ? '' : Number(digitsOnly);
+
+        onChange(value.map(t => {
+            if (getTopicKey(t) !== getTopicKey(topicTarget)) return t;
+            return {
+                ...t,
+                subtopics: t.subtopics.map(s =>
+                    getSubtopicKey(s) === getSubtopicKey(subTarget)
+                        ? { ...s, estimated_minutes: parsedMinutes }
+                        : s
+                )
+            };
+        }));
+    };
+
     const deleteSubtopic = (topicTarget, subTarget) => {
         onChange(value.map(t => {
             if (getTopicKey(t) !== getTopicKey(topicTarget)) return t;
@@ -168,6 +203,7 @@ const TopicSelector = ({
                 subtopic_id: null,
                 _temp_id: `temp-sub-${Date.now()}-${Math.random()}`,
                 title: `${target.title} (Copy)`,
+                estimated_minutes: target.estimated_minutes ?? "",
                 sequence_order: target.sequence_order + 1
             };
             const newSubtopics = [...t.subtopics];
@@ -195,6 +231,7 @@ const TopicSelector = ({
                         subtopic_id: null,
                         _temp_id: `temp-sub-${Date.now()}`,
                         title: "",
+                        estimated_minutes: "",
                         sequence_order: t.subtopics.length
                     }
                 ]
@@ -242,13 +279,28 @@ const TopicSelector = ({
 
             <div className={`${styles.mainWrapper} ${error ? styles.error : ''}`}>
                 <div ref={wrapperRef} className={styles.stickyHeader}>
-                    <div className={styles.headerRow}>
+                    {/* Row 1: Column Title + Inline Validation Status Bar */}
+                    <div className={styles.headerTopRow}>
                         <div className={styles.headerTitleGroup}>
                             <BookOpen size={15} className={styles.headerTitleIcon} />
                             <span className={styles.headerTitleText}>Topics</span>
-                            <span className={styles.headerCountBadge}>{value.length}</span>
                         </div>
 
+                        {validationState && (
+                            <ColumnValidationBar
+                                columnName="Topics"
+                                contentIssues={validationState.contentIssues || []}
+                                validItemCount={validationState.validItemCount ?? 0}
+                                validSummaryText={validationState.validSummaryText || ''}
+                                timeInfo={validationState.timeInfo || null}
+                                spellItems={validationState.spellItems || []}
+                                onFixSpellField={onFixSpellField}
+                            />
+                        )}
+                    </div>
+
+                    {/* Row 2: Column Action Buttons */}
+                    <div className={styles.headerBottomRow}>
                         <div className={styles.headerActionsGroup}>
                             {canContinueTopic && (
                                 <div className={styles.continueTopicWrapper}>
@@ -330,6 +382,13 @@ const TopicSelector = ({
                             const isNewlyAdded = topicKey === lastAddedId;
                             const isLockedContinuation = Boolean(topic.isContinuation);
                             const isAiSuggested = Boolean(topic.isAiSuggested);
+                            const topicFieldId = `topic-${topicKey}-title`;
+                            const isTopicTitleHighlighted = highlightedFieldId === topicFieldId;
+
+                            const topicTotalMinutes = (topic.subtopics || []).reduce(
+                                (sum, s) => sum + (Number(s.estimated_minutes) > 0 ? Number(s.estimated_minutes) : 0),
+                                0
+                            );
 
                             return (
                                 <div
@@ -339,7 +398,7 @@ const TopicSelector = ({
                                 >
                                     <div className={styles.topicHeaderCard}>
                                         <div className={styles.topicTitleGroup}>
-                                            <div className={styles.inputWrapper}>
+                                            <div className={`${styles.inputWrapper} ${isTopicTitleHighlighted ? styles.spellHighlightedInput : ''}`}>
                                                 {isLockedContinuation ? (
                                                     <Lock size={13} className={styles.lockIcon} title="Continued from previous week (Title locked)" />
                                                 ) : (
@@ -349,8 +408,10 @@ const TopicSelector = ({
                                                     className={`${styles.topicTitleInput} ${isLockedContinuation ? styles.lockedTitleInput : ''}`}
                                                     value={topic.title}
                                                     readOnly={isLockedContinuation}
+                                                    data-spell-field-id={topicFieldId}
                                                     onChange={(e) => {
                                                         if (isLockedContinuation) return;
+                                                        if (isTopicTitleHighlighted && onClearHighlight) onClearHighlight();
                                                         const newTitle = e.target.value;
                                                         onChange(value.map(t => getTopicKey(t) === topicKey ? { ...t, title: newTitle } : t));
                                                     }}
@@ -361,13 +422,28 @@ const TopicSelector = ({
                                                 )}
                                             </div>
                                         </div>
-                                        <button className={styles.removeTopicBtn} onClick={() => onChange(value.filter(t => getTopicKey(t) !== topicKey))}>
-                                            <X color={"white"} size={16} />
-                                        </button>
+
+                                        <div className={styles.topicHeaderRight}>
+                                            <span
+                                                className={`${styles.topicTotalTimePill} ${topicTotalMinutes > 0 ? styles.topicTotalTimeActive : styles.topicTotalTimeEmpty}`}
+                                                title={`Total allocated time for this topic: ${topicTotalMinutes} mins`}
+                                            >
+                                                <Clock size={11} />
+                                                <span>{formatTopicDuration(topicTotalMinutes)}</span>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className={styles.removeTopicBtn}
+                                                onClick={() => onChange(value.filter(t => getTopicKey(t) !== topicKey))}
+                                                title="Remove Topic"
+                                            >
+                                                <X color={"white"} size={15} />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className={styles.topicControls}>
-                                        <button className={styles.addSubBtnSticky} onClick={() => addBlankSubtopic(topic)}>
+                                        <button type="button" className={styles.addSubBtnSticky} onClick={() => addBlankSubtopic(topic)}>
                                             <Plus size={14} className={styles.btnIcon} /> <span>Add Subtopic</span>
                                         </button>
                                     </div>
@@ -375,20 +451,56 @@ const TopicSelector = ({
                                     <div className={styles.subtopicsContainer} id={`subtopics-${topicKey}`}>
                                         {(topic.subtopics || []).map((sub) => {
                                             const subKey = getSubtopicKey(sub);
+                                            const subFieldId = `subtopic-${topicKey}-${subKey}-title`;
+                                            const isSubHighlighted = highlightedFieldId === subFieldId;
+                                            const minsVal =
+                                                sub.estimated_minutes === null || sub.estimated_minutes === undefined
+                                                    ? ''
+                                                    : String(sub.estimated_minutes);
+
                                             return (
-                                                <div key={subKey} className={styles.subtopicRow}>
+                                                <div
+                                                    key={subKey}
+                                                    className={`${styles.subtopicRow} ${isSubHighlighted ? styles.spellHighlightedRow : ''}`}
+                                                >
                                                     <div className={styles.bullet}>•</div>
-                                                    <SpellCheckInput
-                                                        type="text"
-                                                        placeholder="Enter subtopic detail..."
-                                                        value={sub.title}
-                                                        onChange={(e) => updateSubtopic(topic, sub, e.target.value)}
-                                                    />
+                                                    <div className={styles.subtopicInputWrap}>
+                                                        <SpellCheckInput
+                                                            type="text"
+                                                            placeholder="Enter subtopic detail..."
+                                                            value={sub.title}
+                                                            data-spell-field-id={subFieldId}
+                                                            onChange={(e) => {
+                                                                if (isSubHighlighted && onClearHighlight) onClearHighlight();
+                                                                updateSubtopic(topic, sub, e.target.value);
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div
+                                                        className={`${styles.subtopicMinutesBox} ${Number(sub.estimated_minutes) > 0 ? styles.subtopicMinutesFilled : ''}`}
+                                                        title="Estimated instructional duration in minutes (1–999)"
+                                                    >
+                                                        <input
+                                                            type="text"
+                                                            inputMode="numeric"
+                                                            pattern="[0-9]*"
+                                                            maxLength={3}
+                                                            className={styles.subtopicMinutesInput}
+                                                            placeholder="0"
+                                                            value={minsVal}
+                                                            disabled={disabled}
+                                                            onChange={(e) => updateSubtopicMinutes(topic, sub, e.target.value)}
+                                                            aria-label="Subtopic minutes"
+                                                        />
+                                                        <span className={styles.subtopicMinutesUnit}>m</span>
+                                                    </div>
+
                                                     <div className={styles.actions}>
-                                                        <button onClick={() => duplicateSubtopic(topic, sub)} title="Duplicate">
+                                                        <button type="button" onClick={() => duplicateSubtopic(topic, sub)} title="Duplicate">
                                                             <Copy size={14} />
                                                         </button>
-                                                        <button className={styles.delete} onClick={() => deleteSubtopic(topic, sub)} title="Delete">
+                                                        <button type="button" className={styles.delete} onClick={() => deleteSubtopic(topic, sub)} title="Delete">
                                                             <Trash2 size={14} />
                                                         </button>
                                                     </div>

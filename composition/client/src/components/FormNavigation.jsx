@@ -18,6 +18,35 @@ const PushPinIcon = () => (
     </svg>
 );
 
+const getFallbackPeriodInfo = (coNumber, totalCos = 4) => {
+    const n = Number(coNumber);
+    if (!Number.isFinite(n) || n <= 0) {
+        return { short: 'Orientation', label: 'Course Orientation' };
+    }
+    if (totalCos <= 2) {
+        return n === 1
+            ? { short: 'Midterm', label: 'Midterm' }
+            : { short: 'Final', label: 'Final' };
+    }
+    if (totalCos === 3) {
+        const map3 = {
+            1: { short: 'Prelim', label: 'Prelim' },
+            2: { short: 'Midterm', label: 'Midterm' },
+            3: { short: 'Final', label: 'Final' }
+        };
+        return map3[n] || { short: `Period ${n}`, label: `Period ${n}` };
+    }
+    const map4 = {
+        1: { short: 'Prelim', label: 'Prelim' },
+        2: { short: 'Midterm', label: 'Midterm' },
+        3: { short: 'Semi-Final', label: 'Semi-Final' },
+        4: { short: 'Final', label: 'Final' }
+    };
+    return map4[n] || { short: `Period ${n}`, label: `Period ${n}` };
+};
+
+const stripTermSuffix = (val) => String(val || '').replace(/\s+term$/i, '').trim();
+
 const FormNavigation = ({
     goBack,
     onSave,
@@ -32,13 +61,17 @@ const FormNavigation = ({
     onSelectWeek,
     coNumber,
     coDescription = "",
+    periodLabel = "",
     ilos = [],
     courseOutcomes = [],
     onSelectCourseOutcome,
     isOrientation = false,
     status = "",
     stepCommentCounts = [0, 0, 0],
-    weekCommentCounts = {}
+    weekCommentCounts = {},
+    isSaveDisabled = false,
+    saveDisabledReason = "",
+    blockedUnpinStep = null
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -57,6 +90,8 @@ const FormNavigation = ({
     }
 
     const isMultiPinMode = Array.isArray(pinnedSteps);
+    const totalNonOrientationCos = courseOutcomes.filter(co => !(co.isOrientation || Number(co.coNumber) === 0)).length || 4;
+    const resolvedPeriodLabel = stripTermSuffix(periodLabel) || getFallbackPeriodInfo(coNumber, totalNonOrientationCos).label;
 
     const getContentIcon = (idx) => {
         if (idx === 0) return <BookOpen size={14} className={styles.tabIcon} />;
@@ -110,6 +145,15 @@ const FormNavigation = ({
         }
     };
 
+    const handleSaveClick = () => {
+        if (isSaveDisabled) return;
+        if (onSave) onSave();
+    };
+
+    const saveTooltip = isSaveDisabled
+        ? (saveDisabledReason || "Resolve all column validation issues before saving")
+        : "Save weekly content";
+
     return (
         <div className={`${styles.navi} ${isExpanded ? styles.naviExpanded : ""}`}>
             <button
@@ -124,10 +168,10 @@ const FormNavigation = ({
             </button>
 
             <div className={`${styles.plannerBar} ${isExpanded ? styles.plannerBarExpanded : ""}`}>
-                {/* Top Navigation Row: CO Toggler, CO Switcher (when expanded), Weeks, and Content Tabs */}
+                {/* Top Navigation Row: CO Toggler, CO Switcher (when expanded), Weeks, and Left-Aligned Content Pins */}
                 <div className={styles.plannerTopRow}>
                     <div className={styles.calendarSection}>
-                        {/* Recognizable CO # Toggler Button */}
+                        {/* Recognizable CO # + Examination Period Toggler Button (COMP-007) */}
                         <button
                             type="button"
                             className={`${styles.coToggleBtn} ${isExpanded ? styles.coToggleBtnActive : ""}`}
@@ -138,7 +182,7 @@ const FormNavigation = ({
                             <span className={styles.coBadgeText}>
                                 {isOrientation
                                     ? "Course Orientation"
-                                    : (coNumber ? `CO ${coNumber}` : "Schedule")}
+                                    : (coNumber ? `CO ${coNumber} — ${resolvedPeriodLabel}` : "Schedule")}
                             </span>
                             <span className={styles.coToggleChevron}>
                                 {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -154,6 +198,8 @@ const FormNavigation = ({
                                         ? Boolean(isOrientation)
                                         : (!isOrientation && Number(co.coNumber) === Number(coNumber));
                                     const coUnresolved = getCoUnresolvedCount(co);
+                                    const coPeriodShort = stripTermSuffix(co.periodShort) || getFallbackPeriodInfo(co.coNumber, totalNonOrientationCos).short;
+                                    const coPeriodFull = stripTermSuffix(co.periodLabel) || getFallbackPeriodInfo(co.coNumber, totalNonOrientationCos).label;
                                     return (
                                         <button
                                             key={coIsOrientation ? "co-orientation" : (co.co_id || co.coNumber)}
@@ -163,10 +209,10 @@ const FormNavigation = ({
                                             title={
                                                 coIsOrientation
                                                     ? `Switch to Course Orientation${coUnresolved > 0 ? ` (${coUnresolved} unresolved comment${coUnresolved > 1 ? 's' : ''})` : ''}`
-                                                    : `Switch to Course Outcome ${co.coNumber}${coUnresolved > 0 ? ` (${coUnresolved} unresolved comment${coUnresolved > 1 ? 's' : ''})` : ''}`
+                                                    : `Switch to Course Outcome ${co.coNumber} (${coPeriodFull})${coUnresolved > 0 ? ` (${coUnresolved} unresolved comment${coUnresolved > 1 ? 's' : ''})` : ''}`
                                             }
                                         >
-                                            <span>{coIsOrientation ? "CO0" : `CO ${co.coNumber}`}</span>
+                                            <span>{coIsOrientation ? "CO0" : `CO ${co.coNumber} · ${coPeriodShort}`}</span>
                                             {coUnresolved > 0 && <span className={styles.coSwitchCommentDot} />}
                                         </button>
                                     );
@@ -191,7 +237,7 @@ const FormNavigation = ({
                                             title={
                                                 isOrientation
                                                     ? `Course Orientation • Week 1 (${week.hours || 2} hrs Lecture Session)`
-                                                    : `CO ${coNumber || ""} • Week ${weekNum} (${week.hours || 5} hrs)${hasComments ? " — " + weekUnresolved + " unresolved comment(s)" : ""}`
+                                                    : `CO ${coNumber || ""} (${resolvedPeriodLabel}) • Week ${weekNum} (${week.hours || 5} hrs)${hasComments ? " — " + weekUnresolved + " unresolved comment(s)" : ""}`
                                             }
                                         >
                                             <span className={styles.notepadBinding} />
@@ -223,19 +269,26 @@ const FormNavigation = ({
 
                     <div className={styles.barDivider} />
 
-                    {/* Pinned Content Selector Buttons + Compact Responsive Actions */}
+                    {/* Left-Aligned Pinned Content Selector Buttons + Compact Responsive Actions */}
                     <div className={styles.contentSelectorGroup}>
                         <div className={styles.pinnedTabsCluster}>
                             {steps.map((stepLabel, idx) => {
                                 const isPinned = isMultiPinMode ? Boolean(pinnedSteps[idx]) : idx === currentStep;
+                                const isOnlyPinned = isMultiPinMode && isPinned && pinnedSteps.filter(Boolean).length <= 1;
+                                const isBlockedShake = blockedUnpinStep === idx;
                                 const badgeCount = isReturned ? (Number(stepCommentCounts[idx]) || 0) : 0;
                                 return (
                                     <button
                                         key={idx}
                                         type="button"
-                                        className={`${styles.contentTabBtn} ${isPinned ? styles.activeContentTab : ""} ${badgeCount > 0 ? styles.contentTabHasComment : ""}`}
+                                        aria-pressed={isPinned}
+                                        className={`${styles.contentTabBtn} ${isPinned ? styles.activeContentTab : ""} ${badgeCount > 0 ? styles.contentTabHasComment : ""} ${isBlockedShake ? styles.contentTabBlocked : ""}`}
                                         onClick={() => handleContentBtnClick(idx)}
-                                        title={isPinned ? `Click to unpin ${stepLabel}` : `Click to pin ${stepLabel}`}
+                                        title={
+                                            isOnlyPinned
+                                                ? `At least one content column must remain pinned`
+                                                : (isPinned ? `Click to unpin ${stepLabel}` : `Click to pin ${stepLabel}`)
+                                        }
                                     >
                                         {getContentIcon(idx)}
                                         <span>{stepLabel}</span>
@@ -269,8 +322,10 @@ const FormNavigation = ({
                                 )}
                                 <button
                                     type="button"
-                                    className={styles.saveInlineMobile}
-                                    onClick={onSave}
+                                    className={`${styles.saveInlineMobile} ${isSaveDisabled ? styles.saveDisabled : ""}`}
+                                    onClick={handleSaveClick}
+                                    disabled={isSaveDisabled}
+                                    title={saveTooltip}
                                 >
                                     <CheckCircle size={15} />
                                     <span>Save</span>
@@ -345,8 +400,10 @@ const FormNavigation = ({
 
                 <button
                     type="button"
-                    className={styles.save}
-                    onClick={onSave}
+                    className={`${styles.save} ${isSaveDisabled ? styles.saveDisabled : ""}`}
+                    onClick={handleSaveClick}
+                    disabled={isSaveDisabled}
+                    title={saveTooltip}
                     tabIndex={isExpanded ? -1 : 0}
                     aria-hidden={isExpanded}
                 >

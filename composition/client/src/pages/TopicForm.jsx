@@ -8,8 +8,8 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import TopicSelector from "../components/TopicSelector.jsx";
 import AiTopicSuggestModal from "../components/AiTopicSuggestModal.jsx";
 import ImportPreviousModal from "../components/ImportPreviousModal.jsx";
-import { checkSpelling } from "../utils/spellChecker.js";
-import { X, CheckCircle, MessageSquare, AlertCircle, ChevronsRight, ChevronDown } from 'react-feather';
+import { checkSpelling, subscribeWhitelist } from "../utils/spellChecker.js";
+import { X, CheckCircle, MessageSquare, ChevronsRight, ChevronDown } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 
 import TLAForm from "./TLAForm.jsx";
@@ -164,7 +164,10 @@ const serializeTopics = (topics) => {
         title: (t.title || '').trim(),
         isContinuation: Boolean(t.isContinuation),
         subtopics: (t.subtopics || []).map(s => ({
-            title: (s.title || '').trim()
+            title: (s.title || '').trim(),
+            estimated_minutes: s.estimated_minutes === '' || s.estimated_minutes === undefined || s.estimated_minutes === null
+                ? null
+                : Number(s.estimated_minutes)
         }))
     })));
 };
@@ -185,10 +188,15 @@ const TopicSubForm = forwardRef(({
     previousWeekId,
     weekNumber = 1,
     weekIndexInCo = 0,
+    weeklyHours = 5,
     isOrientation = false,
     status,
     setUnresolvedCount,
     onCommentsChange,
+    onValidationStateChange,
+    onFixSpellField,
+    highlightedFieldId = null,
+    onClearHighlight,
     courseCode,
     cachedWeekTopics,
     previousWeekFrontendTopics,
@@ -201,8 +209,15 @@ const TopicSubForm = forwardRef(({
     const [previousWeekTopics, setPreviousWeekTopics] = useState([]);
     const [loading, setLoading] = useState(false);
     const [reviewComments, setReviewComments] = useState([]);
+    const [whitelistVersion, setWhitelistVersion] = useState(0);
     const initialTopicsStateRef = useRef(null);
     const initialCommentsStateRef = useRef(null);
+
+    useEffect(() => {
+        return subscribeWhitelist(() => {
+            setWhitelistVersion(v => v + 1);
+        });
+    }, []);
 
     const updateTopicsState = useCallback((nextTopics) => {
         setSelectedTopics(nextTopics);
@@ -386,65 +401,136 @@ const TopicSubForm = forwardRef(({
         return [];
     }, [selectedTopics, availableTopics]);
 
-    const collectTopicSpellWarnings = useCallback(() => {
-        const warnings = [];
-        selectedTopics.forEach((topic, tIdx) => {
-            const topicLabel = `Topic #${tIdx + 1}${topic.title ? ` (${topic.title})` : ''}`;
+    // Live Topics validation: content completeness, weekly hour budget, and spell-check items
+    const liveValidationState = useMemo(() => {
+        void whitelistVersion;
+        const contentIssues = [];
+        const spellItems = [];
+        let usedMinutes = 0;
+        let validItemCount = 0;
 
-            if (!topic.isContinuation) {
-                const titleWords = checkSpelling(topic.title || '');
-                if (titleWords.length > 0) {
-                    warnings.push({
-                        section: 'Topics',
-                        field: `${topicLabel} — Topic Title`,
-                        words: titleWords
-                    });
-                }
-            }
-
-            (topic.subtopics || []).forEach((sub, sIdx) => {
-                const subWords = checkSpelling(sub.title || '');
-                if (subWords.length > 0) {
-                    warnings.push({
-                        section: 'Topics',
-                        field: `${topicLabel} — Subtopic #${sIdx + 1}`,
-                        words: subWords
-                    });
-                }
-            });
-        });
-        return warnings;
-    }, [selectedTopics]);
-
-    useImperativeHandle(ref, () => ({
-        validate: () => {
-            if (!selectedTopics || selectedTopics.length === 0) {
-                return "Please select or create at least one topic.";
-            }
-
-            const errList = [];
-            selectedTopics.forEach((topic, idx) => {
-                const topicNum = idx + 1;
+        if (!selectedTopics || selectedTopics.length === 0) {
+            contentIssues.push('Add at least 1 topic with at least 1 subtopic.');
+        } else {
+            selectedTopics.forEach((topic, tIdx) => {
+                const topicNum = tIdx + 1;
+                const topicKey = topic.topic_id || topic._temp_id || tIdx;
                 const rawTitle = (topic.title || '').trim();
+                const topicLabel = `Topic #${topicNum}${rawTitle ? ` (${rawTitle})` : ''}`;
+                let topicHasError = false;
 
                 if (!rawTitle) {
-                    errList.push(`Topic #${topicNum}: Topic title cannot be empty.`);
-                } else if (rawTitle.toLowerCase() === 'new custom topic') {
-                    errList.push(`Topic #${topicNum}: Default title "New Custom Topic" must be changed to a specific topic title.`);
+                    contentIssues.push(`Topic #${topicNum}: Topic title cannot be empty.`);
+                    topicHasError = true;
+                }
+
+                if (!topic.isContinuation) {
+                    const titleWords = checkSpelling(topic.title || '');
+                    if (titleWords.length > 0) {
+                        spellItems.push({
+                            fieldId: `topic-${topicKey}-title`,
+                            label: `${topicLabel} — Topic Title`,
+                            words: titleWords
+                        });
+                    }
                 }
 
                 const subtopics = Array.isArray(topic.subtopics) ? topic.subtopics : [];
                 if (subtopics.length === 0) {
-                    errList.push(`Topic #${topicNum} (${rawTitle || 'Untitled'}): Must contain at least one subtopic.`);
+                    contentIssues.push(`${topicLabel}: Add at least 1 subtopic.`);
+                    topicHasError = true;
                 } else {
-                    const emptySubs = subtopics.filter(s => !s.title || !s.title.trim());
-                    if (emptySubs.length > 0) {
-                        errList.push(`Topic #${topicNum} (${rawTitle || 'Untitled'}): Contains ${emptySubs.length} empty subtopic ${emptySubs.length === 1 ? 'entry' : 'entries'}. Each subtopic must have a title or be removed.`);
+                    let emptyTitleCount = 0;
+                    let missingMinsCount = 0;
+
+                    subtopics.forEach((sub, sIdx) => {
+                        const subKey = sub.subtopic_id || sub._temp_id || sIdx;
+                        const subTitle = (sub.title || '').trim();
+                        if (!subTitle) {
+                            emptyTitleCount += 1;
+                        }
+
+                        const minsNum = Number(sub.estimated_minutes);
+                        if (Number.isFinite(minsNum) && minsNum > 0) {
+                            usedMinutes += Math.round(minsNum);
+                        } else {
+                            missingMinsCount += 1;
+                        }
+
+                        const subWords = checkSpelling(sub.title || '');
+                        if (subWords.length > 0) {
+                            spellItems.push({
+                                fieldId: `subtopic-${topicKey}-${subKey}-title`,
+                                label: `${topicLabel} — Subtopic #${sIdx + 1}`,
+                                words: subWords
+                            });
+                        }
+                    });
+
+                    if (emptyTitleCount > 0) {
+                        contentIssues.push(
+                            `${topicLabel}: ${emptyTitleCount} empty subtopic ${emptyTitleCount === 1 ? 'title' : 'titles'}.`
+                        );
+                        topicHasError = true;
+                    }
+                    if (missingMinsCount > 0) {
+                        contentIssues.push(
+                            `${topicLabel}: Allocate minutes (> 0) for ${missingMinsCount} ${missingMinsCount === 1 ? 'subtopic' : 'subtopics'}.`
+                        );
+                        topicHasError = true;
                     }
                 }
-            });
 
-            return errList.length > 0 ? errList : null;
+                if (!topicHasError) {
+                    validItemCount += 1;
+                }
+            });
+        }
+
+        const budgetMinutes = Math.max(1, Math.round((Number(weeklyHours) || 5) * 60));
+        const diff = usedMinutes - budgetMinutes;
+        const isTimeValid = usedMinutes === budgetMinutes;
+
+        let timeTooltip = `Matches weekly budget (${usedMinutes} / ${budgetMinutes} mins).`;
+        if (usedMinutes <= 0) {
+            timeTooltip = `Allocate instructional minutes to match weekly budget (0 / ${budgetMinutes} mins).`;
+        } else if (diff < 0) {
+            const remaining = Math.abs(diff);
+            timeTooltip = `Under weekly budget by ${remaining} ${remaining === 1 ? 'min' : 'mins'} (${usedMinutes} / ${budgetMinutes} mins). Total must equal the weekly budget.`;
+        } else if (diff > 0) {
+            timeTooltip = `Exceeds weekly budget by ${diff} ${diff === 1 ? 'min' : 'mins'} (${usedMinutes} / ${budgetMinutes} mins). Total must equal the weekly budget.`;
+        }
+
+        const timeInfo = {
+            usedMinutes,
+            budgetMinutes,
+            isValid: isTimeValid,
+            tooltip: timeTooltip
+        };
+
+        return {
+            contentIssues,
+            validItemCount,
+            validSummaryText: `${validItemCount} valid ${validItemCount === 1 ? 'topic' : 'topics'} added.`,
+            timeInfo,
+            spellItems,
+            isValid: contentIssues.length === 0 && timeInfo.isValid && spellItems.length === 0
+        };
+    }, [selectedTopics, weeklyHours, whitelistVersion]);
+
+    useEffect(() => {
+        if (!loading && onValidationStateChange) {
+            onValidationStateChange(liveValidationState);
+        }
+    }, [loading, liveValidationState, onValidationStateChange]);
+
+    useImperativeHandle(ref, () => ({
+        validate: () => {
+            const errs = [...liveValidationState.contentIssues];
+            if (!liveValidationState.timeInfo.isValid) {
+                errs.push(liveValidationState.timeInfo.tooltip);
+            }
+            return errs.length > 0 ? errs : null;
         },
         hasChanges: () => {
             if (initialTopicsStateRef.current === null) return false;
@@ -456,7 +542,7 @@ const TopicSubForm = forwardRef(({
             initialTopicsStateRef.current = serializeTopics(selectedTopics);
             initialCommentsStateRef.current = serializeComments(reviewComments);
         },
-        getSpellWarnings: collectTopicSpellWarnings,
+        getSpellWarnings: () => liveValidationState.spellItems,
         getSelectedTopics: () => selectedTopics,
         importPreviousTopics: (incomingTopics) => {
             if (!Array.isArray(incomingTopics) || incomingTopics.length === 0) return;
@@ -480,6 +566,9 @@ const TopicSubForm = forwardRef(({
                         parent_subtopic_id: s.subtopic_id || null,
                         _temp_id: `temp-prev-sub-${now}-${idx}-${sIdx}-${Math.random()}`,
                         title: s.title || '',
+                        estimated_minutes: s.estimated_minutes != null && s.estimated_minutes !== ''
+                            ? Number(s.estimated_minutes)
+                            : '',
                         sequence_order: s.sequence_order ?? sIdx
                     }))
                 }));
@@ -560,6 +649,10 @@ const TopicSubForm = forwardRef(({
                 previousWeekTopics={isOrientation ? [] : previousWeekTopics}
                 onOpenAiSuggest={onOpenAiSuggest}
                 isSingleColumn={isSingleColumn}
+                validationState={liveValidationState}
+                onFixSpellField={onFixSpellField}
+                highlightedFieldId={highlightedFieldId}
+                onClearHighlight={onClearHighlight}
             />
         </div>
     );
@@ -578,23 +671,59 @@ const TopicForm = () => {
 
     const [currentStep, setCurrentStep] = useState(0);
     const [pinnedSteps, setPinnedSteps] = useState([true, true, true]);
+    const [recentlyPinnedStep, setRecentlyPinnedStep] = useState(null);
+    const [blockedUnpinStep, setBlockedUnpinStep] = useState(null);
+    const pinAnimTimerRef = useRef(null);
+    const blockedPinTimerRef = useRef(null);
     const [isImportPrevOpen, setIsImportPrevOpen] = useState(false);
-    const steps = ['Topics', 'Teaching & Learning Activities', 'References'];
+    const steps = ['Topics', 'TLAs', 'References'];
+
+    useEffect(() => {
+        return () => {
+            if (pinAnimTimerRef.current) clearTimeout(pinAnimTimerRef.current);
+            if (blockedPinTimerRef.current) clearTimeout(blockedPinTimerRef.current);
+        };
+    }, []);
 
     const handleTogglePin = useCallback((stepIdx) => {
+        const isCurrentlyPinned = Boolean(pinnedSteps[stepIdx]);
+        const pinnedCount = pinnedSteps.filter(Boolean).length;
+
+        // Ensure at least 1 column remains pinned/visible with brief shake feedback
+        if (isCurrentlyPinned && pinnedCount <= 1) {
+            setBlockedUnpinStep(null);
+            if (blockedPinTimerRef.current) clearTimeout(blockedPinTimerRef.current);
+            requestAnimationFrame(() => {
+                setBlockedUnpinStep(stepIdx);
+                blockedPinTimerRef.current = setTimeout(() => {
+                    setBlockedUnpinStep(null);
+                }, 420);
+            });
+            return;
+        }
+
+        const willPin = !isCurrentlyPinned;
         setPinnedSteps(prev => {
-            const isCurrentlyPinned = Boolean(prev[stepIdx]);
-            const pinnedCount = prev.filter(Boolean).length;
-            // Ensure at least 1 column remains pinned/visible
-            if (isCurrentlyPinned && pinnedCount <= 1) {
-                return prev;
-            }
             const next = [...prev];
-            next[stepIdx] = !isCurrentlyPinned;
+            next[stepIdx] = willPin;
             return next;
         });
         setCurrentStep(stepIdx);
-    }, []);
+
+        if (willPin) {
+            setRecentlyPinnedStep(null);
+            if (pinAnimTimerRef.current) clearTimeout(pinAnimTimerRef.current);
+            requestAnimationFrame(() => {
+                setRecentlyPinnedStep(stepIdx);
+                pinAnimTimerRef.current = setTimeout(() => {
+                    setRecentlyPinnedStep(null);
+                }, 680);
+            });
+        } else if (recentlyPinnedStep === stepIdx) {
+            if (pinAnimTimerRef.current) clearTimeout(pinAnimTimerRef.current);
+            setRecentlyPinnedStep(null);
+        }
+    }, [pinnedSteps, recentlyPinnedStep]);
 
     // Weekly Planner & Course Outcome Context State
     const [weekContext, setWeekContext] = useState({
@@ -609,6 +738,7 @@ const TopicForm = () => {
         totalWeeklyHours: 5,
         coNumber: null,
         coDescription: '',
+        periodLabel: '',
         ilos: [],
         weeks: [],
         courseOutcomes: [],
@@ -708,21 +838,108 @@ const TopicForm = () => {
 
     const unresolvedCount = stepCommentCounts[currentStep] || 0;
 
-    // Main Operation / Global Validations & Spell Check States
+    // Live per-column validation state (gates FormNavigation Save button) + spell-jump highlight + save confirmation modal
+    const [columnValidations, setColumnValidations] = useState({
+        topics: { isValid: false, timeInfo: null },
+        tlas: { isValid: false },
+        references: { isValid: false }
+    });
+    const [highlightedFieldId, setHighlightedFieldId] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [showValidationModal, setShowValidationModal] = useState(false);
-    const [validationErrors, setValidationErrors] = useState({});
-    const [showSpellCheckModal, setShowSpellCheckModal] = useState(false);
-    const [spellCheckWarnings, setSpellCheckWarnings] = useState([]);
+    const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    const handleTopicValidationChange = useCallback((valState) => {
+        setColumnValidations(prev => ({ ...prev, topics: valState }));
+    }, []);
+    const handleTlaValidationChange = useCallback((valState) => {
+        setColumnValidations(prev => ({ ...prev, tlas: valState }));
+    }, []);
+    const handleRefValidationChange = useCallback((valState) => {
+        setColumnValidations(prev => ({ ...prev, references: valState }));
+    }, []);
+
+    const clearHighlight = useCallback(() => {
+        setHighlightedFieldId(null);
+    }, []);
+
+    const handleFixSpellField = useCallback((stepIdx, fieldId) => {
+        if (!fieldId) return;
+        setPinnedSteps(prev => {
+            if (prev[stepIdx]) return prev;
+            const next = [...prev];
+            next[stepIdx] = true;
+            return next;
+        });
+        setCurrentStep(stepIdx);
+        setHighlightedFieldId(fieldId);
+
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                const escaped = String(fieldId).replace(/"/g, '\\"');
+                const el = document.querySelector(`[data-spell-field-id="${escaped}"]`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (typeof el.focus === 'function') {
+                        el.focus({ preventScroll: true });
+                    }
+                }
+            }, 80);
+        });
+    }, []);
+
+    const handleFixTopicSpellField = useCallback((fieldId) => {
+        handleFixSpellField(0, fieldId);
+    }, [handleFixSpellField]);
+
+    const handleFixTlaSpellField = useCallback((fieldId) => {
+        handleFixSpellField(1, fieldId);
+    }, [handleFixSpellField]);
+
+    useEffect(() => {
+        setHighlightedFieldId(null);
+        setColumnValidations({
+            topics: { isValid: false, timeInfo: null },
+            tlas: { isValid: false },
+            references: { isValid: false }
+        });
+    }, [effectiveWeekId, isOrientation]);
+
+    const allColumnsValid = Boolean(
+        columnValidations.topics?.isValid &&
+        columnValidations.tlas?.isValid &&
+        columnValidations.references?.isValid
+    );
+
+    const saveDisabledReason = useMemo(() => {
+        if (isSaving) return 'Saving changes...';
+        const pending = [];
+        if (!columnValidations.topics?.isValid) pending.push('Topics');
+        if (!columnValidations.tlas?.isValid) pending.push('Teaching & Learning Activities');
+        if (!columnValidations.references?.isValid) pending.push('References');
+        if (pending.length === 0) return 'Save weekly content changes';
+        return `Resolve validation issues in: ${pending.join(', ')}`;
+    }, [columnValidations, isSaving]);
+
+    const [isFormLoading, setIsFormLoading] = useState(true);
 
     useEffect(() => {
         setIsOrientation(initialIsOrientation);
     }, [iloId, initialIsOrientation]);
 
     useEffect(() => {
-        if (!iloId) return;
         let mounted = true;
+        setIsFormLoading(true);
+
+        if (!iloId) {
+            const fallbackTimer = setTimeout(() => {
+                if (mounted) setIsFormLoading(false);
+            }, 500);
+            return () => {
+                mounted = false;
+                clearTimeout(fallbackTimer);
+            };
+        }
 
         async function loadWeekContext() {
             try {
@@ -760,6 +977,8 @@ const TopicForm = () => {
                             co_id: firstCo.co_id,
                             coNumber: 0,
                             isOrientation: true,
+                            periodShort: 'Orientation',
+                            periodLabel: 'Course Orientation',
                             coDescription: orientDesc,
                             ilos: orientIlos,
                             weeks: orientWeeks,
@@ -782,6 +1001,7 @@ const TopicForm = () => {
                     totalWeeklyHours: ctx.totalWeeklyHours || 5,
                     coNumber: initialIsOrientation ? 0 : (ctx.coNumber ?? 1),
                     coDescription: ctx.coDescription || '',
+                    periodLabel: initialIsOrientation ? 'Course Orientation' : (ctx.periodLabel || ''),
                     ilos: Array.isArray(ctx.ilos) ? ctx.ilos : [],
                     weeks: Array.isArray(ctx.weeks) ? ctx.weeks : [],
                     courseOutcomes: resolvedCourseOutcomes,
@@ -799,8 +1019,21 @@ const TopicForm = () => {
             }
         }
 
-        loadWeekContext();
-        return () => { mounted = false; };
+        let minDelayTimer = null;
+        const minDelay = new Promise((resolve) => {
+            minDelayTimer = setTimeout(resolve, 500);
+        });
+
+        Promise.all([loadWeekContext(), minDelay]).finally(() => {
+            if (mounted) {
+                setIsFormLoading(false);
+            }
+        });
+
+        return () => {
+            mounted = false;
+            if (minDelayTimer) clearTimeout(minDelayTimer);
+        };
     }, [iloId, initialIsOrientation, courseCode]);
 
     // Pre-populate frontend weekTopicsMap for all weeks of the active Course Outcome (without overwriting any unsaved edits already in weekTopicsMap)
@@ -961,6 +1194,7 @@ const TopicForm = () => {
             co_id: targetCo.co_id,
             coNumber: targetCo.coNumber,
             coDescription: targetCo.coDescription || '',
+            periodLabel: targetIsOrientation ? 'Course Orientation' : (targetCo.periodLabel || ''),
             ilos: Array.isArray(targetCo.ilos) ? targetCo.ilos : [],
             weeks: nextWeeks
         }));
@@ -1019,119 +1253,14 @@ const TopicForm = () => {
         return refRef.current;
     };
 
-    const collectAllSpellWarnings = () => {
-        const allWarnings = [];
-        if (topicRef.current?.getSpellWarnings) {
-            allWarnings.push(...topicRef.current.getSpellWarnings());
-        }
-        if (tlaRef.current?.getSpellWarnings) {
-            allWarnings.push(...tlaRef.current.getSpellWarnings());
-        }
-        if (refRef.current?.getSpellWarnings) {
-            allWarnings.push(...refRef.current.getSpellWarnings());
-        }
-        return allWarnings;
-    };
-
-    const handleSaveClick = async () => {
+    const handleSaveClick = () => {
+        if (!allColumnsValid || isSaving) return;
         syncLiveTopicsToFrontendMap();
-
-        // 1. Detect if any changes exist across Topics, TLAs, References, or other weeks
-        const activeTopicHasChanges = topicRef.current?.hasChanges ? topicRef.current.hasChanges() : false;
-        const tlaHasChanges = tlaRef.current?.hasChanges ? tlaRef.current.hasChanges() : false;
-        const refHasChanges = refRef.current?.hasChanges ? refRef.current.hasChanges() : false;
-
-        let otherWeeksHaveChanges = false;
-        const savedActiveKey = getWeekCacheKey(effectiveWeekId, isOrientation);
-        for (const [key, topicsArr] of Object.entries(weekTopicsMap)) {
-            if (key === savedActiveKey) continue;
-            const initialForWeek = initialWeekTopicsMapRef.current[key] || '[]';
-            if (serializeTopics(topicsArr) !== initialForWeek) {
-                otherWeeksHaveChanges = true;
-                break;
-            }
-        }
-
-        const hasAnyChanges = activeTopicHasChanges || tlaHasChanges || refHasChanges || otherWeeksHaveChanges;
-
-        const errors = {};
-
-        if (!hasAnyChanges) {
-            errors['Form'] = "No changes detected. There are no modifications to save.";
-        }
-
-        // 2. Validate Topic requirements for active week
-        if (topicRef.current) {
-            const err = topicRef.current.validate();
-            if (err) errors['Topics'] = err;
-        }
-
-        // Also validate any other modified weeks in weekTopicsMap
-        for (const [key, topicsArr] of Object.entries(weekTopicsMap)) {
-            if (key === savedActiveKey || !Array.isArray(topicsArr) || topicsArr.length === 0) continue;
-            const [, rawWid] = key.split('-');
-            const wid = Number(rawWid);
-            const wObj = weekContext.weeks?.find(w => Number(w.week_id) === wid);
-            const wLabel = wObj?.weekNumber ? `Week ${wObj.weekNumber}` : `Week ID ${wid}`;
-
-            const weekErrors = [];
-            topicsArr.forEach((t, idx) => {
-                const topicNum = idx + 1;
-                const title = (t.title || '').trim();
-                if (!title) {
-                    weekErrors.push(`Topic #${topicNum}: Topic title cannot be empty.`);
-                } else if (title.toLowerCase() === 'new custom topic') {
-                    weekErrors.push(`Topic #${topicNum}: Default title "New Custom Topic" must be changed.`);
-                }
-                const subs = Array.isArray(t.subtopics) ? t.subtopics : [];
-                if (subs.length === 0) {
-                    weekErrors.push(`Topic #${topicNum} (${title || 'Untitled'}): Must contain at least one subtopic.`);
-                } else {
-                    const emptySubs = subs.filter(s => !s.title || !s.title.trim());
-                    if (emptySubs.length > 0) {
-                        weekErrors.push(`Topic #${topicNum} (${title || 'Untitled'}): Contains ${emptySubs.length} empty subtopic ${emptySubs.length === 1 ? 'field' : 'fields'}.`);
-                    }
-                }
-            });
-            if (weekErrors.length > 0) {
-                errors[`${wLabel} Topics`] = weekErrors;
-            }
-        }
-
-        // 3. Validate TLAs requirements
-        if (tlaRef.current) {
-            const err = tlaRef.current.validate();
-            if (err) errors['Teaching & Learning Activities'] = err;
-        }
-
-        // 4. Validate Reference requirements
-        if (refRef.current) {
-            const err = refRef.current.validate();
-            if (err) errors['References'] = err;
-        }
-
-        // If hard validation errors or no changes, block save completely
-        if (Object.keys(errors).length > 0) {
-            setValidationErrors(errors);
-            setShowValidationModal(true);
-            return;
-        }
-
-        // 5. Soft-Warning Pre-Save Spell Check across Topics, TLAs, and References (Save Anyway is allowed only for spellings)
-        const warnings = collectAllSpellWarnings();
-        if (warnings.length > 0) {
-            setSpellCheckWarnings(warnings);
-            setShowSpellCheckModal(true);
-            return;
-        }
-
-        // 6. Clean Save
-        await executeGlobalSave();
+        setShowSaveConfirmModal(true);
     };
 
     const executeGlobalSave = async () => {
-        setShowValidationModal(false);
-        setShowSpellCheckModal(false);
+        setShowSaveConfirmModal(false);
         setIsSaving(true);
         try {
             syncLiveTopicsToFrontendMap();
@@ -1472,26 +1601,37 @@ const TopicForm = () => {
         );
     };
 
-    // Organize validationErrors into 3 columns (Topics, Teaching & Learning Activities, References)
-    const validationColumns = useMemo(() => {
-        const toList = (val) => {
-            if (!val) return [];
-            return Array.isArray(val) ? val : [val];
-        };
+    const formatCompactHrs = (minutes) => {
+        const hrs = (Number(minutes) || 0) / 60;
+        if (Number.isInteger(hrs)) return String(hrs);
+        return Number(hrs.toFixed(2)).toString();
+    };
 
-        const topicErrs = [...toList(validationErrors['Topics'])];
-        Object.entries(validationErrors).forEach(([k, v]) => {
-            if (k !== 'Topics' && k !== 'Teaching & Learning Activities' && k !== 'References' && k !== 'Form') {
-                toList(v).forEach(item => topicErrs.push(`${k}: ${item}`));
-            }
-        });
+    const hasLoadedCourseMeta = Boolean(weekContext.courseCredit || weekContext.courseContactHrs);
 
-        return [
-            { title: 'Topics', errors: topicErrs },
-            { title: 'Teaching & Learning Activities', errors: toList(validationErrors['Teaching & Learning Activities']) },
-            { title: 'References', errors: toList(validationErrors['References']) }
-        ];
-    }, [validationErrors]);
+    const courseHasLab = useMemo(() => {
+        const combined = `${weekContext.courseCredit || ''} ${weekContext.courseContactHrs || ''}`.trim();
+        if (!combined) return true;
+        if (!/\blab\b/i.test(combined)) return false;
+        const numericLabMatches = [...combined.matchAll(/(\d+(?:\.\d+)?)\s*(?:hrs?\s*)?lab\b/gi)];
+        if (numericLabMatches.length > 0) {
+            return numericLabMatches.some(m => parseFloat(m[1]) > 0);
+        }
+        return true;
+    }, [weekContext.courseCredit, weekContext.courseContactHrs]);
+
+    const plannerCardHeight = courseHasLab ? '392px' : '336px';
+
+    const confirmSummary = showSaveConfirmModal ? {
+        weekLabel: isOrientation
+            ? 'Course Orientation • Week 1'
+            : `CO ${weekContext.coNumber || 1}${weekContext.periodLabel ? ` — ${weekContext.periodLabel}` : ''} • Week ${activeWeekNumber}`,
+        topicCount: (currentWeekCachedTopics || topicRef.current?.getSelectedTopics?.() || []).length,
+        usedHrs: formatCompactHrs(columnValidations.topics?.timeInfo?.usedMinutes || 0),
+        budgetHrs: formatCompactHrs(columnValidations.topics?.timeInfo?.budgetMinutes || Math.round((Number(activeWeekHours) || 5) * 60)),
+        tlaCount: (tlaRef.current?.getTlas?.() || []).length,
+        refCount: (refRef.current?.getSelectedRefs?.() || []).length
+    } : null;
 
     return (
         <Skeleton
@@ -1517,6 +1657,7 @@ const TopicForm = () => {
                         onSelectWeek={handleSelectWeek}
                         coNumber={weekContext.coNumber}
                         coDescription={weekContext.coDescription}
+                        periodLabel={weekContext.periodLabel}
                         ilos={weekContext.ilos}
                         courseOutcomes={weekContext.courseOutcomes}
                         onSelectCourseOutcome={handleSelectCourseOutcome}
@@ -1524,18 +1665,33 @@ const TopicForm = () => {
                         status={status}
                         stepCommentCounts={stepCommentCounts}
                         weekCommentCounts={weekContext.commentCountsByWeek}
+                        isSaveDisabled={!allColumnsValid || isSaving}
+                        saveDisabledReason={saveDisabledReason}
+                        blockedUnpinStep={blockedUnpinStep}
                     />
 
                     <div className={styles.mainCont} style={{ position: 'relative', flex: 1, minHeight: 0, height: 'auto' }}>
+                        <div
+                            className={`${styles.formLoadingOverlay} ${!isFormLoading ? styles.formLoadingOverlayHidden : ''}`}
+                            role="status"
+                            aria-live="polite"
+                            aria-label="Loading weekly content form"
+                            aria-hidden={!isFormLoading}
+                        >
+                            <div className={styles.formLoadingSpinner}></div>
+                        </div>
 
                         {/* -------------------- 3-Column Pinned Sub-Forms Wrapper -------------------- */}
                         <div className={styles.leftCont} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0 }}>
                             <div className={styles['form-container']} style={{ padding: '16px 18px 24px 18px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'hidden', boxSizing: 'border-box' }}>
-                                <div className={styles.threeColPlannerGrid}>
+                                <div
+                                    className={styles.threeColPlannerGrid}
+                                    style={{ '--planner-card-height': plannerCardHeight }}
+                                >
                                     {/* Column 1: Topics */}
                                     <div
-                                        className={styles.plannerColumn}
-                                        style={{ display: pinnedSteps[0] ? 'flex' : 'none' }}
+                                        className={`${styles.plannerColumn} ${pinnedSteps[0] ? styles.plannerColumnPinned : styles.plannerColumnUnpinned} ${recentlyPinnedStep === 0 ? styles.plannerColumnJustPinned : ''}`}
+                                        aria-hidden={!pinnedSteps[0]}
                                         onClick={() => setCurrentStep(0)}
                                     >
                                         <TopicSubForm
@@ -1544,10 +1700,15 @@ const TopicForm = () => {
                                             previousWeekId={previousWeekId}
                                             weekNumber={activeWeekNumber}
                                             weekIndexInCo={activeWeekIndex >= 0 ? activeWeekIndex : 0}
+                                            weeklyHours={activeWeekHours}
                                             isOrientation={isOrientation}
                                             status={status}
                                             setUnresolvedCount={handleTopicUnresolved}
                                             onCommentsChange={handleTopicCommentsChange}
+                                            onValidationStateChange={handleTopicValidationChange}
+                                            onFixSpellField={handleFixTopicSpellField}
+                                            highlightedFieldId={highlightedFieldId}
+                                            onClearHighlight={clearHighlight}
                                             courseCode={weekContext.courseNo || courseCode}
                                             cachedWeekTopics={currentWeekCachedTopics}
                                             previousWeekFrontendTopics={previousWeekCachedTopics}
@@ -1559,8 +1720,8 @@ const TopicForm = () => {
 
                                     {/* Column 2: Teaching & Learning Activities */}
                                     <div
-                                        className={styles.plannerColumn}
-                                        style={{ display: pinnedSteps[1] ? 'flex' : 'none' }}
+                                        className={`${styles.plannerColumn} ${pinnedSteps[1] ? styles.plannerColumnPinned : styles.plannerColumnUnpinned} ${recentlyPinnedStep === 1 ? styles.plannerColumnJustPinned : ''}`}
+                                        aria-hidden={!pinnedSteps[1]}
                                         onClick={() => setCurrentStep(1)}
                                     >
                                         <TLAForm
@@ -1571,14 +1732,20 @@ const TopicForm = () => {
                                             status={status}
                                             setUnresolvedCount={handleTlaUnresolved}
                                             onCommentsChange={handleTlaCommentsChange}
+                                            onValidationStateChange={handleTlaValidationChange}
+                                            onFixSpellField={handleFixTlaSpellField}
+                                            highlightedFieldId={highlightedFieldId}
+                                            onClearHighlight={clearHighlight}
                                             isSingleColumn={pinnedSteps.filter(Boolean).length === 1}
+                                            courseHasLab={courseHasLab}
+                                            hasLoadedCourseMeta={hasLoadedCourseMeta}
                                         />
                                     </div>
 
                                     {/* Column 3: References */}
                                     <div
-                                        className={styles.plannerColumn}
-                                        style={{ display: pinnedSteps[2] ? 'flex' : 'none' }}
+                                        className={`${styles.plannerColumn} ${pinnedSteps[2] ? styles.plannerColumnPinned : styles.plannerColumnUnpinned} ${recentlyPinnedStep === 2 ? styles.plannerColumnJustPinned : ''}`}
+                                        aria-hidden={!pinnedSteps[2]}
                                         onClick={() => setCurrentStep(2)}
                                     >
                                         <ReferenceForm
@@ -1591,6 +1758,7 @@ const TopicForm = () => {
                                             courseCode={courseCode || weekContext.courseNo}
                                             pcOfferingId={weekContext.pc_offering_id}
                                             onCommentsChange={handleRefCommentsChange}
+                                            onValidationStateChange={handleRefValidationChange}
                                         />
                                     </div>
                                 </div>
@@ -1682,114 +1850,83 @@ const TopicForm = () => {
                         onUpdateWeekAiCache={handleUpdateWeekAiCache}
                     />
 
-                    {/* --- 3-Column Validation Requirements Modal (No Save Anyway for Hard Requirements) --- */}
+                    {/* --- Clean Save Confirmation Modal --- */}
                     <InlineModal
-                        isOpen={showValidationModal}
-                        title="Validation Notice"
-                        onClose={() => setShowValidationModal(false)}
-                        modalClassName={styles.wideModal}
-                        actions={
-                            <button type="button" className={styles.modalCancelBtn} onClick={() => setShowValidationModal(false)}>
-                                Review & Edit
-                            </button>
-                        }
-                    >
-                        <div className={styles.validationBanner}>
-                            <AlertCircle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: '1px' }} />
-                            <div>
-                                <p className={styles.validationBannerTitle}>Requirements Not Met</p>
-                                <p className={styles.validationBannerSubtext}>
-                                    Please review and resolve the highlighted items across the three weekly content sections before saving.
-                                </p>
-                            </div>
-                        </div>
-
-                        {validationErrors['Form'] && (
-                            <div className={styles.validationNoChangeBanner}>
-                                <AlertCircle size={16} />
-                                <span>{validationErrors['Form']}</span>
-                            </div>
-                        )}
-
-                        <div className={styles.validationThreeColGrid}>
-                            {validationColumns.map((col) => {
-                                const hasErr = col.errors.length > 0;
-                                return (
-                                    <div key={col.title} className={styles.validationCol}>
-                                        <div className={styles.validationColHeader}>
-                                            <span className={styles.validationColTitle}>{col.title}</span>
-                                            {hasErr ? (
-                                                <span className={styles.validationColBadgeErr}>
-                                                    {col.errors.length} {col.errors.length === 1 ? 'Issue' : 'Issues'}
-                                                </span>
-                                            ) : (
-                                                <span className={styles.validationColBadgeOk}>Ready</span>
-                                            )}
-                                        </div>
-                                        <div className={styles.validationColBody}>
-                                            {hasErr ? (
-                                                <ul className={styles.validationColList}>
-                                                    {col.errors.map((errText, idx) => (
-                                                        <li key={idx}>{errText}</li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <div className={styles.validationColEmpty}>
-                                                    <CheckCircle size={14} />
-                                                    <span>All requirements met</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </InlineModal>
-
-                    {/* --- Soft-Warning Pre-Save Spell Check Confirmation Modal --- */}
-                    <InlineModal
-                        isOpen={showSpellCheckModal}
-                        title="Spelling Check Warning"
-                        onClose={() => setShowSpellCheckModal(false)}
+                        isOpen={showSaveConfirmModal}
+                        title="Confirm Save"
+                        onClose={() => !isSaving && setShowSaveConfirmModal(false)}
                         actions={
                             <>
-                                <button type="button" className={styles.modalCancelBtn} onClick={() => setShowSpellCheckModal(false)}>
-                                    Review & Edit
+                                <button
+                                    type="button"
+                                    className={styles.modalCancelBtn}
+                                    onClick={() => setShowSaveConfirmModal(false)}
+                                    disabled={isSaving}
+                                >
+                                    Cancel
                                 </button>
-                                <button type="button" className={styles.modalConfirmBtn} onClick={executeGlobalSave}>
-                                    Save Anyway
+                                <button
+                                    type="button"
+                                    className={styles.modalConfirmBtn}
+                                    onClick={executeGlobalSave}
+                                    disabled={isSaving}
+                                >
+                                    {isSaving ? 'Saving...' : 'Confirm & Save'}
                                 </button>
                             </>
                         }
                     >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <AlertCircle size={22} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
-                                    Potential Misspellings Detected
-                                </p>
-                                <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
-                                    The following words were flagged across your form fields. Right-click any underlined word to view suggestions or add it to your whitelist:
-                                </p>
-                                <div className={styles.spellWarningList}>
-                                    {spellCheckWarnings.map((item, idx) => (
-                                        <div key={idx} className={styles.spellWarningCategory}>
-                                            <div className={styles.spellWarningHeaderRow}>
-                                                <span className={styles.spellWarningSectionTag}>{item.section}</span>
-                                                <span className={styles.spellWarningFieldTitle}>{item.field}</span>
-                                            </div>
-                                            <div className={styles.spellWarningWordPills}>
-                                                {item.words.map((w, wIdx) => (
-                                                    <span key={`${w}-${wIdx}`} className={styles.spellWarningWordBadge}>
-                                                        {w}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
+                        {confirmSummary && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                    <CheckCircle size={20} color="#059669" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                    <div>
+                                        <p style={{ margin: '0 0 4px 0', fontSize: '13.5px', fontWeight: 600, color: '#0F172A' }}>
+                                            Save weekly content for {confirmSummary.weekLabel}?
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
+                                            All three columns passed validation. Confirm to save your Topics, Teaching &amp; Learning Activities, and References.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                                        gap: '8px',
+                                        padding: '10px 12px',
+                                        borderRadius: '10px',
+                                        background: '#F8FAFC',
+                                        border: '1px solid #E2E8F0'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748B' }}>
+                                            Topics
+                                        </span>
+                                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                                            {confirmSummary.topicCount} ({confirmSummary.usedHrs}/{confirmSummary.budgetHrs} hrs)
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748B' }}>
+                                            TLAs
+                                        </span>
+                                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                                            {confirmSummary.tlaCount} {confirmSummary.tlaCount === 1 ? 'Activity' : 'Activities'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748B' }}>
+                                            References
+                                        </span>
+                                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                                            {confirmSummary.refCount} Selected
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </InlineModal>
 
                     {/* --- Clean Global Save Success Feedback Modal --- */}

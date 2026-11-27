@@ -313,7 +313,7 @@ All **22** verified in-scope Learning Plan Composition update items (`COMP-001` 
     - `[00:45:00 - 01:00:00]` at `[00:48:04]` – `[00:49:33]` (**Speaker 4**): *"Then in the previous semester, ito 'yung mga topic... 'Yan, gusto mo ba 'yan gamitin? So 'pag nag-confirm, 'oo', then i-load na niya. ... May previous ka—previous topic, ay, last semester topics niya, tapos may AI Suggest."*
     - `[01:00:00 - 01:15:00]` at `[01:00:49]` – `[01:01:21]` (**Speaker 4**): *"Same concept din naman sa topic... previous topic, or I can have my own, or I can use AI."*
 
-- [ ] **[COMP-007] Display Examination Period / Term Name Alongside CO Label in Weekly Planner Navigation (e.g., `CO 1 — Prelim Term`, `CO 4 — Final Term`)**
+- [x] **[COMP-007] Display Examination Period / Term Name Alongside CO Label in Weekly Planner Navigation (e.g., `CO 1 — Prelim Term`, `CO 4 — Final Term`)**
   - **Identifiers:** `Priority: P1 - High` | `Type: UI/UX Refinement` | `Agreement: Confirmed / Agreed` | `Effort: Low` | `Integration Impact: None`
   - **Target Page / Section:** `client/src/components/FormNavigation.jsx`, `client/src/pages/TopicForm.jsx`, `client/src/components/ILOs.jsx`, `client/src/components/CourseCoverage.jsx`
   - **Affected Files (Full-Stack Blast Radius):**
@@ -324,7 +324,7 @@ All **22** verified in-scope Learning Plan Composition update items (`COMP-001` 
   - **Transcript Citation(s):**
     - `[00:45:00 - 01:00:00]` at `[00:55:44]` – `[00:56:18]` (**Speaker 1 / Speaker 5 / Speaker 4**): *"Speaker 1: Bakit Week 14 lang ang nakikita ko hanggang 17? Where is Week 1 to 13? Speaker 5: CO4 po 'yan. Speaker 1: Ah, CO4 pala. Okay. Speaker 4: Ang ilagay mo, 'di ba, si CO4 tapos 'Final Term'. Ilagay mo pa 'yung term—CO4 Final Term."*
 
-- [ ] **[COMP-008] Enforce Non-Blocking Over-Budget Hours Warning on Topic Import, Editing & Save + Clarify Estimated Average Time Label**
+- [x] **[COMP-008] Enforce Non-Blocking Over-Budget Hours Warning on Topic Import, Editing & Save + Clarify Estimated Average Time Label**
   - **Identifiers:** `Priority: P1 - High` | `Type: Validation / Business Rule` | `Agreement: Confirmed / Agreed` | `Effort: Medium` | `Integration Impact: None`
   - **Target Page / Section:** `client/src/components/AiTopicSuggestModal.jsx`, `client/src/components/TopicSelector.jsx` & `client/src/pages/TopicForm.jsx` (`TopicSubForm`)
   - **Affected Files (Full-Stack Blast Radius):**
@@ -340,7 +340,7 @@ All **22** verified in-scope Learning Plan Composition update items (`COMP-001` 
     - `[00:45:00 - 01:00:00]` at `[00:51:33]` – `[00:52:05]` (**Speaker 4 / Speaker 5**): *"Speaker 4: Ano ba 'yan? Maximum or minimum? 45 minutes maximum or minimum? ... Speaker 5: Parang estimation lang po, sir, average lang."*
     - `[00:45:00 - 01:00:00]` at `[00:52:18]` – `[00:55:44]` (**Speaker 1 / Speaker 4 / Speaker 5 / Speaker 2**): *"Speaker 1: Week 14, hello! Chine-check ba ng system niyo kung sobra na 'yan?... Ang hinahanap ko lang, may notification na 'Wait lang! Ano 'to, 6 hours na 'yan, sobra na 'yan!' Speaker 4: Warning lang. Warning lang, walang lock. ... To retain pa rin the human in the loop. ... Dapat sa system may mag-notify diyan."*
 
-- [ ] **[COMP-009] Upgrade Pre-Save Spell-Check Warning Modal with Inline Editing, Replacement Suggestions, Field Jump Links & Optional "Accept All Fixes"**
+- [x] **[COMP-009] Upgrade Pre-Save Spell-Check Warning Modal with Inline Editing, Replacement Suggestions, Field Jump Links & Optional "Accept All Fixes"**
   - **Identifiers:** `Priority: P2 - Medium` | `Type: UI/UX Refinement` | `Agreement: Confirmed / Agreed` | `Effort: Medium` | `Integration Impact: None`
   - **Target Page / Section:** `client/src/pages/TopicForm.jsx` (`Spelling Check Warning` modal, lines `1554–1596`) & `client/src/pages/ReferenceForm.jsx` (duplicate standalone `Spelling Check Warning` modal, lines `600–641`)
   - **Affected Files (Full-Stack Blast Radius):**

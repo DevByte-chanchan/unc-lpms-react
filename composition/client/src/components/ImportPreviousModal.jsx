@@ -127,33 +127,46 @@ const ImportPreviousModal = ({
 
     if (!isOpen) return null;
 
-    const chosenTopics = prevTopics.filter((t, idx) => Boolean(selectedTopicKeys[getTopicKey(t, idx)]));
-    const chosenTlas = prevTlas.filter((t, idx) => Boolean(selectedTlaKeys[getTlaKey(t, idx)]));
-    const chosenRefs = prevRefs.filter((r, idx) => Boolean(selectedRefKeys[getRefKey(r, idx)]));
+    const selectableTopics = prevTopics.filter((t) => !isTopicAlreadyAdded(t));
+    const selectableTlas = prevTlas.filter((t) => !isTlaAlreadyAdded(t));
+    const selectableRefs = prevRefs.filter((r) => !isRefAlreadyAdded(r));
+
+    const chosenTopics = prevTopics.filter((t, idx) => !isTopicAlreadyAdded(t) && Boolean(selectedTopicKeys[getTopicKey(t, idx)]));
+    const chosenTlas = prevTlas.filter((t, idx) => !isTlaAlreadyAdded(t) && Boolean(selectedTlaKeys[getTlaKey(t, idx)]));
+    const chosenRefs = prevRefs.filter((r, idx) => !isRefAlreadyAdded(r) && Boolean(selectedRefKeys[getRefKey(r, idx)]));
     const totalSelected = chosenTopics.length + chosenTlas.length + chosenRefs.length;
 
-    const allTopicsChecked = prevTopics.length > 0 && chosenTopics.length === prevTopics.length;
-    const allTlasChecked = prevTlas.length > 0 && chosenTlas.length === prevTlas.length;
-    const allRefsChecked = prevRefs.length > 0 && chosenRefs.length === prevRefs.length;
+    const allTopicsChecked = selectableTopics.length > 0 && chosenTopics.length === selectableTopics.length;
+    const allTlasChecked = selectableTlas.length > 0 && chosenTlas.length === selectableTlas.length;
+    const allRefsChecked = selectableRefs.length > 0 && chosenRefs.length === selectableRefs.length;
 
     const toggleAllTopics = () => {
+        if (selectableTopics.length === 0) return;
         const nextVal = !allTopicsChecked;
         const map = {};
-        prevTopics.forEach((t, idx) => { map[getTopicKey(t, idx)] = nextVal; });
+        prevTopics.forEach((t, idx) => {
+            map[getTopicKey(t, idx)] = isTopicAlreadyAdded(t) ? false : nextVal;
+        });
         setSelectedTopicKeys(map);
     };
 
     const toggleAllTlas = () => {
+        if (selectableTlas.length === 0) return;
         const nextVal = !allTlasChecked;
         const map = {};
-        prevTlas.forEach((t, idx) => { map[getTlaKey(t, idx)] = nextVal; });
+        prevTlas.forEach((t, idx) => {
+            map[getTlaKey(t, idx)] = isTlaAlreadyAdded(t) ? false : nextVal;
+        });
         setSelectedTlaKeys(map);
     };
 
     const toggleAllRefs = () => {
+        if (selectableRefs.length === 0) return;
         const nextVal = !allRefsChecked;
         const map = {};
-        prevRefs.forEach((r, idx) => { map[getRefKey(r, idx)] = nextVal; });
+        prevRefs.forEach((r, idx) => {
+            map[getRefKey(r, idx)] = isRefAlreadyAdded(r) ? false : nextVal;
+        });
         setSelectedRefKeys(map);
     };
 
@@ -206,7 +219,7 @@ const ImportPreviousModal = ({
                                 <button
                                     type="button"
                                     className={styles.selectAllBtn}
-                                    disabled={prevTopics.length === 0}
+                                    disabled={selectableTopics.length === 0}
                                     onClick={toggleAllTopics}
                                 >
                                     {allTopicsChecked ? 'Clear' : 'Select All'}
@@ -221,19 +234,25 @@ const ImportPreviousModal = ({
                                 ) : (
                                     prevTopics.map((topic, idx) => {
                                         const key = getTopicKey(topic, idx);
-                                        const checked = Boolean(selectedTopicKeys[key]);
                                         const already = isTopicAlreadyAdded(topic);
+                                        const checked = !already && Boolean(selectedTopicKeys[key]);
                                         const subs = Array.isArray(topic.subtopics) ? topic.subtopics : [];
                                         return (
                                             <div
                                                 key={key}
-                                                className={`${styles.selectCard} ${checked ? styles.selectCardActive : ''} ${already && !checked ? styles.selectCardAlready : ''}`}
-                                                onClick={() => setSelectedTopicKeys(prev => ({ ...prev, [key]: !prev[key] }))}
+                                                className={`${styles.selectCard} ${checked ? styles.selectCardActive : ''} ${already ? styles.selectCardDisabled : ''}`}
+                                                onClick={() => {
+                                                    if (already) return;
+                                                    setSelectedTopicKeys(prev => ({ ...prev, [key]: !prev[key] }));
+                                                }}
+                                                aria-disabled={already}
+                                                title={already ? 'Already added to this week' : undefined}
                                             >
                                                 <input
                                                     type="checkbox"
                                                     className={styles.checkbox}
                                                     checked={checked}
+                                                    disabled={already}
                                                     onChange={() => {}}
                                                 />
                                                 <div className={styles.cardContent}>
@@ -247,6 +266,11 @@ const ImportPreviousModal = ({
                                                                 <div key={s.subtopic_id || sIdx} className={styles.subItem}>
                                                                     <span className={styles.bullet}>•</span>
                                                                     <span className={styles.subText}>{s.title}</span>
+                                                                    {Number(s.estimated_minutes) > 0 && (
+                                                                        <span className={styles.subMinTag}>
+                                                                            {Number(s.estimated_minutes)}m
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -270,7 +294,7 @@ const ImportPreviousModal = ({
                                 <button
                                     type="button"
                                     className={styles.selectAllBtn}
-                                    disabled={prevTlas.length === 0}
+                                    disabled={selectableTlas.length === 0}
                                     onClick={toggleAllTlas}
                                 >
                                     {allTlasChecked ? 'Clear' : 'Select All'}
@@ -285,18 +309,24 @@ const ImportPreviousModal = ({
                                 ) : (
                                     prevTlas.map((tla, idx) => {
                                         const key = getTlaKey(tla, idx);
-                                        const checked = Boolean(selectedTlaKeys[key]);
                                         const already = isTlaAlreadyAdded(tla);
+                                        const checked = !already && Boolean(selectedTlaKeys[key]);
                                         return (
                                             <div
                                                 key={key}
-                                                className={`${styles.selectCard} ${checked ? styles.selectCardActive : ''} ${already && !checked ? styles.selectCardAlready : ''}`}
-                                                onClick={() => setSelectedTlaKeys(prev => ({ ...prev, [key]: !prev[key] }))}
+                                                className={`${styles.selectCard} ${checked ? styles.selectCardActive : ''} ${already ? styles.selectCardDisabled : ''}`}
+                                                onClick={() => {
+                                                    if (already) return;
+                                                    setSelectedTlaKeys(prev => ({ ...prev, [key]: !prev[key] }));
+                                                }}
+                                                aria-disabled={already}
+                                                title={already ? 'Already added to this week' : undefined}
                                             >
                                                 <input
                                                     type="checkbox"
                                                     className={styles.checkbox}
                                                     checked={checked}
+                                                    disabled={already}
                                                     onChange={() => {}}
                                                 />
                                                 <div className={styles.cardContent}>
@@ -337,7 +367,7 @@ const ImportPreviousModal = ({
                                 <button
                                     type="button"
                                     className={styles.selectAllBtn}
-                                    disabled={prevRefs.length === 0}
+                                    disabled={selectableRefs.length === 0}
                                     onClick={toggleAllRefs}
                                 >
                                     {allRefsChecked ? 'Clear' : 'Select All'}
@@ -352,19 +382,25 @@ const ImportPreviousModal = ({
                                 ) : (
                                     prevRefs.map((refItem, idx) => {
                                         const key = getRefKey(refItem, idx);
-                                        const checked = Boolean(selectedRefKeys[key]);
                                         const already = isRefAlreadyAdded(refItem);
+                                        const checked = !already && Boolean(selectedRefKeys[key]);
                                         const yr = formatRefYear(refItem.publication_year);
                                         return (
                                             <div
                                                 key={key}
-                                                className={`${styles.selectCard} ${checked ? styles.selectCardActive : ''} ${already && !checked ? styles.selectCardAlready : ''}`}
-                                                onClick={() => setSelectedRefKeys(prev => ({ ...prev, [key]: !prev[key] }))}
+                                                className={`${styles.selectCard} ${checked ? styles.selectCardActive : ''} ${already ? styles.selectCardDisabled : ''}`}
+                                                onClick={() => {
+                                                    if (already) return;
+                                                    setSelectedRefKeys(prev => ({ ...prev, [key]: !prev[key] }));
+                                                }}
+                                                aria-disabled={already}
+                                                title={already ? 'Already selected for this week' : undefined}
                                             >
                                                 <input
                                                     type="checkbox"
                                                     className={styles.checkbox}
                                                     checked={checked}
+                                                    disabled={already}
                                                     onChange={() => {}}
                                                 />
                                                 <div className={styles.cardContent}>

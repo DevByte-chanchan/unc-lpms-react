@@ -27,22 +27,37 @@
 .header
   background: #F8FAFC
   border-bottom: 1px solid #DCE2F0
-  padding: 8px 12px
+  padding: 9px 12px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  height: auto
+  box-sizing: border-box
+
+.headerTopRow
+  width: 100%
   display: flex
   align-items: center
   justify-content: space-between
-  flex-wrap: wrap
+  gap: 10px
+  min-height: 30px
+  padding-bottom: 8px
+  border-bottom: 1px solid #E2E8F0
+
+.headerBottomRow
+  width: 100%
+  display: flex
+  align-items: center
+  justify-content: space-between
   gap: 8px
-  min-height: 56px
-  height: auto
-  box-sizing: border-box
+  flex-wrap: wrap
 
 .headerTitleGroup
   display: flex
   align-items: center
-  gap: 7px
+  gap: 6px
   min-width: 0
-  flex-shrink: 0
+  flex: 0 1 auto
 
 .headerTitleIcon
   color: #3182CE
@@ -53,27 +68,14 @@
   font-weight: 700
   color: #1E293B
   white-space: nowrap
-
-.headerCountBadge
-  display: inline-flex
-  align-items: center
-  justify-content: center
-  min-width: 20px
-  height: 19px
-  padding: 0 6px
-  border-radius: 999px
-  font-size: 11px
-  font-weight: 700
-  background: #E2E8F0
-  color: #334155
-  flex-shrink: 0
+  overflow: hidden
+  text-overflow: ellipsis
 
 .filterTabs
   display: flex
   align-items: center
-  justify-content: center
+  justify-content: flex-start
   flex-wrap: wrap
-  margin: 0 auto
   padding: 2px
   gap: 3px
   min-width: 0

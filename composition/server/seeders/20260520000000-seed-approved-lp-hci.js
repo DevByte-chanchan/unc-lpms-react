@@ -77,6 +77,7 @@ module.exports = {
             title: 'Distributed Cognition and Activity Theory',
             sequence_order: nextSequence,
             is_orientation: false,
+            estimated_minutes: 45,
             createdAt: now,
             updatedAt: now
         }], {});

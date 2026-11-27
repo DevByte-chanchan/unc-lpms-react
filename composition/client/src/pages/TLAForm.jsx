@@ -1,9 +1,10 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useRef, useCallback } from "react";
 import TextField from "../components/TextField.jsx";
 import Dropdown from "../components/Dropdown.jsx";
 import TextArea from "../components/TextArea.jsx";
 import SpellCheckInput from "../components/SpellCheckInput.jsx";
-import { checkSpelling } from "../utils/spellChecker.js";
+import ColumnValidationBar from "../components/ColumnValidationBar.jsx";
+import { checkSpelling, subscribeWhitelist } from "../utils/spellChecker.js";
 import { Activity, Plus, Award, X, Edit2, PlusCircle } from "react-feather";
 import { fetchJson } from "../utils/api.js";
 import styles from "../styles/Form.module.sass";
@@ -38,6 +39,9 @@ const formatPerformedByLabel = (val) => {
     return 'Student';
 };
 
+const LAB_PHASES = ['Pre-class', 'In-class', 'Post-class'];
+const NON_LAB_PHASES = ['Asynchronous', 'Synchronous'];
+
 const TLAForm = forwardRef(({
     iloId,
     weekNumber = 1,
@@ -45,20 +49,47 @@ const TLAForm = forwardRef(({
     status,
     setUnresolvedCount,
     onCommentsChange,
+    onValidationStateChange,
+    onFixSpellField,
+    highlightedFieldId = null,
+    onClearHighlight,
     label,
-    isSingleColumn = false
+    isSingleColumn = false,
+    courseHasLab = true,
+    hasLoadedCourseMeta = false
 }, ref) => {
-    const ALL_PHASES = ['Asynchronous', 'Synchronous', 'Pre-class', 'In-class', 'Post-class'];
+    const allowedPhases = useMemo(
+        () => (courseHasLab ? LAB_PHASES : NON_LAB_PHASES),
+        [courseHasLab]
+    );
 
     const [isLoading, setIsLoading] = useState(true);
     const [errors, setErrors] = useState({});
     const [tlas, setTlas] = useState([]);
     const [newestCardId, setNewestCardId] = useState(null);
+    const [whitelistVersion, setWhitelistVersion] = useState(0);
     const scrollContainerRef = useRef(null);
 
     const [reviewComments, setReviewComments] = useState([]);
     const initialTlasRef = useRef(null);
     const initialCommentsRef = useRef(null);
+
+    useEffect(() => {
+        return subscribeWhitelist(() => {
+            setWhitelistVersion(v => v + 1);
+        });
+    }, []);
+
+    // Automatically force isLab to false on non-Lab courses once course metadata and TLAs have loaded
+    useEffect(() => {
+        if (!isLoading && hasLoadedCourseMeta && !courseHasLab) {
+            setTlas(prev => {
+                const needsReset = prev.some(t => Boolean(t.isLab || t.laboratory));
+                if (!needsReset) return prev;
+                return prev.map(t => ({ ...t, isLab: false, laboratory: false }));
+            });
+        }
+    }, [isLoading, hasLoadedCourseMeta, courseHasLab]);
 
     const normalizeClassPhase = (val) => {
         if (!val) return '';
@@ -72,18 +103,25 @@ const TLAForm = forwardRef(({
     };
 
     const mapDbToUi = useCallback((tla) => {
+        const rawLab = Boolean(tla.isLab || tla.is_lab || tla.laboratory || false);
         return {
             ...tla,
             performedBy: formatPerformedByLabel(tla.performedBy),
             classPhase: normalizeClassPhase(tla.classPhase),
-            isLab: Boolean(tla.isLab || tla.is_lab || tla.laboratory || false)
+            isLab: rawLab,
+            laboratory: rawLab
         };
     }, []);
 
-    const mapUiToDb = (tla) => ({
-        ...tla,
-        performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy
-    });
+    const mapUiToDb = (tla) => {
+        const resolvedLab = courseHasLab ? Boolean(tla.isLab) : false;
+        return {
+            ...tla,
+            isLab: resolvedLab,
+            laboratory: resolvedLab,
+            performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy
+        };
+    };
 
     useEffect(() => {
         if (!iloId) return;
@@ -142,6 +180,121 @@ const TLAForm = forwardRef(({
         }
     }, [reviewComments, setUnresolvedCount, onCommentsChange]);
 
+    // Live column validation + assessment check + spell-check items (drives ColumnValidationBar & FormNavigation Save gate)
+    const liveValidationState = useMemo(() => {
+        void whitelistVersion;
+        const contentIssues = [];
+        const spellItems = [];
+        const coveredPhases = new Set();
+        let validItemCount = 0;
+        let assignedAssessmentCount = 0;
+
+        if (!tlas || tlas.length === 0) {
+            contentIssues.push(
+                courseHasLab
+                    ? 'Add at least 1 valid TLA for each phase: Pre-class, In-class, and Post-class (3 total).'
+                    : 'Add at least 1 valid TLA for each phase: Asynchronous and Synchronous (2 total).'
+            );
+        } else {
+            tlas.forEach((tla, idx) => {
+                const tlaNum = idx + 1;
+                const labelPrefix = `TLA #${tlaNum}${tla.tlaName?.trim() ? ` (${tla.tlaName.trim()})` : ''}`;
+                const missing = [];
+
+                if (!tla.performedBy) missing.push('Performed By');
+                if (!tla.classPhase) {
+                    missing.push('Class Phase');
+                } else if (!allowedPhases.includes(tla.classPhase)) {
+                    missing.push(`Valid Class Phase (${allowedPhases.join(' / ')})`);
+                }
+                if (!tla.tlaName || !tla.tlaName.trim()) missing.push('TLA Name');
+                if (!tla.tlaDescription || !tla.tlaDescription.trim()) missing.push('Description');
+
+                // Assessment Name counts as an assigned assessment; Assessment Detail is optional
+                const hasAssessmentName = Boolean(tla.assessmentType && tla.assessmentType.trim());
+                const hasAssessmentDetail = Boolean(tla.assessmentDetail && tla.assessmentDetail.trim());
+                if (hasAssessmentName) {
+                    assignedAssessmentCount += 1;
+                } else if (hasAssessmentDetail) {
+                    missing.push('Assessment Name (required when Detail is provided)');
+                }
+
+                if (missing.length > 0) {
+                    contentIssues.push(`${labelPrefix}: Missing ${missing.join(', ')}.`);
+                } else {
+                    validItemCount += 1;
+                    coveredPhases.add(tla.classPhase);
+                }
+
+                const nameMisspelled = checkSpelling(tla.tlaName || '');
+                if (nameMisspelled.length > 0) {
+                    spellItems.push({
+                        fieldId: `tla-${tla.id}-tlaName`,
+                        label: `${labelPrefix} — TLA Name`,
+                        words: nameMisspelled
+                    });
+                }
+
+                const descMisspelled = checkSpelling(tla.tlaDescription || '');
+                if (descMisspelled.length > 0) {
+                    spellItems.push({
+                        fieldId: `tla-${tla.id}-tlaDescription`,
+                        label: `${labelPrefix} — Description`,
+                        words: descMisspelled
+                    });
+                }
+
+                const typeMisspelled = checkSpelling(tla.assessmentType || '');
+                if (typeMisspelled.length > 0) {
+                    spellItems.push({
+                        fieldId: `tla-${tla.id}-assessmentType`,
+                        label: `${labelPrefix} — Assessment Name`,
+                        words: typeMisspelled
+                    });
+                }
+
+                const detailMisspelled = checkSpelling(tla.assessmentDetail || '');
+                if (detailMisspelled.length > 0) {
+                    spellItems.push({
+                        fieldId: `tla-${tla.id}-assessmentDetail`,
+                        label: `${labelPrefix} — Assessment Detail`,
+                        words: detailMisspelled
+                    });
+                }
+            });
+
+            const missingPhases = allowedPhases.filter(phase => !coveredPhases.has(phase));
+            if (missingPhases.length > 0) {
+                contentIssues.push(
+                    `Missing valid TLA for ${missingPhases.length === 1 ? 'phase' : 'phases'}: ${missingPhases.join(', ')}.`
+                );
+            }
+        }
+
+        const assessmentInfo = {
+            count: assignedAssessmentCount,
+            isValid: assignedAssessmentCount >= 1,
+            tooltip: assignedAssessmentCount >= 1
+                ? `${assignedAssessmentCount} ${assignedAssessmentCount === 1 ? 'assessment' : 'assessments'} assigned across TLAs.`
+                : 'Assign at least 1 assessment (Name required; Detail is optional) across your TLAs.'
+        };
+
+        return {
+            contentIssues,
+            validItemCount,
+            validSummaryText: `${validItemCount} valid ${validItemCount === 1 ? 'TLA' : 'TLAs'} covering all ${allowedPhases.length} phases (${allowedPhases.join(', ')}).`,
+            assessmentInfo,
+            spellItems,
+            isValid: contentIssues.length === 0 && assessmentInfo.isValid && spellItems.length === 0
+        };
+    }, [tlas, whitelistVersion, allowedPhases, courseHasLab]);
+
+    useEffect(() => {
+        if (!isLoading && onValidationStateChange) {
+            onValidationStateChange(liveValidationState);
+        }
+    }, [isLoading, liveValidationState, onValidationStateChange]);
+
     // Only scroll when the newly added card extends outside the visible scroll viewport (i.e. container is full)
     const scrollCardIntoViewIfNeeded = (cardId) => {
         requestAnimationFrame(() => {
@@ -169,9 +322,12 @@ const TLAForm = forwardRef(({
 
     const buildTlaEntryFromOption = (opt, offsetIdx = 0) => {
         const generatedId = Date.now() + offsetIdx + Math.random();
+        const mapped = mapDbToUi(opt);
         return {
-            ...mapDbToUi(opt),
+            ...mapped,
             id: generatedId,
+            isLab: courseHasLab ? Boolean(mapped.isLab) : false,
+            laboratory: courseHasLab ? Boolean(mapped.isLab) : false,
             assessmentType: opt.assessmentType || '',
             assessmentDetail: opt.assessmentDetail || '',
             assessmentIloId: opt.assessmentIloId ?? null,
@@ -201,97 +357,46 @@ const TLAForm = forwardRef(({
         setTlas(prevTlas => prevTlas.map(tla => tla.id === id ? { ...tla, [field]: value } : tla));
         const errorKey = `tla_${id}_${field}`;
         if (errors[errorKey]) setErrors(prev => ({ ...prev, [errorKey]: null }));
+        if (highlightedFieldId === `tla-${id}-${field}` && onClearHighlight) {
+            onClearHighlight();
+        }
     };
 
     const validateForm = () => {
-        if (!tlas || tlas.length === 0) {
-            return "At least one Teaching & Learning Activity is required.";
+        const errs = [...liveValidationState.contentIssues];
+        if (!liveValidationState.assessmentInfo.isValid) {
+            errs.push(liveValidationState.assessmentInfo.tooltip);
         }
-        let newErrors = {};
-        const errorList = [];
 
-        tlas.forEach((tla, idx) => {
-            const tlaNum = idx + 1;
-            const missing = [];
-            if (!tla.classPhase) {
+        const newErrors = {};
+        (tlas || []).forEach((tla) => {
+            if (!tla.classPhase || !allowedPhases.includes(tla.classPhase)) {
                 newErrors[`tla_${tla.id}_classPhase`] = "Required";
-                missing.push("Class Phase");
             }
             if (!tla.performedBy) {
                 newErrors[`tla_${tla.id}_performedBy`] = "Required";
-                missing.push("Performed By");
             }
             if (!tla.tlaName || !tla.tlaName.trim()) {
                 newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
-                missing.push("TLA Name");
             }
             if (!tla.tlaDescription || !tla.tlaDescription.trim()) {
                 newErrors[`tla_${tla.id}_tlaDescription`] = "Description required";
-                missing.push("TLA Description");
             }
-
-            const hasAssessment = Boolean((tla.assessmentType && tla.assessmentType.trim()) || (tla.assessmentDetail && tla.assessmentDetail.trim()));
-            if (hasAssessment) {
-                if (!tla.assessmentType || !tla.assessmentType.trim()) {
-                    newErrors[`tla_${tla.id}_assessmentType`] = "Required";
-                    missing.push("Assessment Type");
-                }
-                if (!tla.assessmentDetail || !tla.assessmentDetail.trim()) {
-                    newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
-                    missing.push("Assessment Detail");
-                }
-            }
-
-            if (missing.length > 0) {
-                errorList.push(`TLA #${tlaNum}${tla.tlaName ? ` (${tla.tlaName})` : ''}: Missing ${missing.join(', ')}.`);
+            if (tla.assessmentDetail?.trim() && !tla.assessmentType?.trim()) {
+                newErrors[`tla_${tla.id}_assessmentType`] = "Assessment Name required";
             }
         });
         setErrors(newErrors);
-        return errorList.length > 0 ? errorList : null;
+
+        return errs.length > 0 ? errs : null;
     };
 
     const collectSpellWarnings = () => {
-        const warnings = [];
-        tlas.forEach((tla, idx) => {
-            const labelPrefix = `TLA #${idx + 1}${tla.tlaName ? ` (${tla.tlaName})` : ''}`;
-
-            const nameMisspelled = checkSpelling(tla.tlaName || '');
-            if (nameMisspelled.length > 0) {
-                warnings.push({
-                    section: 'Teaching & Learning Activities',
-                    field: `${labelPrefix} — TLA Name`,
-                    words: nameMisspelled
-                });
-            }
-
-            const descMisspelled = checkSpelling(tla.tlaDescription || '');
-            if (descMisspelled.length > 0) {
-                warnings.push({
-                    section: 'Teaching & Learning Activities',
-                    field: `${labelPrefix} — TLA Description`,
-                    words: descMisspelled
-                });
-            }
-
-            const typeMisspelled = checkSpelling(tla.assessmentType || '');
-            if (typeMisspelled.length > 0) {
-                warnings.push({
-                    section: 'Teaching & Learning Activities',
-                    field: `${labelPrefix} — Assessment Type`,
-                    words: typeMisspelled
-                });
-            }
-
-            const detailMisspelled = checkSpelling(tla.assessmentDetail || '');
-            if (detailMisspelled.length > 0) {
-                warnings.push({
-                    section: 'Teaching & Learning Activities',
-                    field: `${labelPrefix} — Assessment Detail`,
-                    words: detailMisspelled
-                });
-            }
-        });
-        return warnings;
+        return liveValidationState.spellItems.map(item => ({
+            section: 'Teaching & Learning Activities',
+            field: item.label,
+            words: item.words
+        }));
     };
 
     useImperativeHandle(ref, () => ({
@@ -387,11 +492,13 @@ const TLAForm = forwardRef(({
         return (
             <div key={`placeholder-${i}`} className={`${tStyles.placeholderCard} ${styles.tlaPlaceholderScale}`}>
                 <div className={tStyles.placeholderHeader} />
-                <div className={tStyles.placeholderBody} style={{ padding: '14px', gap: '10px' }}>
-                    <div className={tStyles.placeholderLine} style={{ height: '42px' }} />
-                    <div className={tStyles.placeholderLine} style={{ height: '40px' }} />
-                    <div className={tStyles.placeholderLine} style={{ height: '96px' }} />
-                    <div className={tStyles.placeholderLine} style={{ height: '96px' }} />
+                <div className={tStyles.placeholderBody} style={{ padding: '12px 14px', gap: '9px' }}>
+                    <div className={tStyles.placeholderLine} style={{ flex: 'none', height: '42px', maxHeight: '42px' }} />
+                    {courseHasLab && (
+                        <div className={tStyles.placeholderLine} style={{ flex: 'none', height: '40px', maxHeight: '40px' }} />
+                    )}
+                    <div className={tStyles.placeholderLine} style={{ flex: 1, minHeight: '56px', maxHeight: 'none' }} />
+                    <div className={tStyles.placeholderLine} style={{ flex: 'none', height: '90px', maxHeight: '90px' }} />
                 </div>
             </div>
         );
@@ -403,13 +510,26 @@ const TLAForm = forwardRef(({
 
             <div className={tStyles.mainWrapper}>
                 <div className={tStyles.stickyHeader}>
-                    <div className={tStyles.headerRow}>
+                    {/* Row 1: Column Title + Inline Validation Bar */}
+                    <div className={tStyles.headerTopRow}>
                         <div className={tStyles.headerTitleGroup}>
                             <Activity size={15} className={tStyles.headerTitleIcon} />
-                            <span className={tStyles.headerTitleText}>Teaching & Learning Activities</span>
-                            <span className={tStyles.headerCountBadge}>{tlas.length}</span>
+                            <span className={tStyles.headerTitleText}>Teaching &amp; Learning Activities</span>
                         </div>
 
+                        <ColumnValidationBar
+                            columnName="TLAs"
+                            contentIssues={liveValidationState.contentIssues}
+                            validItemCount={liveValidationState.validItemCount}
+                            validSummaryText={liveValidationState.validSummaryText}
+                            assessmentInfo={liveValidationState.assessmentInfo}
+                            spellItems={liveValidationState.spellItems}
+                            onFixSpellField={onFixSpellField}
+                        />
+                    </div>
+
+                    {/* Row 2: Column Action Buttons */}
+                    <div className={tStyles.headerBottomRow}>
                         <div className={tStyles.headerActionsGroup}>
                             <button
                                 type="button"
@@ -427,6 +547,11 @@ const TLAForm = forwardRef(({
                         {tlas.map((item) => {
                             const isNewlyAdded = item.id === newestCardId;
                             const hasAssessmentData = Boolean(item.assessmentType || item.assessmentDetail);
+                            const nameFieldId = `tla-${item.id}-tlaName`;
+                            const descFieldId = `tla-${item.id}-tlaDescription`;
+                            const typeFieldId = `tla-${item.id}-assessmentType`;
+                            const detailFieldId = `tla-${item.id}-assessmentDetail`;
+                            const phaseValue = allowedPhases.includes(item.classPhase) ? item.classPhase : '';
 
                             return (
                                 <div
@@ -436,19 +561,25 @@ const TLAForm = forwardRef(({
                                 >
                                     <div className={tStyles.topicHeaderCard}>
                                         <div className={tStyles.topicTitleGroup}>
-                                            <div className={`${styles.tlaLabDot} ${item.isLab ? styles.activeLabDot : ''}`} title={item.isLab ? "Laboratory" : "Standard"} />
-                                            <div className={tStyles.inputWrapper}>
+                                            {courseHasLab && (
+                                                <div
+                                                    className={`${styles.tlaLabDot} ${item.isLab ? styles.activeLabDot : ''}`}
+                                                    title={item.isLab ? "Laboratory" : "Standard"}
+                                                />
+                                            )}
+                                            <div className={`${tStyles.inputWrapper} ${highlightedFieldId === nameFieldId ? tStyles.spellHighlightedInput : ''}`}>
                                                 <Edit2 size={12} className={tStyles.editIcon} />
                                                 <SpellCheckInput
                                                     className={tStyles.topicTitleInput}
                                                     value={item.tlaName}
+                                                    data-spell-field-id={nameFieldId}
                                                     onChange={(e) => handleTlaChange(item.id, 'tlaName', e.target.value)}
                                                     placeholder="Enter TLA Name..."
                                                 />
                                             </div>
                                         </div>
                                         <button type="button" className={tStyles.removeTopicBtn} onClick={() => handleTlaDelete(item.id)} title="Remove TLA">
-                                            <X color={"white"} size={16} />
+                                            <X color={"white"} size={15} />
                                         </button>
                                     </div>
 
@@ -466,34 +597,36 @@ const TLAForm = forwardRef(({
                                             </div>
                                             <div className={styles.tlaFieldSubtopicStyle}>
                                                 <Dropdown
-                                                    options={ALL_PHASES}
+                                                    options={allowedPhases}
                                                     label={'Class Phase'}
-                                                    value={item.classPhase}
+                                                    value={phaseValue}
                                                     onChange={(val) => handleTlaChange(item.id, 'classPhase', val)}
                                                     error={errors[`tla_${item.id}_classPhase`]}
                                                 />
                                             </div>
                                         </div>
 
-                                        <div className={styles.fieldsGridOne}>
-                                            <div className={styles.tlaFieldSubtopicStyle}>
-                                                <div className="generic-field-container">
-                                                    <div className="generic-field-label" style={{ fontWeight: 600, fontSize: 11, marginBottom: 4, color: '#4A5568' }}>Setting Focus</div>
-                                                    <div className={`${styles.labCheckboxWrapper} ${item.isLab ? styles.isLabActive : ''}`}>
-                                                        <input
-                                                            type="checkbox"
-                                                            id={`lab_check_${item.id}`}
-                                                            checked={item.isLab}
-                                                            onChange={(e) => handleTlaChange(item.id, 'isLab', e.target.checked)}
-                                                            className={styles.labCheckboxInput}
-                                                        />
-                                                        <label htmlFor={`lab_check_${item.id}`} className={`${styles.labCheckboxLabel} ${item.isLab ? styles.isLabActiveLabel : ''}`}>
-                                                            Laboratory Activity
-                                                        </label>
+                                        {courseHasLab && (
+                                            <div className={styles.fieldsGridOne}>
+                                                <div className={styles.tlaFieldSubtopicStyle}>
+                                                    <div className="generic-field-container">
+                                                        <div className="generic-field-label" style={{ fontWeight: 600, fontSize: 11, marginBottom: 4, color: '#4A5568' }}>Setting Focus</div>
+                                                        <div className={`${styles.labCheckboxWrapper} ${item.isLab ? styles.isLabActive : ''}`}>
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`lab_check_${item.id}`}
+                                                                checked={Boolean(item.isLab)}
+                                                                onChange={(e) => handleTlaChange(item.id, 'isLab', e.target.checked)}
+                                                                className={styles.labCheckboxInput}
+                                                            />
+                                                            <label htmlFor={`lab_check_${item.id}`} className={`${styles.labCheckboxLabel} ${item.isLab ? styles.isLabActiveLabel : ''}`}>
+                                                                Laboratory Activity
+                                                            </label>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div className={`${styles.tlaFieldSubtopicStyle} ${styles.tlaDescriptionHigh}`}>
                                             <TextArea
@@ -503,6 +636,8 @@ const TLAForm = forwardRef(({
                                                 error={errors[`tla_${item.id}_tlaDescription`]}
                                                 rows={3}
                                                 placeholder="Describe the activity..."
+                                                fieldId={descFieldId}
+                                                isHighlighted={highlightedFieldId === descFieldId}
                                             />
                                         </div>
 
@@ -525,18 +660,23 @@ const TLAForm = forwardRef(({
                                                 <div className={styles.fieldsGridTwo}>
                                                     <div className={styles.tlaFieldSubtopicStyle}>
                                                         <TextField
-                                                            label={'Type'}
+                                                            label={'Name'}
                                                             value={item.assessmentType}
                                                             onChange={(val) => handleTlaChange(item.id, 'assessmentType', val)}
-                                                            placeholder="e.g. Case Study"
+                                                            placeholder="e.g. Case Study, Quiz"
+                                                            fieldId={typeFieldId}
+                                                            isHighlighted={highlightedFieldId === typeFieldId}
+                                                            error={errors[`tla_${item.id}_assessmentType`]}
                                                         />
                                                     </div>
                                                     <div className={styles.tlaFieldSubtopicStyle}>
                                                         <TextField
-                                                            label={'Detail'}
+                                                            label={'Detail (optional)'}
                                                             value={item.assessmentDetail}
                                                             onChange={(val) => handleTlaChange(item.id, 'assessmentDetail', val)}
-                                                            placeholder="e.g. 50% Group Rubrics"
+                                                            placeholder="e.g. 10-item quiz or short reflection"
+                                                            fieldId={detailFieldId}
+                                                            isHighlighted={highlightedFieldId === detailFieldId}
                                                         />
                                                     </div>
                                                 </div>

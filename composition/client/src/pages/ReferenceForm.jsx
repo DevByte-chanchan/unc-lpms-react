@@ -1,15 +1,23 @@
-import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useState, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
 import Dropdown from '../components/Dropdown.jsx';
-import { checkSpelling } from '../utils/spellChecker.js';
-import { X, AlertCircle } from 'react-feather';
+import {
+    checkSpelling,
+    getSuggestions,
+    addToWhitelist,
+    addWordsToWhitelist,
+    subscribeWhitelist,
+    tokenizeAndCheckText
+} from '../utils/spellChecker.js';
+import { X, AlertCircle, BookOpen } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import styles from '../styles/Form.module.sass';
 
 export function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
-    return (
+    const modalContent = (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
@@ -23,6 +31,7 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
             </div>
         </div>
     );
+    return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
 
 // Serialization helpers for deep change detection
@@ -40,20 +49,112 @@ const serializeComments = (comments) => {
     })));
 };
 
+const isTextbookReference = (ref) => {
+    const raw = String(ref?.type || ref?.Type || ref?.typeKey || '').toLowerCase();
+    return raw.includes('textbook');
+};
+
+const isValidIsbn = (raw) => {
+    const cleaned = String(raw || '').replace(/[-\s]/g, '').toUpperCase();
+    return /^\d{9}[\dX]$/.test(cleaned) || /^(978|979)\d{10}$/.test(cleaned);
+};
+
+const isValidPublicationYear = (raw) => {
+    const trimmed = String(raw || '').trim();
+    if (!/^\d{4}$/.test(trimmed)) return false;
+    const num = Number(trimmed);
+    return num >= 1900 && num <= 2100;
+};
+
+const isValidHttpUrl = (raw) => {
+    const trimmed = String(raw || '').trim();
+    if (!/^https?:\/\//i.test(trimmed)) return false;
+    try {
+        const parsed = new URL(trimmed);
+        return (
+            (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+            Boolean(parsed.hostname) &&
+            (parsed.hostname.includes('.') || parsed.hostname === 'localhost')
+        );
+    } catch {
+        return false;
+    }
+};
+
+const validateReferenceDraftFields = (draft) => {
+    const errors = {};
+    const title = String(draft.title || '').trim();
+    const author = String(draft.author || '').trim();
+    const isbn = String(draft.isbn || '').trim();
+    const year = String(draft.publication_year || '').trim();
+    const link = String(draft.link || '').trim();
+    const type = draft.type;
+
+    if (!title) {
+        errors.title = 'Title is required.';
+    } else if (title.length < 2) {
+        errors.title = 'Title must be at least 2 characters.';
+    }
+
+    if (!author) {
+        errors.author = 'Author is required.';
+    } else if (author.length < 2) {
+        errors.author = 'Author must be at least 2 characters.';
+    }
+
+    if (type === 'Textbook') {
+        if (!isbn) {
+            errors.isbn = 'ISBN is required for Textbooks.';
+        } else if (!isValidIsbn(isbn)) {
+            errors.isbn = 'Enter a valid ISBN-10 or ISBN-13 (e.g. 978-0-123456-47-2).';
+        }
+
+        if (!year) {
+            errors.publication_year = 'Publication Year is required for Textbooks.';
+        } else if (!isValidPublicationYear(year)) {
+            errors.publication_year = 'Enter a valid 4-digit year (1900–2100).';
+        }
+    } else if (type === 'Open Educational Resources') {
+        if (isbn && !isValidIsbn(isbn)) {
+            errors.isbn = 'Enter a valid ISBN-10 or ISBN-13 (or leave blank).';
+        }
+        if (year && !isValidPublicationYear(year)) {
+            errors.publication_year = 'Enter a valid 4-digit year (1900–2100).';
+        }
+        if (!link) {
+            errors.link = 'Link is required for Open Educational Resources.';
+        } else if (!isValidHttpUrl(link)) {
+            errors.link = 'Enter a valid URL starting with http:// or https://.';
+        }
+    } else if (type === 'Online Resources') {
+        if (!link) {
+            errors.link = 'Link is required for Online Resources.';
+        } else if (!isValidHttpUrl(link)) {
+            errors.link = 'Enter a valid URL starting with http:// or https://.';
+        }
+    }
+
+    return errors;
+};
+
 const ReferenceForm = forwardRef(({
     iloId,
-    weekNumber = 1,
     isOrientation = false,
     status,
     setUnresolvedCount,
     onCommentsChange,
+    onValidationStateChange,
     courseCode,
     pcOfferingId
 }, ref) => {
     const [allReferences, setAllReferences] = useState([]);
     const [selectedRefs, setSelectedRefs] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [validationError, setValidationError] = useState(null);
+    const [modalSubmitError, setModalSubmitError] = useState(null);
+    const [isSubmittingDraft, setIsSubmittingDraft] = useState(false);
+    const [touchedFields, setTouchedFields] = useState({});
+    const [titleSpellHighlighted, setTitleSpellHighlighted] = useState(false);
+    const [whitelistVersion, setWhitelistVersion] = useState(0);
 
     // Context-Targeted Comments Checklist Tracking States
     const [reviewComments, setReviewComments] = useState([]);
@@ -73,8 +174,13 @@ const ReferenceForm = forwardRef(({
         link: '',
         publication_year: ''
     });
-    const [refSpellWarnings, setRefSpellWarnings] = useState([]);
     const [showRefSpellModal, setShowRefSpellModal] = useState(false);
+
+    useEffect(() => {
+        return subscribeWhitelist(() => {
+            setWhitelistVersion(v => v + 1);
+        });
+    }, []);
 
     useEffect(() => {
         if (!iloId) return;
@@ -138,7 +244,6 @@ const ReferenceForm = forwardRef(({
                 initialCommentsRef.current = serializeComments(initialComments);
             } catch (err) {
                 console.error('Load initial targets failure: ', err);
-                if (mounted) setValidationError(err.message || 'Failed to initialize view data.');
             } finally {
                 if (mounted) setLoading(false);
             }
@@ -157,6 +262,86 @@ const ReferenceForm = forwardRef(({
             onCommentsChange(reviewComments);
         }
     }, [reviewComments, setUnresolvedCount, onCommentsChange]);
+
+    // Live Reference column validation: requires at least 1 Textbook selected (OER & Online are optional)
+    const liveValidationState = useMemo(() => {
+        const list = selectedRefs || [];
+        const totalSelected = list.length;
+        const textbookCount = list.filter(isTextbookReference).length;
+        const supportingCount = totalSelected - textbookCount;
+        const hasTextbook = textbookCount > 0;
+
+        const contentIssues = hasTextbook
+            ? []
+            : [
+                supportingCount > 0
+                    ? `Select at least 1 Textbook reference (${supportingCount} supporting ${supportingCount === 1 ? 'reference' : 'references'} selected).`
+                    : 'Select at least 1 Textbook reference (OER and Online resources are optional).'
+            ];
+
+        const validSummaryText = supportingCount > 0
+            ? `${totalSelected} references selected (${textbookCount} ${textbookCount === 1 ? 'Textbook' : 'Textbooks'}, ${supportingCount} supporting).`
+            : `${textbookCount} Textbook ${textbookCount === 1 ? 'reference' : 'references'} selected.`;
+
+        return {
+            contentIssues,
+            validItemCount: totalSelected,
+            validSummaryText,
+            isValid: contentIssues.length === 0
+        };
+    }, [selectedRefs]);
+
+    useEffect(() => {
+        if (!loading && onValidationStateChange) {
+            onValidationStateChange(liveValidationState);
+        }
+    }, [loading, liveValidationState, onValidationStateChange]);
+
+    // Live modal field validation (disables Save/Add button when empty or invalid)
+    const draftFieldErrors = useMemo(
+        () => validateReferenceDraftFields(newRefDraft),
+        [newRefDraft]
+    );
+
+    const isDraftValid = Object.keys(draftFieldErrors).length === 0;
+    const firstDraftError = Object.values(draftFieldErrors)[0] || '';
+
+    // Live spell check on Reference Title inside Add/Edit modal
+    const titleMisspelledWords = useMemo(() => {
+        void whitelistVersion;
+        if (!isModalOpen) return [];
+        return checkSpelling(newRefDraft.title || '');
+    }, [isModalOpen, newRefDraft.title, whitelistVersion]);
+
+    // Auto-close spell action modal once all flagged title words are fixed or added to dictionary
+    useEffect(() => {
+        if (showRefSpellModal && titleMisspelledWords.length === 0) {
+            setShowRefSpellModal(false);
+        }
+    }, [showRefSpellModal, titleMisspelledWords.length]);
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setShowRefSpellModal(false);
+        setIsEditing(false);
+        setEditingRef(null);
+        setModalSubmitError(null);
+        setTouchedFields({});
+        setTitleSpellHighlighted(false);
+    };
+
+    const markFieldTouched = (fieldName) => {
+        setTouchedFields(prev => (prev[fieldName] ? prev : { ...prev, [fieldName]: true }));
+    };
+
+    const updateDraftField = (fieldName, value) => {
+        setNewRefDraft(prev => ({ ...prev, [fieldName]: value }));
+        markFieldTouched(fieldName);
+        if (modalSubmitError) setModalSubmitError(null);
+        if (fieldName === 'title' && titleSpellHighlighted) {
+            setTitleSpellHighlighted(false);
+        }
+    };
 
     const handleOpenAdd = (defaultTab = 'Textbook') => {
         let initialType = 'Textbook';
@@ -179,8 +364,9 @@ const ReferenceForm = forwardRef(({
             link: '',
             publication_year: ''
         });
-        setValidationError(null);
-        setRefSpellWarnings([]);
+        setModalSubmitError(null);
+        setTouchedFields({});
+        setTitleSpellHighlighted(false);
         setShowRefSpellModal(false);
         setIsModalOpen(true);
     };
@@ -208,8 +394,15 @@ const ReferenceForm = forwardRef(({
             link: reference.link || '',
             publication_year: cleanYear
         });
-        setValidationError(null);
-        setRefSpellWarnings([]);
+        setModalSubmitError(null);
+        setTouchedFields({
+            title: true,
+            author: true,
+            isbn: true,
+            publication_year: true,
+            link: true
+        });
+        setTitleSpellHighlighted(false);
         setShowRefSpellModal(false);
         setIsModalOpen(true);
     };
@@ -228,55 +421,52 @@ const ReferenceForm = forwardRef(({
         return warnings;
     };
 
-    const validateDraft = (draft) => {
-        if (!draft.title || !draft.title.trim()) {
-            return 'Title is required.';
-        }
-        if (!draft.author || !draft.author.trim()) {
-            return 'Author is required.';
-        }
+    const handleReplaceMisspelledWord = (targetWord, replacement) => {
+        const current = newRefDraft.title || '';
+        const tokens = tokenizeAndCheckText(current, { requireBoundaryAtEnd: false });
+        const match = tokens.find(
+            t => t.isWord && t.isMisspelled && t.cleanWord.toLowerCase() === String(targetWord).toLowerCase()
+        );
+        if (!match) return;
+        const prefix = current.slice(0, match.start);
+        const suffix = current.slice(match.end);
+        const cleanIdx = match.text.toLowerCase().indexOf(match.cleanWord.toLowerCase());
+        const replacedToken = cleanIdx >= 0
+            ? match.text.slice(0, cleanIdx) + replacement + match.text.slice(cleanIdx + match.cleanWord.length)
+            : replacement;
+        updateDraftField('title', `${prefix}${replacedToken}${suffix}`);
+    };
 
-        const type = draft.type;
-        if (type === 'Textbook') {
-            if (!draft.isbn || !draft.isbn.trim()) {
-                return 'ISBN is required for Textbooks.';
+    const handleAddWordToDictionary = (word) => {
+        if (!word) return;
+        addToWhitelist(word);
+    };
+
+    const handleFixTitleClick = () => {
+        setShowRefSpellModal(false);
+        setTitleSpellHighlighted(true);
+        requestAnimationFrame(() => {
+            const titleEl = document.querySelector('[data-spell-field-id="ref-modal-title"]');
+            if (titleEl && typeof titleEl.focus === 'function') {
+                titleEl.focus();
             }
-            if (!draft.publication_year || !String(draft.publication_year).trim()) {
-                return 'Publication Year is required for Textbooks.';
-            }
-            const yearStr = String(draft.publication_year).trim();
-            const yearNum = Number(yearStr);
-            if (isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
-                return 'Please enter a valid 4-digit Publication Year (e.g. 2024).';
-            }
-        } else if (type === 'Open Educational Resources') {
-            if (!draft.link || !draft.link.trim()) {
-                return 'Link is required for Open Educational Resources.';
-            }
-            if (draft.publication_year && String(draft.publication_year).trim()) {
-                const yearNum = Number(String(draft.publication_year).trim());
-                if (isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
-                    return 'Please enter a valid 4-digit Publication Year (e.g. 2024).';
-                }
-            }
-        } else if (type === 'Online Resources') {
-            if (!draft.link || !draft.link.trim()) {
-                return 'Link is required for Online Resources.';
-            }
-        }
-        return null;
+        });
     };
 
     const commitDraftLocal = async () => {
+        if (isSubmittingDraft) return;
+        setIsSubmittingDraft(true);
+        setModalSubmitError(null);
+
         const type = newRefDraft.type;
         const sanitizedYear = type === 'Online Resources'
             ? null
             : (newRefDraft.publication_year ? String(newRefDraft.publication_year).trim() : null);
 
-        if (isEditing && editingRef) {
-            // Updating existing reference
-            if (editingRef.reference_id) {
-                try {
+        try {
+            if (isEditing && editingRef) {
+                // Updating existing reference
+                if (editingRef.reference_id) {
                     const payload = {
                         title: newRefDraft.title.trim(),
                         type,
@@ -297,15 +487,26 @@ const ReferenceForm = forwardRef(({
                     const merged = { ...editingRef, ...updated };
                     setAllReferences(prev => prev.map(r => (r.reference_id === editingRef.reference_id ? merged : r)));
                     setSelectedRefs(prev => prev.map(r => (r.reference_id === editingRef.reference_id ? merged : r)));
-                } catch (err) {
-                    console.error('Failed to update reference:', err);
-                    setValidationError(err.message || 'Failed to update reference.');
-                    return;
+                } else {
+                    // Updating unpersisted temp reference
+                    const updatedDraft = {
+                        ...editingRef,
+                        title: newRefDraft.title.trim(),
+                        type,
+                        author: newRefDraft.author.trim(),
+                        isbn: type === 'Online Resources' ? null : (newRefDraft.isbn ? newRefDraft.isbn.trim() : null),
+                        link: type === 'Textbook' ? null : (newRefDraft.link ? newRefDraft.link.trim() : null),
+                        publication_year: sanitizedYear
+                    };
+                    setAllReferences(prev => prev.map(r => (r._temp_id === editingRef._temp_id ? updatedDraft : r)));
+                    setSelectedRefs(prev => prev.map(r => (r._temp_id === editingRef._temp_id ? updatedDraft : r)));
                 }
             } else {
-                // Updating unpersisted temp reference
-                const updatedDraft = {
-                    ...editingRef,
+                // Adding new reference
+                const tempId = `temp-${Date.now()}`;
+                const newOption = {
+                    reference_id: null,
+                    _temp_id: tempId,
                     title: newRefDraft.title.trim(),
                     type,
                     author: newRefDraft.author.trim(),
@@ -313,45 +514,41 @@ const ReferenceForm = forwardRef(({
                     link: type === 'Textbook' ? null : (newRefDraft.link ? newRefDraft.link.trim() : null),
                     publication_year: sanitizedYear
                 };
-                setAllReferences(prev => prev.map(r => (r._temp_id === editingRef._temp_id ? updatedDraft : r)));
-                setSelectedRefs(prev => prev.map(r => (r._temp_id === editingRef._temp_id ? updatedDraft : r)));
+
+                setAllReferences(prev => [newOption, ...prev]);
+                setSelectedRefs(prev => [newOption, ...prev]);
             }
-        } else {
-            // Adding new reference
-            const tempId = `temp-${Date.now()}`;
-            const newOption = {
-                reference_id: null,
-                _temp_id: tempId,
-                title: newRefDraft.title.trim(),
-                type,
-                author: newRefDraft.author.trim(),
-                isbn: type === 'Online Resources' ? null : (newRefDraft.isbn ? newRefDraft.isbn.trim() : null),
-                link: type === 'Textbook' ? null : (newRefDraft.link ? newRefDraft.link.trim() : null),
-                publication_year: sanitizedYear
-            };
 
-            setAllReferences(prev => [newOption, ...prev]);
-            setSelectedRefs(prev => [newOption, ...prev]);
+            handleCloseModal();
+        } catch (err) {
+            console.error('Failed to save reference:', err);
+            setModalSubmitError(err.message || 'Failed to save reference.');
+        } finally {
+            setIsSubmittingDraft(false);
         }
+    };
 
+    const handleAddAllToDictionaryAndSave = () => {
+        if (titleMisspelledWords.length > 0) {
+            addWordsToWhitelist(titleMisspelledWords);
+        }
         setShowRefSpellModal(false);
-        setIsModalOpen(false);
-        setIsEditing(false);
-        setEditingRef(null);
-        setValidationError(null);
+        commitDraftLocal();
     };
 
     const handleSaveDraft = () => {
-        const error = validateDraft(newRefDraft);
-        if (error) {
-            setValidationError(error);
+        if (!isDraftValid) {
+            setTouchedFields({
+                title: true,
+                author: true,
+                isbn: true,
+                publication_year: true,
+                link: true
+            });
             return;
         }
 
-        const prefix = isEditing ? 'Edit Reference' : 'Add Reference';
-        const warnings = getDraftSpellWarnings(newRefDraft, prefix);
-        if (warnings.length > 0) {
-            setRefSpellWarnings(warnings);
+        if (titleMisspelledWords.length > 0) {
             setShowRefSpellModal(true);
             return;
         }
@@ -378,8 +575,8 @@ const ReferenceForm = forwardRef(({
 
     useImperativeHandle(ref, () => ({
         validate: () => {
-            if (!selectedRefs || selectedRefs.length === 0) {
-                return "Please select at least one reference assignment.";
+            if (!selectedRefs || !selectedRefs.some(isTextbookReference)) {
+                return "Please select at least 1 Textbook reference (OER and Online resources are optional).";
             }
             return null;
         },
@@ -520,19 +717,46 @@ const ReferenceForm = forwardRef(({
 
     const renderDynamicFields = () => {
         const type = newRefDraft.type;
+        const fieldError = (key) => (touchedFields[key] ? draftFieldErrors[key] || null : null);
+
         return (
             <>
                 <TextField
                     label="Title"
                     value={newRefDraft.title}
-                    onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))}
+                    onChange={(v) => updateDraftField('title', v)}
+                    onBlur={() => markFieldTouched('title')}
+                    error={fieldError('title')}
+                    fieldId="ref-modal-title"
+                    isHighlighted={titleSpellHighlighted}
                     spellCheckEnabled={true}
                     placeholder="Enter reference title..."
                 />
+                {titleMisspelledWords.length > 0 && !fieldError('title') && (
+                    <div className={styles.refInlineSpellHint}>
+                        <div className={styles.refInlineSpellHintText}>
+                            <AlertCircle size={13} color="#D97706" style={{ flexShrink: 0 }} />
+                            <span>
+                                {titleMisspelledWords.length === 1
+                                    ? `Possible misspelling: "${titleMisspelledWords[0]}"`
+                                    : `${titleMisspelledWords.length} possible misspellings in Title`}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            className={styles.refSpellDictBtn}
+                            onClick={() => setShowRefSpellModal(true)}
+                        >
+                            Fix / Dictionary
+                        </button>
+                    </div>
+                )}
                 <TextField
                     label="Author"
                     value={newRefDraft.author}
-                    onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))}
+                    onChange={(v) => updateDraftField('author', v)}
+                    onBlur={() => markFieldTouched('author')}
+                    error={fieldError('author')}
                     spellCheckEnabled={false}
                     placeholder="e.g. John Doe"
                 />
@@ -541,14 +765,18 @@ const ReferenceForm = forwardRef(({
                         <TextField
                             label="ISBN"
                             value={newRefDraft.isbn}
-                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))}
+                            onChange={(v) => updateDraftField('isbn', v)}
+                            onBlur={() => markFieldTouched('isbn')}
+                            error={fieldError('isbn')}
                             spellCheckEnabled={false}
                             placeholder="e.g. 978-0-123456-47-2"
                         />
                         <TextField
                             label="Publication Year"
                             value={newRefDraft.publication_year}
-                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))}
+                            onChange={(v) => updateDraftField('publication_year', v)}
+                            onBlur={() => markFieldTouched('publication_year')}
+                            error={fieldError('publication_year')}
                             spellCheckEnabled={false}
                             placeholder="e.g. 2024"
                         />
@@ -559,21 +787,27 @@ const ReferenceForm = forwardRef(({
                         <TextField
                             label="ISBN (optional)"
                             value={newRefDraft.isbn}
-                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))}
+                            onChange={(v) => updateDraftField('isbn', v)}
+                            onBlur={() => markFieldTouched('isbn')}
+                            error={fieldError('isbn')}
                             spellCheckEnabled={false}
                             placeholder="e.g. 978-0-123456-47-2 (optional)"
                         />
                         <TextField
                             label="Publication Year (optional)"
                             value={newRefDraft.publication_year}
-                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))}
+                            onChange={(v) => updateDraftField('publication_year', v)}
+                            onBlur={() => markFieldTouched('publication_year')}
+                            error={fieldError('publication_year')}
                             spellCheckEnabled={false}
                             placeholder="e.g. 2024 (optional)"
                         />
                         <TextField
                             label="Link"
                             value={newRefDraft.link}
-                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))}
+                            onChange={(v) => updateDraftField('link', v)}
+                            onBlur={() => markFieldTouched('link')}
+                            error={fieldError('link')}
                             spellCheckEnabled={false}
                             placeholder="https://..."
                         />
@@ -584,7 +818,9 @@ const ReferenceForm = forwardRef(({
                         <TextField
                             label="Link"
                             value={newRefDraft.link}
-                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))}
+                            onChange={(v) => updateDraftField('link', v)}
+                            onBlur={() => markFieldTouched('link')}
+                            error={fieldError('link')}
                             spellCheckEnabled={false}
                             placeholder="https://..."
                         />
@@ -602,30 +838,22 @@ const ReferenceForm = forwardRef(({
                 options={allReferences}
                 value={selectedRefs}
                 onChange={(val) => setSelectedRefs(val)}
-                error={validationError}
                 disabled={loading}
                 onAddReference={handleOpenAdd}
                 onEditReference={handleOpenEdit}
+                validationState={liveValidationState}
             />
 
             <InlineModal
                 isOpen={isModalOpen}
                 title={isEditing ? "Edit Reference" : "Add Reference"}
-                onClose={() => {
-                    setIsModalOpen(false);
-                    setIsEditing(false);
-                    setEditingRef(null);
-                }}
+                onClose={handleCloseModal}
                 actions={
                     <>
                         <button
                             type="button"
                             className={styles.cancelBtn}
-                            onClick={() => {
-                                setIsModalOpen(false);
-                                setIsEditing(false);
-                                setEditingRef(null);
-                            }}
+                            onClick={handleCloseModal}
                         >
                             Cancel
                         </button>
@@ -633,8 +861,10 @@ const ReferenceForm = forwardRef(({
                             type="button"
                             className={styles.confirmBtn}
                             onClick={handleSaveDraft}
+                            disabled={!isDraftValid || isSubmittingDraft}
+                            title={!isDraftValid ? firstDraftError : (isEditing ? "Save Changes" : "Add Reference")}
                         >
-                            {isEditing ? "Save Changes" : "Add"}
+                            {isSubmittingDraft ? "Saving..." : (isEditing ? "Save Changes" : "Add")}
                         </button>
                     </>
                 }
@@ -644,25 +874,33 @@ const ReferenceForm = forwardRef(({
                         label="Type"
                         value={newRefDraft.type}
                         options={['Textbook', 'Open Educational Resources', 'Online Resources']}
-                        onChange={(v) => setNewRefDraft(prev => ({ ...prev, type: v }))}
+                        onChange={(v) => {
+                            setNewRefDraft(prev => ({ ...prev, type: v }));
+                            if (modalSubmitError) setModalSubmitError(null);
+                        }}
                     />
                     {renderDynamicFields()}
-                    {validationError && <div className={styles.modalError}>{validationError}</div>}
+                    {modalSubmitError && <div className={styles.modalError}>{modalSubmitError}</div>}
                 </div>
             </InlineModal>
 
-            {/* Soft-Warning Pre-Save Spell Check Modal for Reference Pop-up Title */}
+            {/* Pre-Save Spell Check Actions Modal for Reference Pop-up Title */}
             <InlineModal
                 isOpen={showRefSpellModal}
-                title="Spelling Check Warning"
+                title="Spelling Check — Reference Title"
                 onClose={() => setShowRefSpellModal(false)}
                 actions={
                     <>
-                        <button type="button" className={styles.modalCancelBtn} onClick={() => setShowRefSpellModal(false)}>
-                            Review & Edit
+                        <button type="button" className={styles.cancelBtn} onClick={handleFixTitleClick}>
+                            Fix Title
                         </button>
-                        <button type="button" className={styles.modalConfirmBtn} onClick={commitDraftLocal}>
-                            Save Anyway
+                        <button
+                            type="button"
+                            className={styles.confirmBtn}
+                            onClick={handleAddAllToDictionaryAndSave}
+                            disabled={isSubmittingDraft}
+                        >
+                            Add to Dictionary &amp; Save
                         </button>
                     </>
                 }
@@ -674,21 +912,47 @@ const ReferenceForm = forwardRef(({
                             Potential Misspellings Detected in Title
                         </p>
                         <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
-                            The following words in the reference title were flagged by the spell checker. You can right-click underlined words to replace or whitelist them, or proceed anyway:
+                            Choose a suggested replacement to fix each word, edit the title manually, or add valid terms to your dictionary:
                         </p>
                         <div className={styles.spellWarningList}>
-                            {refSpellWarnings.map((item, idx) => (
-                                <div key={idx} className={styles.spellWarningCategory}>
-                                    <div className={styles.spellWarningFieldTitle}>{item.field}</div>
-                                    <div className={styles.spellWarningWordPills}>
-                                        {item.words.map((w, wIdx) => (
-                                            <span key={`${w}-${wIdx}`} className={styles.spellWarningWordBadge}>
-                                                {w}
-                                            </span>
-                                        ))}
+                            {titleMisspelledWords.map((word) => {
+                                const suggestions = getSuggestions(word, 4);
+                                return (
+                                    <div key={word} className={styles.refSpellWordRow}>
+                                        <div className={styles.refSpellWordTop}>
+                                            <span className={styles.spellWarningWordBadge}>{word}</span>
+                                            <button
+                                                type="button"
+                                                className={styles.refSpellDictBtn}
+                                                onClick={() => handleAddWordToDictionary(word)}
+                                                title={`Add "${word}" to personal dictionary`}
+                                            >
+                                                <BookOpen size={11} />
+                                                <span>Add to Dictionary</span>
+                                            </button>
+                                        </div>
+                                        <div className={styles.refSpellSuggestionsRow}>
+                                            {suggestions.length > 0 ? (
+                                                <>
+                                                    <span className={styles.refSpellSuggestLabel}>Fix with:</span>
+                                                    {suggestions.map((s) => (
+                                                        <button
+                                                            key={s}
+                                                            type="button"
+                                                            className={styles.refSpellSuggestChip}
+                                                            onClick={() => handleReplaceMisspelledWord(word, s)}
+                                                        >
+                                                            {s}
+                                                        </button>
+                                                    ))}
+                                                </>
+                                            ) : (
+                                                <span className={styles.refSpellNoSuggest}>No automatic suggestions — click Fix Title to edit manually</span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

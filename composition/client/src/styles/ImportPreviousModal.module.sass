@@ -249,6 +249,17 @@
 .selectCardAlready
   opacity: 0.7
 
+.selectCardDisabled
+  opacity: 0.58
+  background: #F8FAFC
+  border-color: #E2E8F0
+  cursor: not-allowed
+  &:hover
+    border-color: #E2E8F0
+    background: #F8FAFC
+  .checkbox
+    cursor: not-allowed
+
 .checkbox
   margin-top: 2px
   width: 15px
@@ -316,6 +327,17 @@
 .subText
   word-break: break-word
   flex: 1
+
+.subMinTag
+  font-size: 10px
+  font-weight: 700
+  color: #1E40AF
+  background: #EFF6FF
+  border: 1px solid #BFDBFE
+  border-radius: 999px
+  padding: 1px 6px
+  white-space: nowrap
+  flex-shrink: 0
 
 // TLA Card Meta & Description
 .pillRow

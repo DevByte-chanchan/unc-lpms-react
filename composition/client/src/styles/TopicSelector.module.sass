@@ -25,29 +25,40 @@
 .stickyHeader
   background: #F8FAFC
   border-bottom: 1px solid #DCE2F0
-  min-height: 56px
   height: auto
-  padding: 8px 12px
+  padding: 9px 12px
   display: flex
-  align-items: center
+  flex-direction: column
+  gap: 8px
   box-sizing: border-box
   position: sticky
   top: 0
   z-index: 10
 
-.headerRow
+.headerTopRow
   width: 100%
   display: flex
-  gap: 8px
   align-items: center
   justify-content: space-between
+  gap: 10px
+  min-height: 30px
+  padding-bottom: 8px
+  border-bottom: 1px solid #E2E8F0
+
+.headerBottomRow
+  width: 100%
+  display: flex
+  align-items: center
+  justify-content: flex-end
+  gap: 7px
   flex-wrap: wrap
 
 .headerTitleGroup
   display: flex
   align-items: center
-  gap: 7px
+  gap: 6px
   min-width: 0
+  flex: 0 1 auto
 
 .headerTitleIcon
   color: #3182CE
@@ -61,27 +72,13 @@
   overflow: hidden
   text-overflow: ellipsis
 
-.headerCountBadge
-  display: inline-flex
-  align-items: center
-  justify-content: center
-  min-width: 20px
-  height: 19px
-  padding: 0 6px
-  border-radius: 999px
-  font-size: 11px
-  font-weight: 700
-  background: #E2E8F0
-  color: #334155
-  flex-shrink: 0
-
 .headerActionsGroup
   display: flex
   align-items: center
   gap: 7px
-  margin-left: auto
   flex-wrap: wrap
   justify-content: flex-end
+  width: 100%
 
 .searchBar
   flex: 1
@@ -401,7 +398,7 @@
   transition: all 0.3s ease
   display: flex
   flex-direction: column
-  height: 440px
+  height: var(--planner-card-height, 392px)
   box-sizing: border-box
 
 .continuedTopicCard
@@ -460,6 +457,15 @@
   gap: 6px
   flex: 1
   min-width: 0
+  border-radius: 5px
+  padding: 2px 5px
+  border: 1.5px solid transparent
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease
+
+.spellHighlightedInput
+  border-color: #F97316 !important
+  background-color: #FFF7ED !important
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.16)
 
 .topicTitleInput
   font-weight: 700
@@ -472,6 +478,9 @@
   white-space: nowrap
   overflow: hidden
   text-overflow: ellipsis
+  &::placeholder
+    color: #94A3B8
+    font-weight: 500
 
 .lockedTitleInput
   color: #1E3A8A
@@ -496,6 +505,35 @@
   border-radius: 999px
   flex-shrink: 0
 
+.topicHeaderRight
+  display: flex
+  align-items: center
+  gap: 7px
+  flex-shrink: 0
+
+.topicTotalTimePill
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  height: 24px
+  padding: 0 8px
+  border-radius: 999px
+  font-size: 11px
+  font-weight: 700
+  white-space: nowrap
+  border: 1px solid #CBD5E1
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease
+
+.topicTotalTimeActive
+  background: #EFF6FF
+  border-color: #BFDBFE
+  color: #1E40AF
+
+.topicTotalTimeEmpty
+  background: #F1F5F9
+  border-color: #E2E8F0
+  color: #64748B
+
 .removeTopicBtn
   background: #2D3748 !important
   border: none
@@ -505,9 +543,9 @@
   justify-content: center
   cursor: pointer
   flex-shrink: 0
-  padding: 6px 12px
+  padding: 6px 10px
   &:hover
-    background: #E53E3E
+    background: #E53E3E !important
 
 // --- SUBTOPIC STYLING ---
 
@@ -523,29 +561,87 @@
 .subtopicRow
   display: flex
   align-items: center
-  gap: 10px
+  gap: 8px
   background: #fff
   border: 1px solid #EDF2F7
-  padding: 5px 10px
+  padding: 5px 9px
   border-radius: 6px
   height: 38px
   box-sizing: border-box
   flex-shrink: 0
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease
+
+.spellHighlightedRow
+  border: 1.5px solid #F97316 !important
+  background-color: #FFF7ED !important
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.16)
+
+.subtopicInputWrap
+  flex: 1
+  min-width: 0
+  display: flex
+  align-items: center
   input
     flex: 1
+    width: 100%
     border: none
-    font-size: 12px
-    color: #4A5568
+    font-size: 12.5px
+    color: #334155
     outline: none
     background: transparent
+
+.subtopicMinutesBox
+  display: inline-flex
+  align-items: center
+  gap: 2px
+  height: 25px
+  padding: 0 6px
+  border-radius: 5px
+  background: #F8FAFC
+  border: 1px solid #DCE2F0
+  flex-shrink: 0
+  transition: border-color 0.15s ease, background-color 0.15s ease
+  &:focus-within
+    border-color: #3182CE
+    background: #FFFFFF
+    box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.14)
+
+.subtopicMinutesFilled
+  background: #EFF6FF
+  border-color: #BFDBFE
+
+.subtopicMinutesInput
+  width: 28px !important
+  flex: 0 0 28px !important
+  border: none !important
+  outline: none !important
+  background: transparent !important
+  text-align: right
+  font-family: Manrope, sans-serif
+  font-size: 11.5px !important
+  font-weight: 700
+  color: #1E293B !important
+  padding: 0 !important
+  &::placeholder
+    color: #94A3B8
+    font-weight: 600
+
+.subtopicMinutesUnit
+  font-size: 10.5px
+  font-weight: 700
+  color: #64748B
+  user-select: none
+  line-height: 1
 
 .bullet
   color: #CBD5E0
   font-weight: bold
+  flex-shrink: 0
 
 .actions
   display: flex
   gap: 5px
+  flex-shrink: 0
   button
     background: #F7FAFC
     border: 1px solid #E2E8F0
@@ -608,15 +704,17 @@
   border: 2px dashed #E2E8F0
   border-radius: 8px
   background: transparent
-  height: 440px
+  height: var(--planner-card-height, 392px)
   box-sizing: border-box
   display: flex
   flex-direction: column
+  overflow: hidden
   opacity: 0.6
   animation: fadeIn 0.4s ease-in-out
 
 .placeholderHeader
   height: 47px
+  flex-shrink: 0
   box-sizing: border-box
   border-bottom: 2px dashed #E2E8F0
   background: #F8FAFC
@@ -628,9 +726,13 @@
   flex-direction: column
   gap: 8px
   flex: 1
+  min-height: 0
+  overflow: hidden
 
 .placeholderLine
-  height: 38px
+  flex: 1
+  min-height: 24px
+  max-height: 36px
   background: #EDF2F7
   border-radius: 6px
 
@@ -783,7 +885,7 @@
   border: 2px dashed #CBD5E1
   border-radius: 8px
   background: #F8FAFC
-  height: 440px
+  height: var(--planner-card-height, 392px)
   display: flex
   flex-direction: column
   align-items: center

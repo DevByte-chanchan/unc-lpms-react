@@ -556,6 +556,9 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         // ============================================================================
         // 14) Topics & Subtopics (2 parent Topics per Week = 32 Topics;
         //     3 Subtopics per Topic = 6 Subtopics per Week = 96 Subtopics total)
+        //     Each subtopic carries realistic estimated_minutes aligned to weekly hours:
+        //     - Week 1 Orientation = 120 mins (2 hrs), Week 1 Regular = 180 mins (3 hrs)
+        //     - Weeks 2..16 = 300 mins (5 hrs) per week
         // ============================================================================
         const weeklyCurriculum = [
             // ---------------- CO1: Weeks 1 - 4 ----------------
@@ -566,18 +569,18 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                         title: 'Course Orientation and VMO Alignment',
                         is_orientation: true,
                         subtopics: [
-                            'University and College VMO, Core Values, and Quality Policy',
-                            'Course Outline, Course Description, and Classroom Policies',
-                            'AI Usage Policy and Course Requirements'
+                            { title: 'University and College VMO, Core Values, and Quality Policy', minutes: 40 },
+                            { title: 'Course Outline, Course Description, and Classroom Policies', minutes: 45 },
+                            { title: 'AI Usage Policy and Course Requirements', minutes: 35 }
                         ]
                     },
                     {
                         title: 'Foundations of Interactive Computing and Academic Ethics',
                         is_orientation: false,
                         subtopics: [
-                            'Evolution of Interactive Computing Paradigms and Ubiquitous Systems',
-                            'Interdisciplinary Foundations of HCI in Psychology, Ergonomics, and Design',
-                            'Professional Ethics and Academic Integrity in Interface Engineering'
+                            { title: 'Evolution of Interactive Computing Paradigms and Ubiquitous Systems', minutes: 65 },
+                            { title: 'Interdisciplinary Foundations of HCI in Psychology, Ergonomics, and Design', minutes: 60 },
+                            { title: 'Professional Ethics and Academic Integrity in Interface Engineering', minutes: 55 }
                         ]
                     }
                 ]
@@ -588,17 +591,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Cognitive Models in HCI',
                         subtopics: [
-                            'Goals, Operators, Methods, and Selection Rules (GOMS) Model',
-                            'Keystroke-Level Model (KLM) and Execution Time Prediction',
-                            'Fitts\'s Law, Hick\'s Law, and Mental vs. Conceptual Models'
+                            { title: 'Goals, Operators, Methods, and Selection Rules (GOMS) Model', minutes: 55 },
+                            { title: 'Keystroke-Level Model (KLM) and Execution Time Prediction', minutes: 50 },
+                            { title: 'Fitts\'s Law, Hick\'s Law, and Mental vs. Conceptual Models', minutes: 45 }
                         ]
                     },
                     {
                         title: 'Human Information Processing and Perceptual Psychology',
                         subtopics: [
-                            'Visual, Auditory, and Haptic Sensory Channels in Digital Interaction',
-                            'Working Memory Constraints, Cognitive Load Theory, and Information Chunking',
-                            'Selective Attention, Change Blindness, and Human Error Taxonomy'
+                            { title: 'Visual, Auditory, and Haptic Sensory Channels in Digital Interaction', minutes: 45 },
+                            { title: 'Working Memory Constraints, Cognitive Load Theory, and Information Chunking', minutes: 55 },
+                            { title: 'Selective Attention, Change Blindness, and Human Error Taxonomy', minutes: 50 }
                         ]
                     }
                 ]
@@ -609,17 +612,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Introduction to Human-Computer Interaction (HCI)',
                         subtopics: [
-                            'Human Factors and Ergonomic Considerations in Interactive Systems',
-                            'Computer Systems Architecture and Interface Hardware Components',
-                            'Norman\'s Execution-Evaluation Interaction Cycle and Gulf Analysis'
+                            { title: 'Human Factors and Ergonomic Considerations in Interactive Systems', minutes: 50 },
+                            { title: 'Computer Systems Architecture and Interface Hardware Components', minutes: 45 },
+                            { title: 'Norman\'s Execution-Evaluation Interaction Cycle and Gulf Analysis', minutes: 55 }
                         ]
                     },
                     {
                         title: 'Usability Heuristics and Interaction Paradigms',
                         subtopics: [
-                            'Don Norman\'s Core Principles: Affordances, Signifiers, Mapping, and Feedback',
-                            'Jakob Nielsen\'s Ten Usability Heuristics for User Interface Design',
-                            'Direct Manipulation, Menu Selection, Form Fill-in, and Conversational Interfaces'
+                            { title: 'Don Norman\'s Core Principles: Affordances, Signifiers, Mapping, and Feedback', minutes: 50 },
+                            { title: 'Jakob Nielsen\'s Ten Usability Heuristics for User Interface Design', minutes: 55 },
+                            { title: 'Direct Manipulation, Menu Selection, Form Fill-in, and Conversational Interfaces', minutes: 45 }
                         ]
                     }
                 ]
@@ -630,17 +633,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Introduction to User Interface (UI) Design',
                         subtopics: [
-                            'Fundamentals and Visual Anatomy of Modern User Interfaces',
-                            'Figma Workspace Architecture, Frames, Constraints, and Vector Networks',
-                            'Structuring Software UI Proposals and Design Concept Specifications'
+                            { title: 'Fundamentals and Visual Anatomy of Modern User Interfaces', minutes: 45 },
+                            { title: 'Figma Workspace Architecture, Frames, Constraints, and Vector Networks', minutes: 60 },
+                            { title: 'Structuring Software UI Proposals and Design Concept Specifications', minutes: 45 }
                         ]
                     },
                     {
                         title: 'Ethical AI Integration and Prompt Engineering in UI Design',
                         subtopics: [
-                            'Artificial Intelligence Tools and Generative Workflows for UI Ideation',
-                            'Prompt Engineering Practices, Originality, and Proper Attribution',
-                            'Privacy, Data Protection, and Critical Evaluation of AI-Generated Assets'
+                            { title: 'Artificial Intelligence Tools and Generative Workflows for UI Ideation', minutes: 50 },
+                            { title: 'Prompt Engineering Practices, Originality, and Proper Attribution', minutes: 55 },
+                            { title: 'Privacy, Data Protection, and Critical Evaluation of AI-Generated Assets', minutes: 45 }
                         ]
                     }
                 ]
@@ -653,17 +656,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'User-Centered Design (UCD) Frameworks and Persona Crafting',
                         subtopics: [
-                            'UCD Lifecycle Phases and ISO 9241-210 Human-System Interaction Standards',
-                            'Target Audience Demographic, Psychographic, and Behavioral Profiling',
-                            'Data-Driven User Persona Archetypes and Empathy Mapping Workflows'
+                            { title: 'UCD Lifecycle Phases and ISO 9241-210 Human-System Interaction Standards', minutes: 55 },
+                            { title: 'Target Audience Demographic, Psychographic, and Behavioral Profiling', minutes: 45 },
+                            { title: 'Data-Driven User Persona Archetypes and Empathy Mapping Workflows', minutes: 50 }
                         ]
                     },
                     {
                         title: 'Contextual Inquiry and Qualitative User Research Methods',
                         subtopics: [
-                            'Stakeholder Interviews, Ethnographic Field Studies, and Contextual Inquiry',
-                            'Affinity Diagramming and Thematic Synthesis of Qualitative Field Notes',
-                            'Translating User Research Insights into Actionable Problem Statements'
+                            { title: 'Stakeholder Interviews, Ethnographic Field Studies, and Contextual Inquiry', minutes: 55 },
+                            { title: 'Affinity Diagramming and Thematic Synthesis of Qualitative Field Notes', minutes: 50 },
+                            { title: 'Translating User Research Insights into Actionable Problem Statements', minutes: 45 }
                         ]
                     }
                 ]
@@ -674,17 +677,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Information Architecture and User Navigation Flow',
                         subtopics: [
-                            'Hierarchical, Sequential, Matrix, and Faceted Navigation Design Patterns',
-                            'Comprehensive Sitemaps and System Task Flow Diagramming',
-                            'Open and Closed Card Sorting Protocols for Category Optimization'
+                            { title: 'Hierarchical, Sequential, Matrix, and Faceted Navigation Design Patterns', minutes: 50 },
+                            { title: 'Comprehensive Sitemaps and System Task Flow Diagramming', minutes: 55 },
+                            { title: 'Open and Closed Card Sorting Protocols for Category Optimization', minutes: 45 }
                         ]
                     },
                     {
                         title: 'Customer Journey Mapping and Task Analysis',
                         subtopics: [
-                            'Hierarchical Task Analysis (HTA) and Sub-goal Decomposition',
-                            'End-to-End User Journey Mapping Across Multi-Channel Touchpoints',
-                            'Identifying Friction Points, Emotional Lows, and Service Recovery Opportunities'
+                            { title: 'Hierarchical Task Analysis (HTA) and Sub-goal Decomposition', minutes: 50 },
+                            { title: 'End-to-End User Journey Mapping Across Multi-Channel Touchpoints', minutes: 55 },
+                            { title: 'Identifying Friction Points, Emotional Lows, and Service Recovery Opportunities', minutes: 45 }
                         ]
                     }
                 ]
@@ -695,17 +698,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Wireframing Essentials and Layout Compositions',
                         subtopics: [
-                            'Low-Fidelity Ideation Sketches and Crazy Eights Rapid Wireframing',
-                            'Digital Wireframing Conventions, Content Placeholders, and Annotation Specs',
-                            'Responsive Grid Systems, Breakpoints, and Touch Target Sizing'
+                            { title: 'Low-Fidelity Ideation Sketches and Crazy Eights Rapid Wireframing', minutes: 45 },
+                            { title: 'Digital Wireframing Conventions, Content Placeholders, and Annotation Specs', minutes: 55 },
+                            { title: 'Responsive Grid Systems, Breakpoints, and Touch Target Sizing', minutes: 50 }
                         ]
                     },
                     {
                         title: 'Responsive Grid Architectures and Spatial Hierarchy',
                         subtopics: [
-                            'Multi-Column, Modular, and Baseline Grid Systems for Cross-Device Layouts',
-                            'Visual Scanning Patterns: F-Pattern and Z-Pattern Content Placement',
-                            'Iterative Wireframe Walkthroughs and Structural Layout Validation'
+                            { title: 'Multi-Column, Modular, and Baseline Grid Systems for Cross-Device Layouts', minutes: 55 },
+                            { title: 'Visual Scanning Patterns: F-Pattern and Z-Pattern Content Placement', minutes: 45 },
+                            { title: 'Iterative Wireframe Walkthroughs and Structural Layout Validation', minutes: 50 }
                         ]
                     }
                 ]
@@ -716,17 +719,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Visual Design and Gestalt Principles in User Interfaces',
                         subtopics: [
-                            'Gestalt Laws of Proximity, Similarity, Continuity, Closure, and Common Fate',
-                            'Color Theory, 60-30-10 Palette Ratios, and Semantic Status Colors',
-                            'Typographic Scales, Line Length, Vertical Rhythm, and Spatial Balance'
+                            { title: 'Gestalt Laws of Proximity, Similarity, Continuity, Closure, and Common Fate', minutes: 55 },
+                            { title: 'Color Theory, 60-30-10 Palette Ratios, and Semantic Status Colors', minutes: 50 },
+                            { title: 'Typographic Scales, Line Length, Vertical Rhythm, and Spatial Balance', minutes: 45 }
                         ]
                     },
                     {
                         title: 'UX Design Documentation and Stakeholder Presentation',
                         subtopics: [
-                            'Compiling Comprehensive UCD Process and Wireframe Specification Packages',
-                            'Storyboarding User Scenarios to Communicate UX Value Propositions',
-                            'Defending Wireframe Architecture and Interaction Flows in Design Critiques'
+                            { title: 'Compiling Comprehensive UCD Process and Wireframe Specification Packages', minutes: 50 },
+                            { title: 'Storyboarding User Scenarios to Communicate UX Value Propositions', minutes: 45 },
+                            { title: 'Defending Wireframe Architecture and Interaction Flows in Design Critiques', minutes: 55 }
                         ]
                     }
                 ]
@@ -739,17 +742,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Advanced Component Modeling and Responsive Systems in Figma',
                         subtopics: [
-                            'Atomic Design Methodology: Atoms, Molecules, Organisms, and Templates',
-                            'Structuring Modular Figma Master Components, Variants, and Boolean Properties',
-                            'Responsive Component Resizing Using Nested Auto Layout Configurations'
+                            { title: 'Atomic Design Methodology: Atoms, Molecules, Organisms, and Templates', minutes: 45 },
+                            { title: 'Structuring Modular Figma Master Components, Variants, and Boolean Properties', minutes: 55 },
+                            { title: 'Responsive Component Resizing Using Nested Auto Layout Configurations', minutes: 50 }
                         ]
                     },
                     {
                         title: 'Design Tokens and Scalable UI Library Governance',
                         subtopics: [
-                            'Defining Global, Alias, and Component-Specific Design Tokens for Color and Spacing',
-                            'Implementing Light, Dark, and High-Contrast Theme Modes with Figma Variables',
-                            'Publishing, Versioning, and Maintaining Collaborative Team Component Libraries'
+                            { title: 'Defining Global, Alias, and Component-Specific Design Tokens for Color and Spacing', minutes: 50 },
+                            { title: 'Implementing Light, Dark, and High-Contrast Theme Modes with Figma Variables', minutes: 55 },
+                            { title: 'Publishing, Versioning, and Maintaining Collaborative Team Component Libraries', minutes: 45 }
                         ]
                     }
                 ]
@@ -760,17 +763,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Visual Assets, Iconography, and High-Fidelity Surface Design',
                         subtopics: [
-                            'Vector Iconography Standards, Stroke Consistency, and Pixel Grid Alignment',
-                            'High-Resolution Imagery Optimization, Aspect Ratios, and Focal Point Cropping',
-                            'Elevation Systems, Drop Shadows, Glassmorphism, and Surface Depth Cues'
+                            { title: 'Vector Iconography Standards, Stroke Consistency, and Pixel Grid Alignment', minutes: 50 },
+                            { title: 'High-Resolution Imagery Optimization, Aspect Ratios, and Focal Point Cropping', minutes: 45 },
+                            { title: 'Elevation Systems, Drop Shadows, Glassmorphism, and Surface Depth Cues', minutes: 55 }
                         ]
                     },
                     {
                         title: 'Cross-Platform Design Guidelines and Adaptive Patterns',
                         subtopics: [
-                            'Material Design 3 and Apple Human Interface Guidelines (HIG) Core Conventions',
-                            'Adaptive Navigation Patterns: Bottom Bars, Navigation Drawers, and Rail Systems',
-                            'Designing Empty States, Skeleton Loaders, and Progressive Onboarding Flows'
+                            { title: 'Material Design 3 and Apple Human Interface Guidelines (HIG) Core Conventions', minutes: 55 },
+                            { title: 'Adaptive Navigation Patterns: Bottom Bars, Navigation Drawers, and Rail Systems', minutes: 50 },
+                            { title: 'Designing Empty States, Skeleton Loaders, and Progressive Onboarding Flows', minutes: 45 }
                         ]
                     }
                 ]
@@ -781,17 +784,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Interactive Dynamic Prototyping and Micro-interaction Workflows',
                         subtopics: [
-                            'Interactive Noodle Connections, Smart Animate Transitions, and Contextual Overlays',
-                            'Trigger-Action Rules, Conditional Logic, and Variable-Driven Prototype States',
-                            'Designing Micro-interactions: Button States, Toggle Physics, and Pull-to-Refresh'
+                            { title: 'Interactive Noodle Connections, Smart Animate Transitions, and Contextual Overlays', minutes: 55 },
+                            { title: 'Trigger-Action Rules, Conditional Logic, and Variable-Driven Prototype States', minutes: 50 },
+                            { title: 'Designing Micro-interactions: Button States, Toggle Physics, and Pull-to-Refresh', minutes: 45 }
                         ]
                     },
                     {
                         title: 'State Management, Form Validation, and Feedback Loops',
                         subtopics: [
-                            'Interactive Input Masks, Inline Real-Time Validation, and Error Recovery Prompts',
-                            'Multi-Step Wizard Flows, Progress Indicators, and Confirmation Modals',
-                            'Toast Notifications, Non-Blocking Alerts, and Optimistic UI Feedback States'
+                            { title: 'Interactive Input Masks, Inline Real-Time Validation, and Error Recovery Prompts', minutes: 50 },
+                            { title: 'Multi-Step Wizard Flows, Progress Indicators, and Confirmation Modals', minutes: 55 },
+                            { title: 'Toast Notifications, Non-Blocking Alerts, and Optimistic UI Feedback States', minutes: 45 }
                         ]
                     }
                 ]
@@ -802,17 +805,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Web Accessibility Standards (WCAG 2.1) and Auditing Protocols',
                         subtopics: [
-                            'POUR Accessibility Pillars: Perceivable, Operable, Understandable, and Robust',
-                            'WCAG AA/AAA Contrast Compliance, Non-Text Contrast, and Color-Blindness Simulation',
-                            'Keyboard-Only Navigation, Focus Ring Visibility, and Logical Tab Order Auditing'
+                            { title: 'POUR Accessibility Pillars: Perceivable, Operable, Understandable, and Robust', minutes: 50 },
+                            { title: 'WCAG AA/AAA Contrast Compliance, Non-Text Contrast, and Color-Blindness Simulation', minutes: 50 },
+                            { title: 'Keyboard-Only Navigation, Focus Ring Visibility, and Logical Tab Order Auditing', minutes: 50 }
                         ]
                     },
                     {
                         title: 'Assistive Technology Compatibility and Accessible Front-End Prototyping',
                         subtopics: [
-                            'Screen Reader Landmarks, Semantic Heading Hierarchies, and ARIA Live Regions',
-                            'Accessible Form Labels, Error Announcements, and Skip-Navigation Links',
-                            'Presenting and Auditing Interactive Front-End Prototypes Against WCAG 2.1 Checklists'
+                            { title: 'Screen Reader Landmarks, Semantic Heading Hierarchies, and ARIA Live Regions', minutes: 50 },
+                            { title: 'Accessible Form Labels, Error Announcements, and Skip-Navigation Links', minutes: 45 },
+                            { title: 'Presenting and Auditing Interactive Front-End Prototypes Against WCAG 2.1 Checklists', minutes: 55 }
                         ]
                     }
                 ]
@@ -825,17 +828,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Usability Evaluation Metrics and Test Formulations',
                         subtopics: [
-                            'Formative vs. Summative Usability Evaluation Methodologies',
-                            'Quantitative Metrics: Task Completion Rate, Time-on-Task, and Error Frequency',
-                            'Drafting Comprehensive Usability Test Plans, Screener Surveys, and Consent Forms'
+                            { title: 'Formative vs. Summative Usability Evaluation Methodologies', minutes: 45 },
+                            { title: 'Quantitative Metrics: Task Completion Rate, Time-on-Task, and Error Frequency', minutes: 50 },
+                            { title: 'Drafting Comprehensive Usability Test Plans, Screener Surveys, and Consent Forms', minutes: 55 }
                         ]
                     },
                     {
                         title: 'Heuristic Inspection and Cognitive Walkthrough Protocols',
                         subtopics: [
-                            'Executing Structured Expert Heuristic Evaluations with Severity Rating Scales',
-                            'Conducting Task-Based Cognitive Walkthroughs to Uncover Learnability Barriers',
-                            'Writing Unbiased, Representative User Testing Scenarios and Moderator Scripts'
+                            { title: 'Executing Structured Expert Heuristic Evaluations with Severity Rating Scales', minutes: 55 },
+                            { title: 'Conducting Task-Based Cognitive Walkthroughs to Uncover Learnability Barriers', minutes: 50 },
+                            { title: 'Writing Unbiased, Representative User Testing Scenarios and Moderator Scripts', minutes: 45 }
                         ]
                     }
                 ]
@@ -846,17 +849,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Moderated Usability Testing Execution and Data Synthesis',
                         subtopics: [
-                            'Facilitating In-Person and Remote Moderated Usability Testing Sessions',
-                            'Concurrent and Retrospective Think-Aloud Protocols and Observer Note-Taking',
-                            'Preventing Moderator Bias, Leading Questions, and Hawthorne Effect Distortions'
+                            { title: 'Facilitating In-Person and Remote Moderated Usability Testing Sessions', minutes: 55 },
+                            { title: 'Concurrent and Retrospective Think-Aloud Protocols and Observer Note-Taking', minutes: 50 },
+                            { title: 'Preventing Moderator Bias, Leading Questions, and Hawthorne Effect Distortions', minutes: 45 }
                         ]
                     },
                     {
                         title: 'Psychometric Usability Scales and Behavioral Analytics',
                         subtopics: [
-                            'Administering and Scoring the System Usability Scale (SUS) Questionnaire',
-                            'Post-Task Single Ease Question (SEQ) and NASA-TLX Workload Assessments',
-                            'Analyzing Clickstream Heatmaps, Misclick Rates, and Navigation Drop-off Funnels'
+                            { title: 'Administering and Scoring the System Usability Scale (SUS) Questionnaire', minutes: 50 },
+                            { title: 'Post-Task Single Ease Question (SEQ) and NASA-TLX Workload Assessments', minutes: 45 },
+                            { title: 'Analyzing Clickstream Heatmaps, Misclick Rates, and Navigation Drop-off Funnels', minutes: 55 }
                         ]
                     }
                 ]
@@ -867,17 +870,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Quantitative and Qualitative Usability Data Triangulation',
                         subtopics: [
-                            'Synthesizing Qualitative Observation Logs with Quantitative Task Performance Metrics',
-                            'Categorizing Usability Defects by Frequency, Impact, and Persistence',
-                            'Prioritizing Design Remediation Backlogs Using Impact-Effort Matrices'
+                            { title: 'Synthesizing Qualitative Observation Logs with Quantitative Task Performance Metrics', minutes: 55 },
+                            { title: 'Categorizing Usability Defects by Frequency, Impact, and Persistence', minutes: 50 },
+                            { title: 'Prioritizing Design Remediation Backlogs Using Impact-Effort Matrices', minutes: 45 }
                         ]
                     },
                     {
                         title: 'Empirically-Driven UI/UX Refinement Sprints',
                         subtopics: [
-                            'Redesigning High-Friction Navigation Flows Based on Empirical User Evidence',
-                            'A/B Comparison of Baseline vs. Refined Prototype Interaction Flows',
-                            'Validating Post-Iteration Usability Improvements Through Verification Rounds'
+                            { title: 'Redesigning High-Friction Navigation Flows Based on Empirical User Evidence', minutes: 55 },
+                            { title: 'A/B Comparison of Baseline vs. Refined Prototype Interaction Flows', minutes: 50 },
+                            { title: 'Validating Post-Iteration Usability Improvements Through Verification Rounds', minutes: 45 }
                         ]
                     }
                 ]
@@ -888,17 +891,17 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     {
                         title: 'Empirically-Driven Layout Iterations and Developer Handoff',
                         subtopics: [
-                            'Preparing Redline Specifications, Spacing Measurements, and CSS Token Exports in Figma',
-                            'Documenting Edge Cases, Responsive Breakpoint Behaviors, and Asset Export Pipelines',
-                            'Writing Professional Usability Evaluation and Engineering Handoff Reports'
+                            { title: 'Preparing Redline Specifications, Spacing Measurements, and CSS Token Exports in Figma', minutes: 55 },
+                            { title: 'Documenting Edge Cases, Responsive Breakpoint Behaviors, and Asset Export Pipelines', minutes: 50 },
+                            { title: 'Writing Professional Usability Evaluation and Engineering Handoff Reports', minutes: 45 }
                         ]
                     },
                     {
                         title: 'Capstone Front-End Prototype Defense and Portfolio Presentation',
                         subtopics: [
-                            'Structuring an End-to-End UX Case Study: Problem, Process, Solution, and Impact',
-                            'Live Demonstration of the Validated High-Fidelity Front-End Prototype',
-                            'Oral Defense of Design Decisions, Accessibility Compliance, and Usability Metrics'
+                            { title: 'Structuring an End-to-End UX Case Study: Problem, Process, Solution, and Impact', minutes: 45 },
+                            { title: 'Live Demonstration of the Validated High-Fidelity Front-End Prototype', minutes: 55 },
+                            { title: 'Oral Defense of Design Decisions, Accessibility Compliance, and Usability Metrics', minutes: 50 }
                         ]
                     }
                 ]
@@ -922,7 +925,9 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     updatedAt: now
                 });
 
-                topicObj.subtopics.forEach((subTitle, idx) => {
+                topicObj.subtopics.forEach((subItem, idx) => {
+                    const subTitle = typeof subItem === 'string' ? subItem : subItem.title;
+                    const subMinutes = typeof subItem === 'string' ? 50 : (Number(subItem.minutes) || 50);
                     subtopicsToInsert.push({
                         subtopic_id: subtopicIdCounter++,
                         week_id: weekBlock.week_id,
@@ -931,6 +936,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                         title: subTitle,
                         sequence_order: idx + 1,
                         is_orientation: Boolean(topicObj.is_orientation),
+                        estimated_minutes: subMinutes,
                         createdAt: now,
                         updatedAt: now
                     });

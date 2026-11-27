@@ -7,7 +7,8 @@ module.exports = (sequelize, DataTypes) => {
         title: { type: DataTypes.STRING(200), allowNull: false },
         sequence_order: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
         is_orientation: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-        parent_subtopic_id: { type: DataTypes.INTEGER, allowNull: true }
+        parent_subtopic_id: { type: DataTypes.INTEGER, allowNull: true },
+        estimated_minutes: { type: DataTypes.INTEGER, allowNull: true, defaultValue: null }
     }, { tableName: 'Subtopics' });
 
     Subtopic.associate = function(models) {
