@@ -921,7 +921,24 @@ const TopicForm = () => {
         return `Resolve validation issues in: ${pending.join(', ')}`;
     }, [columnValidations, isSaving]);
 
-    const [isFormLoading, setIsFormLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isWeekSwitching, setIsWeekSwitching] = useState(false);
+    const weekSwitchTimerRef = useRef(null);
+    const isFormLoading = isInitialLoading || isWeekSwitching;
+
+    useEffect(() => {
+        return () => {
+            if (weekSwitchTimerRef.current) clearTimeout(weekSwitchTimerRef.current);
+        };
+    }, []);
+
+    const triggerWeekSwitchLoading = useCallback(() => {
+        setIsWeekSwitching(true);
+        if (weekSwitchTimerRef.current) clearTimeout(weekSwitchTimerRef.current);
+        weekSwitchTimerRef.current = setTimeout(() => {
+            setIsWeekSwitching(false);
+        }, 500);
+    }, []);
 
     useEffect(() => {
         setIsOrientation(initialIsOrientation);
@@ -929,11 +946,11 @@ const TopicForm = () => {
 
     useEffect(() => {
         let mounted = true;
-        setIsFormLoading(true);
+        setIsInitialLoading(true);
 
         if (!iloId) {
             const fallbackTimer = setTimeout(() => {
-                if (mounted) setIsFormLoading(false);
+                if (mounted) setIsInitialLoading(false);
             }, 500);
             return () => {
                 mounted = false;
@@ -1026,7 +1043,7 @@ const TopicForm = () => {
 
         Promise.all([loadWeekContext(), minDelay]).finally(() => {
             if (mounted) {
-                setIsFormLoading(false);
+                setIsInitialLoading(false);
             }
         });
 
@@ -1174,6 +1191,7 @@ const TopicForm = () => {
     const handleSelectWeek = (nextWeekId) => {
         if (isOrientation || Number(nextWeekId) === Number(activeWeekId)) return;
         syncLiveTopicsToFrontendMap();
+        triggerWeekSwitchLoading();
         setActiveWeekId(Number(nextWeekId));
     };
 
@@ -1184,6 +1202,7 @@ const TopicForm = () => {
         if (!targetIsOrientation && !isOrientation && Number(targetCo.coNumber) === Number(weekContext.coNumber)) return;
 
         syncLiveTopicsToFrontendMap();
+        triggerWeekSwitchLoading();
 
         const nextWeeks = Array.isArray(targetCo.weeks) ? targetCo.weeks : [];
         const nextWeekId = targetCo.firstWeekId || (nextWeeks[0] ? nextWeeks[0].week_id : null);
