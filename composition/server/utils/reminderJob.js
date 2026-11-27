@@ -165,7 +165,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
     const { models, notify, mailer } = deps;
     const { sequelize, Notification, ReminderLog, ReminderPause, Program, User } = models;
     const clock = rules.schoolClock(now, rules.timezoneOf(env));
-    const result = { day: clock.day, sent: 0, emailRetries: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, returnedReminders: 0, deanEscalations: 0, skipped: null };
+    const result = { day: clock.day, sent: 0, emailRetries: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, returnedReminders: 0, deanEscalations: 0, startNotices: 0, skipped: null };
     if (!rules.isSendingHour(clock)) { result.skipped = 'before the school day starts'; return result; }
 
     const waiting = await findAwaiting({ sequelize, programIds });
@@ -175,6 +175,20 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         where: { offering_id: { [Op.in]: ids.length ? ids : [0] }, type: { [Op.in]: ['poke', 'reminder'] }, created_at: { [Op.gte]: new Date(now.getTime() - QUIET_HOURS * 3600 * 1000) } },
         attributes: ['offering_id'], raw: true
     })).map(n => n.offering_id));
+
+    // The term's start date (panel feedback, Nov 2026): on that day every instructor with a plan not yet submitted
+    // is told to start, and when it is due. Once per plan (ReminderLog); a paused plan is left alone. It runs first, so
+    // a start date that is also a reminder day sends one notice, not two (the plan is then "recent").
+    for (const row of waiting) {
+        if (!row.startDate || String(row.startDate).slice(0, 10) !== clock.day || row.state === 'Returned') continue;
+        if (!row.instructorId || !row.instructorActive || pausedIds.has(row.offeringId)) continue;
+        if (!(await claim(ReminderLog, `offering:${row.offeringId}`, 'start', clock.day))) continue;
+        const text = `start your learning plan${row.syllabusDue ? ` (due ${String(row.syllabusDue).slice(0, 10)})` : ''}`;
+        await notify([row.instructorId], 'reminder', row.offeringId, `${row.courseCode} — ${text}`, null, now);
+        if (mailer.configured() && row.instructorEmail) await mailer.send({ to: row.instructorEmail, ...emailFor(row.courseCode, text) });
+        recent.add(row.offeringId);
+        result.startNotices += 1;
+    }
 
     for (const row of waiting) {
         if (!row.syllabusDue || !row.instructorId || !row.instructorActive) continue;
@@ -255,7 +269,7 @@ const startReminders = ({ env = process.env, log = console.log, setIntervalFn = 
         running = true;
         try {
             const result = await runFn({ env, log });
-            if (result.sent || result.digests || result.approverReminders || result.referenceDigests || result.returnedReminders || result.deanEscalations) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}, returned-plan reminders: ${result.returnedReminders}, overdue plans escalated to Deans: ${result.deanEscalations}.`);
+            if (result.sent || result.digests || result.approverReminders || result.referenceDigests || result.returnedReminders || result.deanEscalations || result.startNotices) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}, returned-plan reminders: ${result.returnedReminders}, overdue plans escalated to Deans: ${result.deanEscalations}, start notices: ${result.startNotices}.`);
         } catch (error) {
             console.error(`Reminders did not run: ${error.message}`);
         } finally {

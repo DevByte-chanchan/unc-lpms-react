@@ -222,3 +222,27 @@ test('a plan 7 days overdue is escalated to the Dean once, naming the late cours
     await run('2026-11-13T09:00:00Z'); // 8 days: not a trigger day
     assert.equal((await toDean()).length, 1, 'once a day, and only on the 7th, 14th... day');
 });
+
+test('on the term start date each instructor with a plan not yet submitted is told to start, once', async () => {
+    await TermDeadline.update({ syllabus_due: '2026-11-20', start_date: '2026-10-26' }, { where: { program_id: withDeadline } });
+    const result = await run('2026-10-26T09:00:00Z');
+    const startsFor = async (name) => (await reminders(name)).filter(n => /start your learning plan/.test(n.message));
+    const [a] = await startsFor('A');
+    assert.ok(a, 'A is told to start');
+    assert.match(a.message, /^ZZRA — start your learning plan \(due 2026-11-20\)$/);
+    assert.equal((await startsFor('C')).length, 0, 'C is paused');
+    assert.equal((await startsFor('E')).length, 0, "E's instructor is deactivated");
+    assert.ok(result.startNotices >= 1);
+    await run('2026-10-26T11:00:00Z');
+    assert.equal((await startsFor('A')).length, 1, 'not twice the same day');
+    await TermDeadline.update({ start_date: null }, { where: { program_id: withDeadline } });
+});
+
+test('the start date is optional, a real date, and not after the due date', () => {
+    const { validateDeadline } = require('./deadlineValidation');
+    const base = { program_id: 1, school_year: '2026-2027', semester: '1st', syllabus_due: '2026-11-20' };
+    assert.equal(validateDeadline(base).values.start_date, null);
+    assert.equal(validateDeadline({ ...base, start_date: '2026-10-26' }).values.start_date, '2026-10-26');
+    assert.match(validateDeadline({ ...base, start_date: '2026-11-21' }).errors.start_date, /on or before the due date/);
+    assert.match(validateDeadline({ ...base, start_date: '2026-02-30' }).errors.start_date, /real date/);
+});

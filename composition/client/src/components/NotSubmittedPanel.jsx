@@ -49,6 +49,8 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
   const [busyId, setBusyId] = React.useState(null)
   const [dialog, setDialog] = React.useState(null)
   const [dueText, setDueText] = React.useState('')
+  // When instructors should start (optional); they are notified that day (server: utils/reminderJob.js).
+  const [startText, setStartText] = React.useState('')
   const [beforeDays, setBeforeDays] = React.useState(DEFAULT_BEFORE)
   const [everyDays, setEveryDays] = React.useState(DEFAULT_EVERY)
   // "Add a date": any day before the due date, picked on the calendar, besides the quick chips
@@ -104,10 +106,10 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
       const [start] = String(schoolYear).split('-').map(Number)
       const prev = deadlines.deadlines.find(d => d.program_id === program.program_id && d.semester === semester && d.school_year === `${start - 1}-${start}`)
       const moved = prev ? shiftYear(prev.syllabus_due) : ''
-      return moved && moved >= (data?.today || '') ? { ...prev, syllabus_due: moved } : null
+      return moved && moved >= (data?.today || '') ? { ...prev, syllabus_due: moved, start_date: prev.start_date ? shiftYear(prev.start_date) : null } : null
     })()
     const from = found || lastYear
-    setDialog({ ...program, fromLastYear: Boolean(lastYear) }); setDueText(from?.syllabus_due || ''); setDialogError('')
+    setDialog({ ...program, fromLastYear: Boolean(lastYear) }); setDueText(from?.syllabus_due || ''); setStartText(from?.start_date || ''); setDialogError('')
     setBeforeDays(parseBefore(from?.remind_before)); setEveryDays(from?.overdue_every ?? DEFAULT_EVERY); setPickingDate(false)
   }
   // A day picked on the calendar becomes "N days before" (0-60, like the chips); shown as its own removable chip.
@@ -129,7 +131,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
     try {
       await fetchJson('/api/term-deadlines', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ program_id: dialog.program_id, school_year: schoolYear, semester, syllabus_due: dueText, remind_before: beforeDays.join(','), overdue_every: everyDays })
+        body: JSON.stringify({ program_id: dialog.program_id, school_year: schoolYear, semester, syllabus_due: dueText, remind_before: beforeDays.join(','), overdue_every: everyDays, start_date: startText || null })
       })
       closeDialog()
       await load()
@@ -264,6 +266,18 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
               </div>
               <div className={styles.hint}>{dialog.fromLastYear ? 'Filled in from last year\'s due date for this semester. Check it, then save.' : 'Set it at least 2 weeks before classes start.'}</div>
 
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="syllabus-start-date">Start on (optional)</label>
+                <DatePicker id="syllabus-start-date" value={startText} onChange={setStartText} placeholder="No start date"
+                  min={(() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` })()} />
+              </div>
+              <div className={styles.hint}>
+                {startText && dueText && startText > dueText
+                  ? <span style={{ color: 'var(--danger)' }}>The start date must be on or before the due date.</span>
+                  : 'On this day every instructor with a plan not yet submitted is told to start, and when it is due.'}
+                {startText && <> <button type="button" style={{ background: 'none', border: 0, padding: 0, color: 'var(--ink-muted)', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setStartText('')}>Clear</button></>}
+              </div>
+
               <div className={styles.schedule} aria-live="polite">
                 <div className={styles.scheduleTitle}>Automatic reminders</div>
                 {/* Which days before the due date, then how often once it has passed. */}
@@ -305,6 +319,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
                 </div>
                 {dueText ? (
                   <ul>
+                    {startText && <li><span>Start</span><strong>{dayLabel(startText)}</strong></li>}
                     {beforeDays.map(day => (
                       <li key={day}><span>{beforeLabel(day)}</span><strong>{dayLabel(shiftDay(dueText, -day))}</strong></li>
                     ))}
@@ -323,7 +338,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
                 <button type="button" className="btn btn-danger-outline" style={{ marginRight: 'auto' }} onClick={async () => { await removeDeadline(dialog); closeDialog() }}>Remove due date</button>
               )}
               <button type="button" onClick={closeDialog} className="btn btn-secondary">Cancel</button>
-              <button type="button" onClick={saveDeadline} disabled={saving || !dueText} className="btn btn-primary">{saving ? 'Saving…' : 'Save due date'}</button>
+              <button type="button" onClick={saveDeadline} disabled={saving || !dueText || Boolean(startText && startText > dueText)} className="btn btn-primary">{saving ? 'Saving…' : 'Save due date'}</button>
             </div>
           </div>
         </>

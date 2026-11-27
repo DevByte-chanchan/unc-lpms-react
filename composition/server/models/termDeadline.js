@@ -7,6 +7,8 @@ module.exports = (sequelize, DataTypes) => {
         school_year: { type: DataTypes.STRING(9), allowNull: false },
         semester: { type: DataTypes.STRING(10), allowNull: false },
         syllabus_due: { type: DataTypes.DATEONLY, allowNull: false },
+        // When instructors should start (optional): they are notified that day (utils/reminderJob.js).
+        start_date: { type: DataTypes.DATEONLY, allowNull: true },
         // Its own reminder schedule ("7,3,1,0" days before; every N days overdue). Empty: config/reminders.js.
         remind_before: { type: DataTypes.STRING(40), allowNull: true },
         overdue_every: { type: DataTypes.INTEGER, allowNull: true },

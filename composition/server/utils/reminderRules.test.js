@@ -81,7 +81,7 @@ test('a valid deadline is accepted and normalised', () => {
     const result = validateDeadline({ ...good, program_id: '3', syllabus_due: ' 2026-11-15 ' });
     assert.equal(result.ok, true);
     // no schedule given: both empty, so the defaults apply
-    assert.deepEqual(result.values, { ...good, remind_before: null, overdue_every: null });
+    assert.deepEqual(result.values, { ...good, remind_before: null, overdue_every: null, start_date: null });
 });
 
 test('each field is checked', () => {

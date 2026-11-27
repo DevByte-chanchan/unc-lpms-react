@@ -44,8 +44,17 @@ const validateDeadline = (raw) => {
         else overdueEvery = every;
     }
 
+    // When to start (optional): a real date on or before the due date.
+    let startDate = null;
+    if (input.start_date != null && input.start_date !== '') {
+        const start = String(input.start_date).trim();
+        if (!isRealDate(start)) errors.start_date = 'The start date must be a real date written YYYY-MM-DD.';
+        else if (isRealDate(due) && start > due) errors.start_date = 'The start date must be on or before the due date.';
+        else startDate = start;
+    }
+
     if (Object.keys(errors).length) return { ok: false, errors, values: null };
-    return { ok: true, errors: {}, values: { school_year: schoolYear, semester, program_id: programId, syllabus_due: due, remind_before: remindBefore, overdue_every: overdueEvery } };
+    return { ok: true, errors: {}, values: { school_year: schoolYear, semester, program_id: programId, syllabus_due: due, remind_before: remindBefore, overdue_every: overdueEvery, start_date: startDate } };
 };
 
 module.exports = { SEMESTERS, isRealDate, validateDeadline };
