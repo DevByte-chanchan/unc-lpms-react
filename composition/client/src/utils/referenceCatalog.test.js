@@ -127,8 +127,12 @@ test('the view is course-scoped, type-split, in-window, book-level and A–Z', (
   const { rows, suggested, hiddenByCourse, window } = buildCatalogView(LIBRARY, {
     ...VIEW,
     type: 'Textbook',
-    settings: { ...DEFAULT_CATALOG_SETTINGS, chapterOverrides: {} }
+    // blocking on: the Director can still choose to keep outdated titles out
+    settings: { ...DEFAULT_CATALOG_SETTINGS, enforceRecency: true, chapterOverrides: {} }
   });
+  // the default (Nov 2026 panel feedback): an outdated title stays listed, flagged, not removed
+  const kept = buildCatalogView(LIBRARY, { ...VIEW, type: 'Textbook', settings: { ...DEFAULT_CATALOG_SETTINGS, chapterOverrides: {} } }).rows.map(r => r.title);
+  if (!kept.includes('Atomic Design')) throw new Error('by default an outdated title is listed (highlighted), not hidden');
 
   const titles = rows.map(r => r.title);
   if (titles.includes('Understanding the Self')) throw new Error('a GE title reached a programming course [16:13]');

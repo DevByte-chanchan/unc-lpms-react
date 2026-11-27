@@ -6,6 +6,7 @@ const { freezeReviewRecord } = require('../utils/reviewRecordInputs');
 const { snapshotOnReturn } = require('../utils/planChanges');
 const { Op, Transaction } = require('sequelize');
 const { REQUIRED_REVIEWERS, validateWorkflowTransition } = require('../utils/workflowRules');
+const { lateSubmission, lateReasonProblem, cleanReason } = require('../utils/lateSubmission');
 const {
     canAccessCourseRows,
     loadAssignmentCourseRows
@@ -291,6 +292,7 @@ const recordWorkflowAction = async (req, res, next) => {
             return res.status(400).json({ error: 'Provide a valid pcId to identify the course assignment.' });
         }
 
+        let lateNote = null;
         return await withWorkflowLock(offeringId, async () => {
             // Every refusal is decided BEFORE the transaction opens. The server shares one SQLite connection, so a
             // rollback also undoes any other request's write made while the transaction was open: refusing a
@@ -326,6 +328,11 @@ const recordWorkflowAction = async (req, res, next) => {
                 const { planSubmissionBlockers } = require('./submissionController');
                 const blockers = await planSubmissionBlockers(offeringId);
                 if (blockers.length) return res.status(400).json({ error: blockers.join(' '), message: blockers.join(' '), blockers });
+                // A first submission after the due date needs a reason, as on the submit route (utils/lateSubmission.js).
+                const lateCheck = await lateSubmission(sequelize, offeringId);
+                const lateProblem = lateReasonProblem(lateCheck, req.body?.late_reason);
+                if (lateProblem) return res.status(400).json({ ...lateProblem, message: lateProblem.error });
+                lateNote = lateCheck.late ? cleanReason(req.body?.late_reason) : null;
             }
 
             const transactionOptions = sequelize.getDialect() === 'sqlite'
@@ -338,7 +345,7 @@ const recordWorkflowAction = async (req, res, next) => {
                     actor_name: String(req.user?.name || '').slice(0, 100) || null,
                     actor_user_id: req.user?.id ?? null,
                     action_type,
-                    note: action_type === 'COUNTERED' ? note : null
+                    note: action_type === 'COUNTERED' ? note : lateNote
                 }, { transaction });
                 // The revision number is assigned only now, when the Dean accepts.
                 if (actor_role === 'DEAN' && action_type === 'ACCEPTED') {

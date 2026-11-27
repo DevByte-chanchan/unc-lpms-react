@@ -104,6 +104,17 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
             })}
 
             <span className={styles.summary} title={summary}>{summary}</span>
+            {/* Who submitted it and when (panel feedback: approvers need the submitter's name). */}
+            {workflow?.submittedBy && status.stage !== 'draft' && (
+                <span className={styles.summary}>
+                    Submitted by {workflow.submittedBy}{workflow.submittedAt ? ` · ${shortDate(workflow.submittedAt)}` : ''}
+                </span>
+            )}
+            {workflow?.lateReason && (
+                <span className={styles.summary} style={{ whiteSpace: 'normal', color: 'var(--danger)' }}>
+                    Submitted late. The instructor's reason: {workflow.lateReason}
+                </span>
+            )}
         </div>
     )
 }

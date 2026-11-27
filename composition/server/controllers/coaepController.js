@@ -38,6 +38,9 @@ async function getCoaepByCourse(req, res) {
                  INNER JOIN Courses crs ON crs.course_id = pco.course_id
                  INNER JOIN IntendedLearningOutcomes ilo ON ilo.co_id = co.co_id
              WHERE crs.course_no = ? AND pco.pc_offering_id = ?
+               -- the course orientation ILO is an institutional outcome, not one of the course's: each CO keeps its
+               -- three graded ILOs (panel feedback, Nov 2026: 4 COs x 3 ILOs, not 4 x 4)
+               AND COALESCE(ilo.is_orientation, 0) = 0
              ORDER BY co.co_id ASC, ilo.ilo_id ASC;`,
             [code, authorizedOfferingId]
         );

@@ -33,6 +33,12 @@ router.get('/offering/:pcId/history', requireOfferingAccess, getVersionHistory);
 router.get('/offering/:pcId/signatures', requireOfferingAccess, getOfferingSignatures);
 
 // GET /api/assignments/:id
+// GET /api/assignments/offering/:pcId/lateness — would submitting now be late? { late, daysLate, dueDate }
+router.get('/offering/:pcId/lateness', requireOfferingAccess, async (req, res, next) => {
+    try { return res.json(await require('../utils/lateSubmission').lateSubmission(require('../models').sequelize, Number(req.params.pcId))); }
+    catch (error) { return next(error); }
+});
+
 // GET /api/assignments/waiting-on-me — the plans waiting on this approver, every term (the dashboard)
 router.get('/waiting-on-me', require('../controllers/waitingOnMeController').waitingOnMe);
 

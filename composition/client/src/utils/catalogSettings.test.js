@@ -4,7 +4,7 @@ import { DEFAULT_CATALOG_SETTINGS, refreshCatalogSettings, settingsFromApi } fro
 
 test('the server\'s rules become the catalog settings, with the defaults for anything missing', () => {
   assert.deepEqual(settingsFromApi({ recencyYears: 8, enforceRecency: false, requireLibraryAvailability: true }), { recencyYears: 8, enforceRecency: false, requireLibraryAvailability: true })
-  assert.deepEqual(settingsFromApi({}), { recencyYears: DEFAULT_CATALOG_SETTINGS.recencyYears, enforceRecency: true, requireLibraryAvailability: true })
+  assert.deepEqual(settingsFromApi({}), { recencyYears: DEFAULT_CATALOG_SETTINGS.recencyYears, enforceRecency: false, requireLibraryAvailability: true })
 })
 
 test('refreshing takes the server\'s rules; if the server cannot be reached the settings in use stay', async () => {

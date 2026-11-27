@@ -21,7 +21,7 @@ const SETTINGS_KEY = 'lpsm_reference_settings_v1'
 export const DEFAULT_CATALOG_SETTINGS = {
     recencyYears: 5,
     windowEnd: null,               // null = the current calendar year
-    enforceRecency: true,          // false = keep outdated titles but flag them
+    enforceRecency: false,         // false = keep outdated titles but flag them (the Director's choice, Nov 2026)
     requireLibraryAvailability: true,
     suggestionLimit: 5,
     // A title the library knows is a chapter of something bigger. The picker
@@ -62,7 +62,7 @@ export const setCatalogSettings = (patch = {}) => {
 // brings it up to date. If the server cannot be reached the last copy (or the defaults) stays in use.
 export const settingsFromApi = (body = {}) => ({
     recencyYears: Number(body.recencyYears) || DEFAULT_CATALOG_SETTINGS.recencyYears,
-    enforceRecency: body.enforceRecency !== false,
+    enforceRecency: body.enforceRecency === true,
     requireLibraryAvailability: body.requireLibraryAvailability !== false
 })
 

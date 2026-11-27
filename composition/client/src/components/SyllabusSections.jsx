@@ -140,6 +140,10 @@ const SyllabusSections = () => {
     // Submission Modal States (undo-window submit flow)
     const [submitPhase, setSubmitPhase] = useState('IDLE');
     const [gateResult, setGateResult] = useState(null);
+    // A first submission after the term's due date needs the instructor's reason, which the Program Head and the
+    // Dean read (server: utils/lateSubmission.js). { late, daysLate, dueDate } from the server before confirming.
+    const [lateInfo, setLateInfo] = useState(null);
+    const [lateReason, setLateReason] = useState('');
     const [timeLeft, setTimeLeft] = useState(5);
     const timerRef = useRef(null);
 
@@ -212,6 +216,11 @@ const SyllabusSections = () => {
                 ].filter(Boolean)
             });
             setGateResult(result);
+            if (result.ok) {
+                const late = await fetchJson(`/api/assignments/offering/${offeringID}/lateness`).catch(() => null);
+                setLateInfo(late?.late ? late : null);
+                setLateReason('');
+            }
             setSubmitPhase(result.ok ? 'CONFIRM' : 'BLOCKED');
         } catch (error) {
             console.error('Alignment check failed:', error);
@@ -235,7 +244,8 @@ const SyllabusSections = () => {
         try {
             await fetchJson(`/api/submit-learning-plan/${offeringKey(offeringID, revisionNum)}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(lateInfo ? { late_reason: lateReason } : {})
             });
 
             setSubmitPhase('DONE');
@@ -249,7 +259,7 @@ const SyllabusSections = () => {
             cancelSubmission();
             alertDialog(apiErrorMessage(error, 'Could not submit the learning plan.'), { title: 'Not submitted' });
         }
-    }, [cancelSubmission, navigate, offeringID, revisionNum]);
+    }, [cancelSubmission, navigate, offeringID, revisionNum, lateInfo, lateReason]);
 
     // Safe useEffect timer implementation. This is declared after the submit
     // callback so the effect can track the exact function it invokes.
@@ -451,10 +461,20 @@ const SyllabusSections = () => {
                                         {gateResult.warnings.map((w, i) => <li key={i} style={{ marginBottom: 4 }}>{w}</li>)}
                                     </ul>
                                 }
+                                {lateInfo && (
+                                    <div style={{ marginTop: 12 }}>
+                                        <label htmlFor="late-reason" style={{ display: 'block', fontWeight: 600, color: 'var(--danger)', marginBottom: 6 }}>
+                                            This plan is {lateInfo.daysLate} day{lateInfo.daysLate === 1 ? '' : 's'} late (due {lateInfo.dueDate}). Why is it late?
+                                        </label>
+                                        <textarea id="late-reason" className="app-input" rows={3} maxLength={1000} value={lateReason}
+                                            onChange={(e) => setLateReason(e.target.value)} placeholder="Your Program Head and the Dean will read this." style={{ width: '100%' }} />
+                                    </div>
+                                )}
                             </div>
                             <div className={styles.submitModalActions}>
                                 <button className={styles.btnCancelPlain} onClick={() => setSubmitPhase('IDLE')}>Cancel</button>
-                                <button className={styles.btnConfirmDark} onClick={confirmSubmission}>Yes, Submit</button>
+                                <button className={styles.btnConfirmDark} onClick={confirmSubmission}
+                                    disabled={Boolean(lateInfo) && lateReason.trim().length < 5}>Yes, Submit</button>
                             </div>
                         </div>
                     )}

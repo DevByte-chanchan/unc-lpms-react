@@ -72,6 +72,11 @@ async function submitLearningPlan(req, res) {
         if (blockers.length > 0) {
             return res.status(400).json({ message: blockers.join(' '), blockers });
         }
+        // A first submission after the term's due date needs the instructor's reason (utils/lateSubmission.js).
+        const { lateSubmission, lateReasonProblem, cleanReason } = require('../utils/lateSubmission');
+        const late = await lateSubmission(sequelize, offering.pc_offering_id);
+        const lateProblem = lateReasonProblem(late, req.body?.late_reason);
+        if (lateProblem) return res.status(400).json({ ...lateProblem, message: lateProblem.error });
 
         const now = new Date();
 
@@ -90,6 +95,7 @@ async function submitLearningPlan(req, res) {
             actor_name: String(req.user?.name || '').slice(0, 100) || null,
             actor_user_id: req.user?.id ?? null,
             action_type: 'SUBMITTED',
+            note: late.late ? cleanReason(req.body?.late_reason) : null,
             createdAt: now,
             updatedAt: now
         });

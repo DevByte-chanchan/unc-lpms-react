@@ -41,7 +41,7 @@ test('validation: whole years from 1 to 30, true or false, and something to chan
     }
 });
 
-test('everyone signed in reads the rules; the defaults are 5 years with both rules on', async () => {
+test('everyone signed in reads the rules; the rules come back as stored (5 years, both on)', async () => {
     await CatalogSetting.update({ recency_years: 5, enforce_recency: true, require_availability: true }, { where: { id: 1 } });
     const { status, body } = await call('3:instructor', 'GET');
     assert.equal(status, 200);

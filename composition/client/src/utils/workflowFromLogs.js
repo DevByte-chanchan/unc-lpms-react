@@ -101,6 +101,8 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
     submittedAt: lastSubmission ? lastSubmission.createdAt : null,
     // Who submitted it (the instructor's name from the log), for the "Prepared by" line of an export.
     submittedBy: lastSubmission?.actor_name || null,
+    // Why the first submission was late (its note), when the instructor submitted after the due date.
+    lateReason: history.find(log => log.actor_role === 'INSTRUCTOR' && log.action_type === 'SUBMITTED' && log.note)?.note || null,
     // Which roles returned the plan and have not yet decided again (account role keys).
     returnedBy: withProgramHead ? ['dean'] : [...returned].map(role => ROLE_KEY[role]),
     // A Dean return waiting on the Program Head, and the Program Head's reason when they last sent one back.
