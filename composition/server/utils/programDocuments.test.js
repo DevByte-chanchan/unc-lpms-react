@@ -83,8 +83,9 @@ test('PO / PEO import: the downloadable template reads back as PEOs and POs, wit
 
 test('course references: the Director files references under a course; others only read', async () => {
     const tree = await (await call(director, 'GET', '/course-references/tree')).json();
-    const course = tree.departments.flatMap(d => d.programs).flatMap(p => p.courses)[0];
-    assert.ok(course, 'the tree has courses');
+    // a course with no references yet, so the list holds only the one filed here (other tests' plans use references)
+    const course = tree.departments.flatMap(d => d.programs).flatMap(p => p.courses).find(c => c.references === 0);
+    assert.ok(course, 'the tree has a course without references');
     const [reference] = await select('SELECT reference_id FROM `References` LIMIT 1');
     assert.equal((await call(head, 'POST', `/course-references/${course.id}`, { json: { reference_id: reference.reference_id } })).status, 403);
     assert.equal((await call(director, 'POST', `/course-references/${course.id}`, { json: { reference_id: reference.reference_id } })).status, 201);

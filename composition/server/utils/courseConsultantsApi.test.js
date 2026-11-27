@@ -66,12 +66,13 @@ const call = async (who, method, path, body) => {
 const HEAD_A = () => `${ids.headA}:program-head`;
 const HEAD_B = () => `${ids.headB}:program-head`;
 
-test('a consultant can be assigned only once the course has a Dean-approved plan', async () => {
-    const before = await call(HEAD_B(), 'POST', '/course-consultants', { course_id: ids.course, consultant_user_id: ids.consultant });
-    assert.equal(before.status, 409);
-    assert.match(before.body.message, /no approved learning plan/);
+test('a consultant can be assigned before the course has an approved plan (every course needs one to submit)', async () => {
+    const early = await makeUser('early', 'industry-consultant');
+    const before = await call(HEAD_B(), 'POST', '/course-consultants', { course_id: ids.course, consultant_user_id: early });
+    assert.equal(before.status, 201);
+    await CourseConsultant.destroy({ where: { course_consultant_id: before.body.course_consultant_id } }); // the next tests start with none
     const listed = (await call(HEAD_B(), 'GET', '/course-consultants/candidates')).body.courses.find(c => c.course_id === ids.course);
-    assert.equal(listed.approved, 0, 'the dialog is told why it cannot assign');
+    assert.equal(listed.approved, 0);
     await sequelize.query('UPDATE ProgramCourseOfferings SET approved_at = ? WHERE pc_offering_id = ?', { replacements: [now(), made.offerings[0]] });
     assert.equal((await call(HEAD_B(), 'GET', '/course-consultants/candidates')).body.courses.find(c => c.course_id === ids.course).approved, 1);
 });

@@ -1,4 +1,4 @@
-const { CourseOfferingAssignment, AssignmentWorkflowLog, ProgramCourseOffering, CourseOutcome, IntendedLearningOutcome } = require('../models');
+const { CourseOfferingAssignment, AssignmentWorkflowLog, ProgramCourseOffering, CourseOutcome, IntendedLearningOutcome, CourseConsultant } = require('../models');
 const { findIedProblems } = require('../utils/iedRule');
 const { findWeightProblems } = require('../utils/assessmentWeights');
 const { loadOfferingAssessments } = require('../utils/offeringAssessments');
@@ -8,8 +8,14 @@ const { effectiveLogs } = require('../utils/effectiveLogs');
 const { validateWorkflowTransition } = require('../utils/workflowRules');
 
 // What stops a plan from going to the reviewers: no course outcomes, an outcome without its Introductory, Enabling and
-// Demonstrative ILOs, or assessment weights that do not total 20 / 30 / 50. Empty = it may be submitted. Used by this
+// Demonstrative ILOs, assessment weights that do not total 20 / 30 / 50, or a course with no active industry
+// consultant (panel feedback, Nov 2026: every course must have one). Empty = it may be submitted. Used by this
 // route and by the workflow action route (assignmentController), so no path submits a plan that fails them.
+const NO_CONSULTANT = 'This course has no industry consultant yet. Ask your Program Head to assign one.';
+async function consultantMissing(offeringId) {
+    const offering = await ProgramCourseOffering.findByPk(offeringId, { attributes: ['course_id'], raw: true });
+    return !offering || !(await CourseConsultant.findOne({ where: { course_id: offering.course_id, is_active: true }, attributes: ['course_consultant_id'], raw: true }));
+}
 async function planSubmissionBlockers(offeringId) {
     const courseOutcomes = await CourseOutcome.findAll({ where: { pc_offering_id: offeringId }, attributes: ['co_id'], order: [['co_id', 'ASC']], raw: true });
     const coIds = courseOutcomes.map(co => co.co_id);
@@ -17,6 +23,7 @@ async function planSubmissionBlockers(offeringId) {
         ? await IntendedLearningOutcome.findAll({ where: { co_id: coIds }, attributes: ['co_id', 'ied_level', 'is_orientation'], raw: true })
         : [];
     return [
+        ...(await consultantMissing(offeringId) ? [NO_CONSULTANT] : []),
         ...(coIds.length ? [] : ['This learning plan has no course outcomes yet.']),
         ...findIedProblems(coIds, ilos),
         ...findWeightProblems(await loadOfferingAssessments(offeringId))
@@ -114,4 +121,4 @@ async function submitLearningPlan(req, res) {
     }
 }
 
-module.exports = { submitLearningPlan, planSubmissionBlockers };
+module.exports = { submitLearningPlan, planSubmissionBlockers, consultantMissing, NO_CONSULTANT };

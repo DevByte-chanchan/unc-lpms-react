@@ -51,7 +51,7 @@ const listMissing = async (req, res, next) => {
             // days in the school's zone, not UTC: a reminder at 7 AM in Manila is still that day
             const dayOf = (at) => (at ? schoolClock(asDate(at), zone).day : null);
             return {
-                offeringId: row.offeringId, courseCode: row.courseCode, courseTitle: row.courseTitle,
+                offeringId: row.offeringId, courseCode: row.courseCode, courseTitle: row.courseTitle, noConsultant: Boolean(row.noConsultant),
                 programId: row.programId, programName: row.programName, schoolYear: row.schoolYear, semester: row.semester,
                 instructorName: row.instructorName || null, instructorEmail: row.instructorEmail || null, instructorActive: row.instructorActive,
                 assignedAt: row.assignedAt, assignedDay, planUpdatedAt: row.planUpdatedAt,

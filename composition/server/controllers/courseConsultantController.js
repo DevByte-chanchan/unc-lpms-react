@@ -74,10 +74,8 @@ async function assignConsultant(req, res, next) {
         const course = await Course.findByPk(courseId);
         if (!course) return res.status(404).json({ message: 'Course not found.' });
         if (!(await headsProgramOffering(courseId, req.user.id))) return res.status(403).json({ message: 'Only the head of a program that offers this course can assign its consultant.' });
-        const [approvedPlan] = await sequelize.query(
-            `SELECT 1 AS ok FROM ProgramCourseOfferings pco WHERE pco.course_id = ? AND ${APPROVED} LIMIT 1;`,
-            { replacements: [courseId], type: Sequelize.QueryTypes.SELECT });
-        if (!approvedPlan) return res.status(409).json({ message: 'This course has no approved learning plan yet. Assign a consultant once the Dean approves one.' });
+        // No approved plan needed (panel feedback, Nov 2026): every course must have a consultant before its plan can be
+        // submitted (submissionController.planSubmissionBlockers). The consultant still reviews approved plans only.
         const consultant = await User.findByPk(consultantId);
         if (!consultant || !consultant.roles.includes('industry-consultant') || consultant.is_active === false) {
             return res.status(400).json({ message: 'That account is not an active industry consultant.' });

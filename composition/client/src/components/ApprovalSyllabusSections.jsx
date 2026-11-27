@@ -914,7 +914,7 @@ ${suggestionLine}` : text,
             <MessageSquare strokeWidth={2} size={14} /> Consultant suggestions
           </button>
         )}
-        {roleKey === 'program-head' && approved && (
+        {roleKey === 'program-head' && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsConsultantOpen(true); }}>
             <UserPlus strokeWidth={2} size={14} /> Industry consultant
           </button>

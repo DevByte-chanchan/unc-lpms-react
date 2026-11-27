@@ -31,7 +31,8 @@ const findAwaiting = async ({ sequelize, programIds = null, schoolYear = null, s
                 a.co_assign_id AS assignmentId, a.stakeholder_id AS instructorId, a.date_assigned AS assignedAt,
                 u.name AS instructorName, u.email AS instructorEmail, u.is_active AS instructorActive,
                 d.stakeholder_id AS deanId,
-                td.syllabus_due AS syllabusDue, td.remind_before AS remindBefore, td.overdue_every AS overdueEvery, td.start_date AS startDate
+                td.syllabus_due AS syllabusDue, td.remind_before AS remindBefore, td.overdue_every AS overdueEvery, td.start_date AS startDate,
+                NOT EXISTS (SELECT 1 FROM CourseConsultants cc WHERE cc.course_id = pco.course_id AND cc.is_active = 1) AS noConsultant
          FROM ProgramCourseOfferings pco
              INNER JOIN Courses c ON c.course_id = pco.course_id
              INNER JOIN Programs p ON p.program_id = pco.program_id

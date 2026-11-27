@@ -49,6 +49,8 @@ const fixture = async ({ empty = false } = {}) => {
     await insert('ProgramOutcomes', { program_id: programId, description: 'PO', peo_numbers: '[1]', ga_numbers: '[]', ...stamps });
     const code = `NT${counter}${String(stamp).slice(-4)}`;
     const courseId = await insert('Courses', { course_no: code, course_title: 'Notification Test', credit: 3, contact_hrs: 3, classification: 'Core', cmo: 'CMO', year_lvl: 1, term: '1st', ...stamps });
+    // every course has an industry consultant before a plan can be submitted (submissionController.planSubmissionBlockers)
+    await insert('CourseConsultants', { course_id: courseId, consultant_user_id: (await makeUser('industry-consultant')).user_id, is_active: 1, ...stamps });
     const offeringId = await insert('ProgramCourseOfferings', {
         revision_number: 0, course_id: courseId, program_id: programId, dept_id: deptId, course_description: 'x',
         school_year: '2098-2099', semester: '1st', ...stamps

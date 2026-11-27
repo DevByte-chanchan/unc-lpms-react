@@ -45,7 +45,7 @@ const columnsFor = (showProgram) => [
   { key: 'reminders', label: 'REMINDERS', sortable: false, className: styles.fill }
 ]
 
-const MissingSubmissionsTable = ({ rows: given = [], onPause, onRemind = null, busyId = null, today = '' }) => {
+const MissingSubmissionsTable = ({ rows: given = [], onPause, onRemind = null, onConsultant = null, busyId = null, today = '' }) => {
   const showProgram = new Set(given.map(row => row.programId)).size > 1
   const columns = columnsFor(showProgram)
   const [sort, setSort] = React.useState({ sortKey: null, sortDir: 'asc' })
@@ -67,6 +67,9 @@ const MissingSubmissionsTable = ({ rows: given = [], onPause, onRemind = null, b
                 <div style={{ minWidth: 0, width: '100%' }}>
                   <div style={clip} title={`${row.courseCode} — ${row.courseTitle}`}><strong>{row.courseCode}</strong> {row.courseTitle}</div>
                   <div style={{ ...clip, fontSize: 'var(--fs-2xs)', color: 'var(--ink-muted)' }} title={courseSubline(row, today)}>{courseSubline(row, today)}</div>
+                  {row.noConsultant && (onConsultant
+                    ? <button type="button" style={{ display: 'block', fontSize: 'var(--fs-2xs)', color: 'var(--danger)', padding: 0, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }} title="The plan cannot be submitted until an industry consultant is assigned" onClick={() => onConsultant(row)}>No industry consultant · Assign</button>
+                    : <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--danger)' }} title="The plan cannot be submitted until the Program Head assigns an industry consultant">No industry consultant</div>)}
                 </div>
               </td>
               <td width={170} style={{ minWidth: 0 }}>

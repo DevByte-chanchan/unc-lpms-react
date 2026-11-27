@@ -218,6 +218,12 @@ const SyllabusSections = () => {
             setGateResult(result);
             if (result.ok) {
                 const late = await fetchJson(`/api/assignments/offering/${offeringID}/lateness`).catch(() => null);
+                // every course needs an industry consultant (panel feedback, Nov 2026); the server refuses too
+                if (late?.noConsultant) {
+                    setGateResult({ ...result, ok: false, blockers: [late.noConsultant] });
+                    setSubmitPhase('BLOCKED');
+                    return;
+                }
                 setLateInfo(late?.late ? late : null);
                 setLateReason('');
             }

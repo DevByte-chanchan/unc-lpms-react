@@ -33,9 +33,15 @@ router.get('/offering/:pcId/history', requireOfferingAccess, getVersionHistory);
 router.get('/offering/:pcId/signatures', requireOfferingAccess, getOfferingSignatures);
 
 // GET /api/assignments/:id
-// GET /api/assignments/offering/:pcId/lateness — would submitting now be late? { late, daysLate, dueDate }
+// GET /api/assignments/offering/:pcId/lateness — would submitting now be late? { late, daysLate, dueDate, noConsultant }
+// noConsultant: the refusal text when the course has no active industry consultant (asked before the confirm dialog).
 router.get('/offering/:pcId/lateness', requireOfferingAccess, async (req, res, next) => {
-    try { return res.json(await require('../utils/lateSubmission').lateSubmission(require('../models').sequelize, Number(req.params.pcId))); }
+    try {
+        const id = Number(req.params.pcId);
+        const { consultantMissing, NO_CONSULTANT } = require('../controllers/submissionController');
+        const late = await require('../utils/lateSubmission').lateSubmission(require('../models').sequelize, id);
+        return res.json({ ...late, noConsultant: (await consultantMissing(id)) ? NO_CONSULTANT : null });
+    }
     catch (error) { return next(error); }
 });
 

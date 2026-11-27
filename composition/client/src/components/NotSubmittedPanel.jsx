@@ -1,6 +1,7 @@
 import React from 'react'
 import { X, Calendar, CircleCheck as CheckCircle, Plus, TriangleAlert as AlertTriangle } from 'lucide-react'
 import MissingSubmissionsTable from './MissingSubmissionsTable.jsx'
+import ConsultantDialog from './ConsultantDialog.jsx'
 import EmptyState from './EmptyState.jsx'
 import DatePicker from './DatePicker.jsx'
 import Select from './Select.jsx'
@@ -58,6 +59,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
   const [saving, setSaving] = React.useState(false)
   const [dialogError, setDialogError] = React.useState('')
 
+  const [consultantFor, setConsultantFor] = React.useState(null) // the row whose consultant dialog is open
   const load = React.useCallback(async () => {
     setError('')
     try {
@@ -237,8 +239,9 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, 
           hint={rows.length === 0 ? 'Plans that are not submitted, or were returned and not resubmitted, appear here until the instructor submits them.' : 'Change the school year, the semester or the search.'}
         />
       ) : !error && (
-        <MissingSubmissionsTable rows={visible} onPause={readOnly ? null : pause} onRemind={readOnly ? null : remindNow} busyId={busyId} today={data?.today} />
+        <MissingSubmissionsTable rows={visible} onPause={readOnly ? null : pause} onRemind={readOnly ? null : remindNow} onConsultant={readOnly ? null : setConsultantFor} busyId={busyId} today={data?.today} />
       )}
+      <ConsultantDialog open={Boolean(consultantFor)} courseCode={consultantFor?.courseCode} onClose={() => { setConsultantFor(null); load() }} />
 
       {dialog && (
         <>
