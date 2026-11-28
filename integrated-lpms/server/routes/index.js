@@ -43,6 +43,7 @@ const refSummaryCtrl = require('../controllers/composition/referenceSummaryContr
 const revisionCtrl = require('../controllers/composition/revisionController');
 const submissionCtrl = require('../controllers/composition/submissionController');
 const weeklyContentWorkflowCtrl = require('../controllers/composition/weeklyContentWorkflowController');
+const referenceTocCtrl = require('../controllers/composition/referenceTocController');
 
 // M3 Learning Plan Submissions Management Controllers
 const workflowCtrl = require('../controllers/submissions/assignmentWorkflowController');
@@ -255,8 +256,11 @@ router.delete('/comments/:commentId', requireAuth, commentCtrl.deleteComment);
 // Reference Library & Catalog (Director of Libraries + Composition Picker)
 router.get('/references/types', refLibCtrl.getReferenceTypes);
 router.get('/references/health', requireAuth, refLibCtrl.getLibraryHealth);
+router.post('/references/resolve-tocs', requireAuth, referenceTocCtrl.resolveCourseTocs);
 router.get('/references', requireAuth, refLibCtrl.listReferences);
 router.post('/references', requireAuth, refLibCtrl.createReference);
+router.get('/references/:id/toc', requireAuth, referenceTocCtrl.getReferenceToc);
+router.post('/references/:id/toc', requireAuth, referenceTocCtrl.saveManualToc);
 router.put('/references/:id', requireAuth, refLibCtrl.updateReference);
 router.patch('/references/:id/archive', requireAuth, requireRole('Director of Libraries', 'VPAA'), refLibCtrl.archiveReference);
 router.delete('/references/:id', requireAuth, requireRole('Director of Libraries', 'VPAA'), refLibCtrl.deleteReference);

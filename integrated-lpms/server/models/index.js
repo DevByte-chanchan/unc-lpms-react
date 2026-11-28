@@ -124,6 +124,8 @@ db.TLAAssessment.belongsTo(db.IntendedLearningOutcome, { foreignKey: 'ilo_id', a
 db.Reference.belongsTo(db.Course, { foreignKey: 'course_id', as: 'course', constraints: false });
 db.Reference.belongsTo(db.Reference, { foreignKey: 'parent_reference_id', as: 'parentReference', constraints: false });
 db.Reference.hasMany(db.WeeklyReference, { foreignKey: 'reference_id', as: 'weeklyReferences' });
+db.Reference.hasOne(db.ReferenceTocCache, { foreignKey: 'reference_id', as: 'tocCache', onDelete: 'CASCADE' });
+db.ReferenceTocCache.belongsTo(db.Reference, { foreignKey: 'reference_id', as: 'reference' });
 
 db.Week.hasMany(db.WeeklyReference, { foreignKey: 'week_id', as: 'weeklyReferences' });
 db.WeeklyReference.belongsTo(db.Week, { foreignKey: 'week_id', as: 'week' });

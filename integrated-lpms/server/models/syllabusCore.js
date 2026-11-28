@@ -236,6 +236,24 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: true,
   });
 
+  // 22b. reference_toc_cache (Additive TOC verification cache linked to References)
+  const ReferenceTocCache = sequelize.define('ReferenceTocCache', {
+    id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
+    reference_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, unique: true },
+    toc_status: {
+      type: DataTypes.ENUM('verified', 'not_found', 'manual'),
+      allowNull: false,
+      defaultValue: 'not_found',
+    },
+    toc_source: { type: DataTypes.STRING(50), allowNull: true },
+    toc_entries: { type: DataTypes.JSON, allowNull: true },
+    source_url: { type: DataTypes.STRING(500), allowNull: true },
+    checked_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+  }, {
+    tableName: 'reference_toc_cache',
+    timestamps: true,
+  });
+
   // 23. Comments
   const Comment = sequelize.define('Comment', {
     comment_id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
@@ -279,6 +297,7 @@ module.exports = (sequelize, DataTypes) => {
     TLAAssessment,
     Reference,
     WeeklyReference,
+    ReferenceTocCache,
     Comment,
     CommentTarget,
   };

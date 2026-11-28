@@ -641,6 +641,26 @@ const ReferenceForm = forwardRef(({
                 setSelectedRefs(prev => [...prev, ...newlyAdded]);
             }
         },
+        attachReferencesByIds: (refIds) => {
+            if (!Array.isArray(refIds) || refIds.length === 0) return 0;
+            const targetIdSet = new Set(refIds.map(Number).filter((id) => Number.isInteger(id) && id > 0));
+            if (targetIdSet.size === 0) return 0;
+
+            const existingIds = new Set(
+                selectedRefs.map(r => Number(r.reference_id)).filter(Boolean)
+            );
+            const toAttach = allReferences.filter(
+                r => r.reference_id != null && targetIdSet.has(Number(r.reference_id)) && !existingIds.has(Number(r.reference_id))
+            );
+            if (toAttach.length > 0) {
+                setSelectedRefs(prev => {
+                    const prevIds = new Set(prev.map(r => Number(r.reference_id)).filter(Boolean));
+                    const uniqueNew = toAttach.filter(r => !prevIds.has(Number(r.reference_id)));
+                    return uniqueNew.length > 0 ? [...prev, ...uniqueNew] : prev;
+                });
+            }
+            return toAttach.length;
+        },
         hasChanges: () => {
             if (initialRefsRef.current === null) return false;
             const refsChanged = serializeRefs(selectedRefs) !== initialRefsRef.current;

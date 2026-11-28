@@ -593,14 +593,41 @@ const TopicSubForm = forwardRef(({
             updateTopicsState([...selectedTopics, ...toAdd]);
         },
         applyAiTopics: (newAiTopics) => {
-            if (!Array.isArray(newAiTopics)) return;
-            // Keep manual/continued topics; replace previously imported AI topics with the updated selection
-            const nonAiTopics = selectedTopics.filter(t => !t.isAiSuggested);
-            const taggedNewAiTopics = newAiTopics.map(t => ({
-                ...t,
-                isAiSuggested: true
-            }));
-            updateTopicsState([...nonAiTopics, ...taggedNewAiTopics]);
+            if (!Array.isArray(newAiTopics) || newAiTopics.length === 0) return;
+            const existingTitles = new Set(
+                selectedTopics.map(t => String(t.title || '').trim().toLowerCase()).filter(Boolean)
+            );
+            const now = Date.now();
+            const taggedNewAiTopics = newAiTopics
+                .filter(t => {
+                    const normTitle = String(t?.title || '').trim().toLowerCase();
+                    if (!normTitle) return false;
+                    return !existingTitles.has(normTitle);
+                })
+                .map((t, idx) => ({
+                    ...t,
+                    topic_id: t.topic_id || null,
+                    _temp_id: t._temp_id || `temp-topic-ai-${now}-${idx}`,
+                    isContinuation: false,
+                    isAiSuggested: true,
+                    subtopics: (Array.isArray(t.subtopics) ? t.subtopics : []).map((s, sIdx) => {
+                        const rawMins = s.duration_mins ?? s.estimated_minutes ?? s.minutes;
+                        const exactMins = Number.isFinite(Number(rawMins)) && Number(rawMins) > 0
+                            ? Math.max(1, Math.min(999, Math.round(Number(rawMins))))
+                            : 30;
+                        return {
+                            ...s,
+                            subtopic_id: s.subtopic_id || null,
+                            _temp_id: s._temp_id || `temp-sub-ai-${now}-${idx}-${sIdx}`,
+                            title: s.title || '',
+                            estimated_minutes: exactMins,
+                            sequence_order: s.sequence_order ?? sIdx
+                        };
+                    })
+                }));
+
+            if (taggedNewAiTopics.length === 0) return;
+            updateTopicsState([...selectedTopics, ...taggedNewAiTopics]);
         },
         getComments: () => reviewComments,
         toggleComment: (commentId) => {
@@ -805,13 +832,30 @@ const TopicForm = () => {
     const handleTopicsChangeForWeek = useCallback((wId, orientFlag, nextTopics) => {
         if (!wId) return;
         const key = getWeekCacheKey(wId, orientFlag);
+        const normalizedTopics = Array.isArray(nextTopics) ? nextTopics : [];
+        const nextFingerprint = `${key}::${serializeTopics(normalizedTopics)}`;
+
         if (initialWeekTopicsMapRef.current[key] === undefined && Array.isArray(nextTopics)) {
-            initialWeekTopicsMapRef.current[key] = serializeTopics(nextTopics);
+            initialWeekTopicsMapRef.current[key] = serializeTopics(normalizedTopics);
         }
+
         setWeekTopicsMap(prev => ({
             ...prev,
-            [key]: Array.isArray(nextTopics) ? nextTopics : []
+            [key]: normalizedTopics
         }));
+
+        // Reactive cache invalidation: whenever manual/continued/AI topics or subtopic durations change,
+        // clear stale cached AI suggestions for this week so remaining time recalculates cleanly.
+        setWeekAiCacheMap(prev => {
+            const existingCache = prev[key];
+            if (!existingCache) return prev;
+            if (existingCache.weekTopicsFingerprint && existingCache.weekTopicsFingerprint === nextFingerprint) {
+                return prev;
+            }
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
     }, [getWeekCacheKey]);
 
     // Refs for sub-forms
@@ -1287,13 +1331,27 @@ const TopicForm = () => {
         }
     };
 
+    const activeWeekKey = effectiveWeekId ? getWeekCacheKey(effectiveWeekId, isOrientation) : '';
+    const activeWeekTopicsFingerprint = useMemo(
+        () => `${activeWeekKey}::${serializeTopics(currentWeekCachedTopics || [])}`,
+        [activeWeekKey, currentWeekCachedTopics]
+    );
+
     const handleUpdateWeekAiCache = useCallback((nextCacheObj) => {
         if (!effectiveWeekId) return;
         const key = getWeekCacheKey(effectiveWeekId, isOrientation);
-        setWeekAiCacheMap(prev => ({
-            ...prev,
-            [key]: nextCacheObj
-        }));
+        setWeekAiCacheMap(prev => {
+            if (!nextCacheObj) {
+                if (!prev[key]) return prev;
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            }
+            return {
+                ...prev,
+                [key]: nextCacheObj
+            };
+        });
     }, [effectiveWeekId, isOrientation, getWeekCacheKey]);
 
     const handleOpenAiSuggest = () => {
@@ -1305,9 +1363,12 @@ const TopicForm = () => {
         setIsAiModalOpen(true);
     };
 
-    const handleApplyAiTopicsFromModal = (newAiTopics) => {
+    const handleApplyAiTopicsFromModal = (newAiTopics, citedRefIds = []) => {
         if (topicRef.current?.applyAiTopics) {
             topicRef.current.applyAiTopics(newAiTopics);
+        }
+        if (Array.isArray(citedRefIds) && citedRefIds.length > 0 && refRef.current?.attachReferencesByIds) {
+            refRef.current.attachReferencesByIds(citedRefIds);
         }
     };
 
@@ -1920,6 +1981,7 @@ const TopicForm = () => {
                         onClose={() => setIsAiModalOpen(false)}
                         onApplyTopics={handleApplyAiTopicsFromModal}
                         iloId={effectiveWeekId}
+                        pcOfferingId={weekContext.pc_offering_id}
                         courseCode={weekContext.courseNo || courseCode}
                         courseTitle={weekContext.courseTitle}
                         courseDescription={weekContext.courseDescription}
@@ -1931,6 +1993,7 @@ const TopicForm = () => {
                         isOrientation={isOrientation}
                         previousWeeksTopics={previousWeeksTopicsForAi}
                         currentTopics={currentWeekCachedTopics || []}
+                        weekTopicsFingerprint={activeWeekTopicsFingerprint}
                         weekAiCache={weekAiCacheMap[getWeekCacheKey(effectiveWeekId, isOrientation)]}
                         onUpdateWeekAiCache={handleUpdateWeekAiCache}
                     />
