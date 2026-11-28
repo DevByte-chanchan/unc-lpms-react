@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { X } from "react-feather";
 import Select from "./Select.jsx";
@@ -92,8 +93,8 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
         });
     };
 
-    return (
-        <div className={styles.modalOverlay} onClick={onClose}>
+    return createPortal(
+        <div className={`${styles.modalOverlay} lpms-composition-scope`} onClick={onClose}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.previewHeader}>
                     <h2 className={styles.previewTitle}>Revisions Tracking</h2>
@@ -103,7 +104,7 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
                         onClick={onClose}
                         aria-label="Close revisions"
                     >
-                        <X size={20} />
+                        <X size={20} strokeWidth={2.2} />
                     </button>
                 </div>
 
@@ -250,7 +251,8 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { X } from "react-feather";
 import Select from "./Select.jsx";
@@ -17,6 +18,15 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
     const { status, revNum: paramRevNum, pcId: paramPcId } = useParams();
     const [selectedSection, setSelectedSection] = useState('Course Details');
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') onClose?.();
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     const currentPcId = propPcId || paramPcId;
@@ -26,8 +36,8 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
         setSelectedSection(e.target.value);
     };
 
-    return (
-        <div className={styles.modalOverlay} onClick={onClose}>
+    return createPortal(
+        <div className={`${styles.modalOverlay} lpms-composition-scope`} onClick={onClose}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.previewHeader}>
                     <h2 className={styles.previewTitle}>Syllabus Preview</h2>
@@ -37,7 +47,7 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
                         onClick={onClose}
                         aria-label="Close syllabus preview"
                     >
-                        <X size={20} />
+                        <X size={20} strokeWidth={2.2} />
                     </button>
                 </div>
 
@@ -121,7 +131,8 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
 
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

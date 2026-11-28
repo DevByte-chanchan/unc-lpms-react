@@ -5,7 +5,7 @@
   width: 100%
   height: 100%
   background: rgba(0, 0, 0, 0.4)
-  z-index: 1000
+  z-index: 2000
   display: flex
   justify-content: center
   align-items: center
@@ -35,20 +35,28 @@
   flex-shrink: 0
 
 .closeButton
-  width: 32px
-  height: 32px
+  width: 34px
+  height: 34px
+  min-width: 34px
+  min-height: 34px
   padding: 0
   border-radius: 8px
   background: transparent
   border: none
   cursor: pointer
-  color: #6B7280
+  color: #4B5563
   display: inline-flex
   align-items: center
   justify-content: center
   flex-shrink: 0
   outline: none
   transition: background-color 150ms ease, color 150ms ease, transform 120ms ease
+  svg
+    display: block
+    width: 20px
+    height: 20px
+    stroke: currentColor
+    flex-shrink: 0
   &:hover
     background: #F3F4F6
     color: #111827

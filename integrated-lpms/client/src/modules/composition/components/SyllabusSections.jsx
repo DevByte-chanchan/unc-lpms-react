@@ -413,13 +413,13 @@ const SyllabusSections = () => {
                         {selectedSection === 'References Summary' && (
                             <ReferenceSummary offeringID={offeringID} revisionNum={revisionNum} status={status} selectedSection={selectedSection} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
                         )}
-
-                        <SyllabusPreview isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} />
-
-                        <Revisions isOpen={isRevisionsOpen} onClose={() => setIsRevisionsOpen(false)} pcId={offeringID} revNum={revisionNum} />
                     </>
                 )}
             </div>
+
+            <SyllabusPreview isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} />
+
+            <Revisions isOpen={isRevisionsOpen} onClose={() => setIsRevisionsOpen(false)} pcId={offeringID} revNum={revisionNum} />
 
             {/* Disabled Submit Hover Tooltip Portal */}
             {submitTooltipPos && isSubmitDisabled && createPortal(
