@@ -158,6 +158,7 @@ const ReferenceForm = forwardRef(({
 
     // Context-Targeted Comments Checklist Tracking States
     const [reviewComments, setReviewComments] = useState([]);
+    const [savedVersion, setSavedVersion] = useState(0);
     const initialRefsRef = useRef(null);
     const initialCommentsRef = useRef(null);
 
@@ -186,6 +187,8 @@ const ReferenceForm = forwardRef(({
         if (!iloId) return;
         let mounted = true;
         setLoading(true);
+        initialRefsRef.current = null;
+        initialCommentsRef.current = null;
 
         async function load() {
             try {
@@ -265,6 +268,7 @@ const ReferenceForm = forwardRef(({
 
     // Live Reference column validation: requires at least 1 Textbook selected (OER & Online are optional)
     const liveValidationState = useMemo(() => {
+        void savedVersion;
         const list = selectedRefs || [];
         const totalSelected = list.length;
         const textbookCount = list.filter(isTextbookReference).length;
@@ -283,13 +287,19 @@ const ReferenceForm = forwardRef(({
             ? `${totalSelected} references selected (${textbookCount} ${textbookCount === 1 ? 'Textbook' : 'Textbooks'}, ${supportingCount} supporting).`
             : `${textbookCount} Textbook ${textbookCount === 1 ? 'reference' : 'references'} selected.`;
 
+        const isDirty = initialRefsRef.current !== null && (
+            serializeRefs(selectedRefs) !== initialRefsRef.current ||
+            serializeComments(reviewComments) !== initialCommentsRef.current
+        );
+
         return {
             contentIssues,
             validItemCount: totalSelected,
             validSummaryText,
-            isValid: contentIssues.length === 0
+            isValid: contentIssues.length === 0,
+            isDirty
         };
-    }, [selectedRefs]);
+    }, [selectedRefs, reviewComments, savedVersion]);
 
     useEffect(() => {
         if (!loading && onValidationStateChange) {
@@ -640,6 +650,7 @@ const ReferenceForm = forwardRef(({
         resetInitialState: () => {
             initialRefsRef.current = serializeRefs(selectedRefs);
             initialCommentsRef.current = serializeComments(reviewComments);
+            setSavedVersion(v => v + 1);
         },
         getSpellWarnings: collectSpellWarnings,
         getComments: () => reviewComments,
@@ -686,14 +697,16 @@ const ReferenceForm = forwardRef(({
 
                 if (r._temp_id) createdMap[r._temp_id] = created;
                 setAllReferences(prev => prev.map(x => (x._temp_id && x._temp_id === r._temp_id ? created : x)));
-                setSelectedRefs(prev => prev.map(x => (x._temp_id && x._temp_id === r._temp_id ? created : x)));
             }
 
-            const reference_ids = selectedRefs.map(r => {
-                if (r.reference_id) return r.reference_id;
-                if (r._temp_id && createdMap[r._temp_id]) return createdMap[r._temp_id].reference_id;
-                return null;
-            }).filter(Boolean);
+            const nextSelectedRefs = selectedRefs.map(x => (
+                x._temp_id && createdMap[x._temp_id] ? createdMap[x._temp_id] : x
+            ));
+            if (Object.keys(createdMap).length > 0) {
+                setSelectedRefs(nextSelectedRefs);
+            }
+
+            const reference_ids = nextSelectedRefs.map(r => r.reference_id || null).filter(Boolean);
 
             await fetchJson(`/api/ilo-references/assign`, {
                 method: 'POST',
@@ -705,8 +718,9 @@ const ReferenceForm = forwardRef(({
                     reference_ids
                 })
             });
-            initialRefsRef.current = serializeRefs(selectedRefs);
+            initialRefsRef.current = serializeRefs(nextSelectedRefs);
             initialCommentsRef.current = serializeComments(reviewComments);
+            setSavedVersion(v => v + 1);
         },
         getCommentTargetLabel: (comment) => {
             if (comment.target_title) return comment.target_title;

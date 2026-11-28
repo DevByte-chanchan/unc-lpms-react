@@ -52,8 +52,12 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
         return () => { mounted = false; };
     }, [offeringID, revisionNum, apiFetch]);
 
+    const hasChanges = (editData.description ?? '') !== (courseDetailsData.description ?? '') &&
+        (editData.description ?? '').trim() !== '';
+
     const handleEditToggle = () => {
         if (isEditing) {
+            if (!hasChanges) return;
             setShowConfirm(true);
         } else {
             setEditData({ description: courseDetailsData.description || '' });
@@ -130,7 +134,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
                         type="button"
                         className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                         onClick={handleEditToggle}
-                        disabled={isEditing && (!editData.description || editData.description.trim() === "" || editData.description === (courseDetailsData.description || ""))}
+                        disabled={isEditing && !hasChanges}
                     >
                         {isEditing ? (
                             <>

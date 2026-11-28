@@ -13,73 +13,80 @@
   left: 0
   width: 100%
   height: 100%
-  background: rgba(0, 0, 0, 0.7)
+  background: rgba(0, 0, 0, 0.4)
   z-index: 1000
   display: flex
   justify-content: center
   align-items: center
+  padding: 16px
+  box-sizing: border-box
 
 .modalContent
   background: #FFFFFF
-  padding: 30px
-  border-radius: 8px
+  padding: 24px 28px
+  border-radius: 12px
+  border: 1px solid #E5E7EB
   width: 95vw
   height: 90vh
   display: flex
   flex-direction: column
   position: relative
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2)
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2)
+  box-sizing: border-box
+  overflow: hidden
+
+.previewHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 16px
+  margin-bottom: 14px
+  flex-shrink: 0
 
 .closeButton
-  position: absolute
-  top: 15px
-  right: 0
-  background: none
+  width: 32px
+  height: 32px
+  padding: 0
+  border-radius: 8px
+  background: transparent
   border: none
-  font-size: 28px
   cursor: pointer
-  color: #888
-  line-height: 1
+  color: #6B7280
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
   outline: none
+  transition: background-color 150ms ease, color 150ms ease, transform 120ms ease
   &:hover
-    color: #000
+    background: #F3F4F6
+    color: #111827
     border: none
     outline: none
+  &:active
+    transform: scale(0.95)
 
 .previewTitle
-  margin: 0 0 10px 0
-  font-size: 24px
-  font-weight: 600
-  color: #333
+  margin: 0
+  font-size: 20px
+  font-weight: 700
+  color: #111827
+  line-height: 1.25
 
 .navi
   display: flex
   justify-content: space-between
   align-items: center
-  margin-top: 10px
-  margin-bottom: 20px
+  margin-top: 0
+  margin-bottom: 16px
   gap: 20px
+  flex-shrink: 0
 
 .section-select
   display: flex
   align-items: center
-  border: 1px solid #b6b8b8
-  border-radius: 5px
-  padding-right: 20px
   flex-grow: 1
-
-  select
-    padding: 10px 15px
-    font-size: 14px
-    width: 100%
-    border-radius: 5px
-    background-color: #fff
-    cursor: pointer
-    border: 0
-    outline: none
-
-  select option
-    font-size: 14px
+  min-width: 0
 
 
 // --- 4. Action Buttons (Draft & Submit) ---
@@ -102,20 +109,9 @@
 
 // --- 5. Dynamic Content Area (Scrollable) ---
 .dynamic-sections
-  flex: 1                 // Take up remaining height
-  overflow-y: auto        // Scroll vertically if content is long
-  //border-radius: 5px
-  // Scrollbar styling for cleanliness
-  &::-webkit-scrollbar
-    width: 8px
-  &::-webkit-scrollbar-track
-    background: #f1f1f1
-    border-radius: 4px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 4px
-  &::-webkit-scrollbar-thumb:hover
-    background: #999
+  flex: 1
+  min-height: 0
+  overflow-y: auto
 
 .container section,
 .modalContent section
@@ -231,14 +227,6 @@
   border: 1px solid #000 // Outer border for the table area
   max-height: 60vh // Adjust based on your modal height
 
-  // styled scrollbar
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
-
 // --- Strict Table Override ---
 .alignmentTable
   width: 100%
@@ -337,15 +325,6 @@
   border: 1px solid #000
   max-height: 70vh
 
-
-  // Custom scrollbar
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
-
 // --- Strict Table Override (Document Style) ---
 .criteriaTable
   width: 100%
@@ -438,14 +417,14 @@
 
 // --- 1. DROPDOWN HEADER BAR ---
 .refHeaderBar
-  background-color: #EFEFEF // Requested Grey
+  background-color: #EFEFEF
   border: 1px solid #000
-  height: 50px
+  height: 42px
   position: relative
   display: flex
   align-items: center
   justify-content: center
-  flex-shrink: 0 // Prevents this from squishing
+  flex-shrink: 0
   overflow: hidden
 
   .refSelect
@@ -457,7 +436,7 @@
     text-align: center
     text-align-last: center
     font-weight: 700
-    font-size: 16px
+    font-size: 14px
     text-transform: uppercase
     cursor: pointer
     outline: none
@@ -470,27 +449,19 @@
     font-size: 12px
     color: #000
 
-// --- 2. SCROLL WRAPPER (Mirrors 'tableScrollWrapper') ---
+// --- 2. SCROLL WRAPPER ---
 .refScrollWrapper
   flex-grow: 1
-  overflow: auto // Enables X and Y scroll
-  max-height: 60vh // Matches your example height constraint
+  overflow: auto
+  max-height: 60vh
 
-  // Custom scrollbar (Optional, matches your example)
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
-
-// --- 3. THE TABLE (Mirrors 'criteriaTable') ---
+// --- 3. THE TABLE ---
 .refTable
-  width: max-content // Allows table to expand based on fixed column widths
+  width: max-content
   min-width: 100%
-  border-collapse: collapse !important // FIXES DOUBLE BORDERS
+  border-collapse: collapse !important
 
-  // RESET GLOBAL FLEX STYLES (Your 'Strict Table Override')
+  // RESET GLOBAL FLEX STYLES
   display: table !important
   flex-direction: unset !important
   gap: unset !important
@@ -500,12 +471,12 @@
     position: sticky
     top: 0
     z-index: 10
-    background: #fff // Opacity for scroll
+    background: #EFEFEF
 
     tr
       display: table-row !important
       box-shadow: none !important
-      background: #fff !important
+      background: #EFEFEF !important
 
   tbody
     display: table-row-group !important
@@ -520,21 +491,25 @@
   // SHARED CELL STYLES
   th, td
     display: table-cell !important
-    border: 1px solid #000 !important // 1px Border
-    //padding: 10px 8px !important
+    border: 1px solid #000 !important
+    padding: 8px 10px !important
     vertical-align: middle
-    //font-size: 16px // Requested 16px
+    font-size: 14px
     color: #000
     line-height: 1.4
 
+  th
+    background-color: #EFEFEF
+    font-weight: 600
+    text-transform: uppercase
+    text-align: center
+
 // --- HEADER CELLS ---
 .refHeaderCell
-  font-weight: 600 // Requested 600
+  font-weight: 600
   text-transform: uppercase
   text-align: center
-  background-color: #fff
-
-// No need for 'top' here because the thead is sticky
+  background-color: #EFEFEF
 
 // --- DATA CELLS ---
 .refDataCellCenter
@@ -567,13 +542,6 @@
   border: 1px solid #000
   max-height: 70vh
   background: #fff
-
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
 
 .ccTable
   width: max-content

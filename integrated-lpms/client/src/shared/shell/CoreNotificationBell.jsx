@@ -27,12 +27,21 @@ const POLL_MS = 45000;
 
 const KIND = {
   course_assigned: { tag: 'Assigned', tone: 'blue', title: 'New Assignment', Icon: UserPlus },
+  assignment: { tag: 'Assigned', tone: 'blue', title: 'New Assignment', Icon: UserPlus },
   course_unassigned: { tag: 'Unassigned', tone: 'grey', title: 'Assignment Removed', Icon: UserMinus },
   plan_submitted: { tag: 'Submitted', tone: 'blue', title: 'Plan Submitted', Icon: Send },
+  submitted: { tag: 'Submitted', tone: 'blue', title: 'Plan Submitted', Icon: Send },
   plan_returned: { tag: 'Returned', tone: 'red', title: 'Plan Returned', Icon: RotateCcw },
+  returned: { tag: 'Returned', tone: 'red', title: 'Plan Returned', Icon: RotateCcw },
+  dean_returned: { tag: 'Returned', tone: 'red', title: 'Dean Returned Plan', Icon: RotateCcw },
   plan_ready_for_dean: { tag: 'Endorsed', tone: 'teal', title: 'Ready for the Dean', Icon: ShieldCheck },
+  dean_review: { tag: 'Endorsed', tone: 'teal', title: 'Ready for the Dean', Icon: ShieldCheck },
+  endorsed: { tag: 'Endorsed', tone: 'teal', title: 'Plan Endorsed', Icon: ShieldCheck },
   plan_approved: { tag: 'Approved', tone: 'green', title: 'Learning Plan Approved', Icon: CircleCheck },
+  approved: { tag: 'Approved', tone: 'green', title: 'Learning Plan Approved', Icon: CircleCheck },
   comment_added: { tag: 'Comment', tone: 'violet', title: 'New Comment', Icon: MessageSquare },
+  comment: { tag: 'Comment', tone: 'violet', title: 'New Comment', Icon: MessageSquare },
+  suggestion: { tag: 'Suggestion', tone: 'amber', title: 'Future Suggestion', Icon: MessageSquare },
   comment_resolved: { tag: 'Resolved', tone: 'green', title: 'Comments Resolved', Icon: CheckCheck },
   revision_started: { tag: 'Revision', tone: 'blue', title: 'Revision Started', Icon: GitBranch },
   poke: { tag: 'Reminder', tone: 'amber', title: 'Reminder', Icon: BellRing },
@@ -83,8 +92,11 @@ const targetForNotification = (role, item) => {
   if (/reference|title_request/.test(item.type || '')) {
     return role === 'Director of Libraries' ? '/library/references' : null;
   }
-  if (pcId && /plan_|comment_|revision_|approval_|returned_|poke|reminder/.test(item.type || '')) {
-    if (role === 'Instructor') return `/courses/${pcId}/1/Draft`;
+  if (pcId && /plan_|comment|revision_|approval_|return|submit|approv|dean_review|poke|reminder/.test(item.type || '')) {
+    if (role === 'Instructor') {
+      const statusParam = /return/.test(item.type || '') ? 'returned' : (/approv/.test(item.type || '') ? 'approved' : 'draft');
+      return `/courses/${pcId}/1/${statusParam}`;
+    }
     return `/submissions/review/${pcId}`;
   }
   if (item.type === 'missing_digest' || item.type === 'overdue_escalation') {
@@ -95,11 +107,13 @@ const targetForNotification = (role, item) => {
 };
 
 const linkLabel = (target) =>
-  /reference/i.test(target)
-    ? 'View References'
-    : /\/(courses|submissions\/review)\//.test(target)
-      ? 'View Learning Plan'
-      : 'Open';
+  /^\/topics\/form\//i.test(target)
+    ? 'View Comment'
+    : /reference/i.test(target)
+      ? 'View References'
+      : /\/(courses|submissions\/review)\//.test(target)
+        ? 'View Learning Plan'
+        : 'Open';
 
 const CoreNotificationBell = () => {
   const navigate = useNavigate();
@@ -128,11 +142,11 @@ const CoreNotificationBell = () => {
       const res = await fetchJson('/api/notifications');
       const rows = (Array.isArray(res?.notifications) ? res.notifications : []).map((n) => ({
         id: n.id,
-        type: n.type || 'update',
+        type: String(n.type || 'update').toLowerCase(),
         title: n.title || '',
         message: n.message || '',
-        link_url: n.link_url || null,
-        pc_offering_id: n.pc_offering_id || null,
+        link_url: n.target_url || n.link || n.link_url || null,
+        pc_offering_id: n.offering_id || n.pc_offering_id || null,
         entity_id: n.entity_id || null,
         isRead: Boolean(n.is_read ?? n.isRead),
         createdAt: n.created_at || n.createdAt || new Date().toISOString(),

@@ -562,45 +562,48 @@
   z-index: 1000
 
 .modal
-  background: white
-  width: 440px
+  background: #FFFFFF
+  width: 460px
   max-width: 92vw
-  border-radius: 8px
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15)
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2)
   overflow: hidden
   animation: fadeIn 0.2s ease-out
 
   .modalHeader
-    padding: 12px 18px
-    border-bottom: 1px solid #E2E8F0
-    background: #F8FAFC
+    padding: 20px 24px 16px
+    border-bottom: 1px solid #E5E7EB
+    background: #FFFFFF
     display: flex
     justify-content: space-between
     align-items: center
 
     h3
       margin: 0
-      font-size: 14px
-      font-weight: 700
-      color: #1E293B
+      font-size: 18px
+      font-weight: 600
+      color: #18191A
 
     .closeIcon
       cursor: pointer
-      color: #64748B
+      color: #6B7280
       border: none
       background: transparent
       display: flex
       align-items: center
       justify-content: center
-      padding: 4px
-      border-radius: 4px
-      transition: all 0.2s
+      width: 32px
+      height: 32px
+      padding: 0
+      border-radius: 8px
+      transition: all 0.15s ease
       &:hover
-        background: #EDF2F7
-        color: #1E293B
+        background: #F3F4F6
+        color: #18191A
 
   .modalBody
-    padding: 16px 20px
+    padding: 20px 24px
     max-height: 75vh
     overflow-y: auto
     text-align: left
@@ -622,40 +625,44 @@
         margin-bottom: 4px
 
   .modalActions
-    padding: 12px 18px
-    background-color: #F8FAFC
-    border-top: 1px solid #E2E8F0
+    padding: 16px 24px 20px
+    background-color: #FFFFFF
+    border-top: 1px solid #E5E7EB
     display: flex
     justify-content: flex-end
-    gap: 8px
+    gap: 10px
 
     button
-      padding: 7px 16px
-      border-radius: 6px
-      border: none
+      height: 40px
+      padding: 0 18px
+      border-radius: 8px
+      border: 1px solid transparent
       cursor: pointer
-      font-size: 13px
-      font-weight: 600
-      transition: all 0.2s
+      font-size: 14px
+      font-weight: 500
+      transition: all 0.15s ease
 
     .cancelBtn
-      background: #F1F5F9
-      border: 1px solid #E2E8F0
-      color: #475569
+      background: #FFFFFF
+      border: 1px solid #D1D5DB
+      color: #374151
       &:hover
-        background: #E2E8F0
-        color: #1E293B
+        background: #F3F4F6
+        color: #18191A
 
     .confirmBtn
-      background: #3182CE
-      color: white
+      background: #18191A
+      border: 1px solid #18191A
+      color: #FFFFFF
+      font-weight: 600
       &:hover:not(:disabled)
-        background: #2B6CB0
+        background: #2D2F31
       &:disabled
         background: #CBD5E1
+        border-color: #CBD5E1
         color: #64748B
         cursor: not-allowed
-        opacity: 0.85
+        opacity: 1
 
 @keyframes fadeIn
   from
@@ -1181,31 +1188,38 @@
     border-style: dashed
 
 .modalCancelBtn
-  padding: 7px 16px
-  border-radius: 6px
-  border: 1px solid #E2E8F0
+  height: 40px
+  padding: 0 18px
+  border-radius: 8px
+  border: 1px solid #D1D5DB
   cursor: pointer
-  font-weight: 600
-  font-size: 13px
-  background: #F1F5F9
-  color: #475569
-  transition: all 0.2s
+  font-weight: 500
+  font-size: 14px
+  background: #FFFFFF
+  color: #374151
+  transition: all 0.15s ease
   &:hover
-    background: #E2E8F0
-    color: #1E293B
+    background: #F3F4F6
+    color: #18191A
 
 .modalConfirmBtn
-  padding: 7px 16px
-  border-radius: 6px
-  border: none
+  height: 40px
+  padding: 0 20px
+  border-radius: 8px
+  border: 1px solid #18191A
   cursor: pointer
   font-weight: 600
-  font-size: 13px
-  background: #3182CE
-  color: white
-  transition: all 0.2s
-  &:hover
-    background: #2B6CB0
+  font-size: 14px
+  background: #18191A
+  color: #FFFFFF
+  transition: all 0.15s ease
+  &:hover:not(:disabled)
+    background: #2D2F31
+  &:disabled
+    background: #CBD5E1
+    border-color: #CBD5E1
+    color: #64748B
+    cursor: not-allowed
 
 .fieldsGridOne
   display: block

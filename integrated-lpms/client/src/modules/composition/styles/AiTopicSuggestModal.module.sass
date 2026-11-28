@@ -4,8 +4,7 @@
   left: 0
   right: 0
   bottom: 0
-  background: rgba(15, 23, 42, 0.65)
-  backdrop-filter: blur(4px)
+  background: rgba(0, 0, 0, 0.4)
   z-index: 1200
   display: flex
   align-items: center
@@ -24,17 +23,18 @@
   width: 100%
   max-width: 980px
   max-height: 90vh
-  border-radius: 16px
-  box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.8)
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2)
   display: flex
   flex-direction: column
   overflow: hidden
-  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)
+  animation: scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)
 
 @keyframes scaleUp
   from
     opacity: 0
-    transform: scale(0.96) translateY(10px)
+    transform: scale(0.96) translateY(8px)
   to
     opacity: 1
     transform: scale(1) translateY(0)
@@ -44,9 +44,9 @@
   display: flex
   align-items: center
   justify-content: space-between
-  padding: 16px 24px
-  background: linear-gradient(135deg, #FAF5FF 0%, #EFF6FF 100%)
-  border-bottom: 1px solid #E2E8F0
+  padding: 18px 24px
+  background: #FFFFFF
+  border-bottom: 1px solid #E5E7EB
   flex-shrink: 0
 
 .headerTitleGroup

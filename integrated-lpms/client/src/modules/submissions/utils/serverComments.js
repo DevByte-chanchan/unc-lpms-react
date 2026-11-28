@@ -41,7 +41,7 @@ export const toPanelComments = (rows = [], courseCode = '') => {
       // The author the server recorded; the role only when an old row has no name.
       reviewer: r.commenter_name || role,
       role,
-      recipientRole: r.commenter_role === 'INSTRUCTOR' ? 'industry-consultant' : 'instructor',
+      recipientRole: r.recipient_role || (r.commenter_role === 'INSTRUCTOR' ? 'industry-consultant' : 'instructor'),
       components: {},
       comment: text,
       commentType,

@@ -185,8 +185,15 @@ function validateWorkflowTransition({ stage, actorWorkflowRole, actionType, note
     return { ok: false, error: 'This learning plan is already approved and locked.' };
   }
 
+  if (role === 'INSTRUCTOR') {
+    if (action === 'SUBMITTED' && (stage === 'draft' || stage === 'returned')) {
+      return { ok: true, normalizedAction: 'SUBMITTED' };
+    }
+    return { ok: false, error: `Instructor cannot perform '${action}' during '${stage}' stage.` };
+  }
+
   if (role === 'LIBRARY_DIRECTOR') {
-    if (stage !== 'parallel_review' && stage !== 'returned') {
+    if (stage !== 'parallel_review') {
       return { ok: false, error: `Director of Libraries cannot act during '${stage}' stage.` };
     }
     if (!['ACCEPTED', 'RETURNED'].includes(action)) {
@@ -196,7 +203,7 @@ function validateWorkflowTransition({ stage, actorWorkflowRole, actionType, note
   }
 
   if (role === 'PROGRAM_HEAD') {
-    if (stage === 'parallel_review' || stage === 'returned') {
+    if (stage === 'parallel_review') {
       if (!['ACCEPTED', 'RETURNED'].includes(action)) {
         return { ok: false, error: `Invalid Program Head action during review: ${action}` };
       }

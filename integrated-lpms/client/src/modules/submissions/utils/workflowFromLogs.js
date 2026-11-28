@@ -52,8 +52,12 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
     } else if (log.actor_role === 'PROGRAM_HEAD' && ['FORWARDED', 'COUNTERED'].includes(log.action_type)) {
       if (!withProgramHead) continue
       withProgramHead = false
-      if (log.action_type === 'FORWARDED') returned.add('DEAN')
-      else counterNote = log.note || ''
+      if (log.action_type === 'FORWARDED') {
+        returned.add('DEAN')
+        accepted.clear()
+      } else {
+        counterNote = log.note || ''
+      }
     } else if (DECIDING.has(log.actor_role)) {
       if (['ACCEPTED', 'APPROVED'].includes(log.action_type)) {
         // an old acceptance given while the plan waited on the instructor (or the Program Head) never counts

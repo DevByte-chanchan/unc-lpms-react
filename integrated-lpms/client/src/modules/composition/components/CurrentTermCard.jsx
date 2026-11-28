@@ -122,16 +122,7 @@ const CurrentTermCard = ({ term, loading }) => {
                             <Calendar size={14} className={styles.headerCalendarIcon} />
                             <span className={styles.headerTitle}>School Calendar</span>
                         </div>
-                        <button
-                            type="button"
-                            className={styles.flipBtnBack}
-                            onClick={() => setIsFlipped(false)}
-                            title="Back to Term"
-                            aria-label="Back to Term"
-                        >
-                            <RotateCw size={12} className={styles.flipIcon} />
-                            <span>Back to Term</span>
-                        </button>
+                        <span className={styles.backTermBadge}>{term.school_year}</span>
                     </div>
 
                     {/* Back Face Scrollable Content */}
@@ -254,6 +245,20 @@ const CurrentTermCard = ({ term, loading }) => {
                                 </div>
                             </div>
                         )}
+                    </div>
+
+                    {/* Fixed Bottom Footer — keeps Back to Term in exact same bottom position as View School Calendar */}
+                    <div className={styles.backBottom}>
+                        <button
+                            type="button"
+                            className={styles.flipBtnBack}
+                            onClick={() => setIsFlipped(false)}
+                            title="Back to Term"
+                            aria-label="Back to Term"
+                        >
+                            <RotateCw size={14} className={styles.flipIcon} />
+                            <span>Back to Term</span>
+                        </button>
                     </div>
                 </div>
             </div>

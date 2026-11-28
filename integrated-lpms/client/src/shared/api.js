@@ -115,4 +115,8 @@ export const AuthAPI = {
       method: 'POST',
       body: JSON.stringify({ password }),
     }),
+  resetDatabase: () =>
+    fetchJson('/api/auth/reset-database', {
+      method: 'POST',
+    }),
 };

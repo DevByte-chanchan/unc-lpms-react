@@ -1,379 +1,431 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle, AlertCircle, BookOpen, MessageSquare, ChevronRight, Check, Eye, EyeOff } from 'react-feather';
-import styles from '../styles/NotificationBell.module.sass';
+import {
+  Bell,
+  BellRing,
+  BookOpen,
+  CheckCheck,
+  ChevronRight,
+  CircleCheck,
+  GitBranch,
+  Hourglass,
+  ListTodo,
+  MessageSquare,
+  RotateCcw,
+  Send,
+  ShieldCheck,
+  UserMinus,
+  UserPlus,
+} from 'lucide-react';
+import { useAuth } from '../../../shared/AuthContext.jsx';
 import { fetchJson } from '../utils/api.js';
-import { useCurrentUser } from '../services/currentUser.jsx';
+import headerStyles from '../styles/Header.module.sass';
+import styles from '../styles/NotificationBell.module.sass';
 
-function formatTimeAgo(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
+const POLL_MS = 45000;
 
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    });
-}
-
-const normalizeActionType = (rawType) => {
-    const t = String(rawType || '').toUpperCase();
-    if (t.includes('ASSIGN')) return 'ASSIGNED';
-    if (t.includes('RETURN')) return 'RETURNED';
-    if (t.includes('APPROV')) return 'APPROVED';
-    if (t.includes('ACCEPT') || t.includes('ENDORS') || t.includes('READY_FOR_DEAN')) return 'ACCEPTED';
-    return t || 'UPDATE';
+const KIND = {
+  course_assigned: { tag: 'Assigned', tone: 'blue', title: 'New Assignment', Icon: UserPlus },
+  assignment: { tag: 'Assigned', tone: 'blue', title: 'New Assignment', Icon: UserPlus },
+  course_unassigned: { tag: 'Unassigned', tone: 'grey', title: 'Assignment Removed', Icon: UserMinus },
+  plan_submitted: { tag: 'Submitted', tone: 'blue', title: 'Plan Submitted', Icon: Send },
+  submitted: { tag: 'Submitted', tone: 'blue', title: 'Plan Submitted', Icon: Send },
+  plan_returned: { tag: 'Returned', tone: 'red', title: 'Plan Returned', Icon: RotateCcw },
+  returned: { tag: 'Returned', tone: 'red', title: 'Plan Returned', Icon: RotateCcw },
+  plan_ready_for_dean: { tag: 'Endorsed', tone: 'teal', title: 'Ready for the Dean', Icon: ShieldCheck },
+  dean_review: { tag: 'Endorsed', tone: 'teal', title: 'Endorsed', Icon: ShieldCheck },
+  endorsed: { tag: 'Endorsed', tone: 'teal', title: 'Endorsed', Icon: ShieldCheck },
+  plan_approved: { tag: 'Approved', tone: 'green', title: 'Learning Plan Approved', Icon: CircleCheck },
+  approved: { tag: 'Approved', tone: 'green', title: 'Learning Plan Approved', Icon: CircleCheck },
+  comment_added: { tag: 'Comment', tone: 'violet', title: 'New Comment', Icon: MessageSquare },
+  comment: { tag: 'Comment', tone: 'violet', title: 'New Comment', Icon: MessageSquare },
+  suggestion: { tag: 'Suggestion', tone: 'amber', title: 'Future Suggestion', Icon: MessageSquare },
+  comment_resolved: { tag: 'Resolved', tone: 'green', title: 'Comments Resolved', Icon: CheckCheck },
+  revision_started: { tag: 'Revision', tone: 'blue', title: 'Revision Started', Icon: GitBranch },
+  poke: { tag: 'Reminder', tone: 'amber', title: 'Reminder', Icon: BellRing },
+  reminder: { tag: 'Reminder', tone: 'amber', title: 'Reminder', Icon: BellRing },
+  missing_digest: { tag: 'Reminder', tone: 'amber', title: 'Plans Not Submitted', Icon: ListTodo },
+  overdue_escalation: { tag: 'Overdue', tone: 'red', title: 'Plans Overdue', Icon: ListTodo },
+  approval_waiting: { tag: 'Waiting', tone: 'amber', title: 'Waiting for Your Review', Icon: Hourglass },
+  returned_waiting: { tag: 'Waiting', tone: 'amber', title: 'Returned Plan Waiting', Icon: Hourglass },
+  reference_health: { tag: 'Library', tone: 'teal', title: 'Reference Check', Icon: BookOpen },
+  reference_flags: { tag: 'Library', tone: 'teal', title: 'References Flagged', Icon: BookOpen },
+  reference_unavailable: { tag: 'Library', tone: 'teal', title: 'Reference Unavailable', Icon: BookOpen },
+  title_request: { tag: 'Library', tone: 'teal', title: 'Title Requested', Icon: BookOpen },
+  title_request_answered: { tag: 'Library', tone: 'teal', title: 'Title Request Answered', Icon: BookOpen },
 };
 
-const normalizeUnifiedNotifs = (res) => {
-    const wf = Array.isArray(res?.workflowNotifications) ? res.workflowNotifications : [];
-    const base = Array.isArray(res?.notifications) ? res.notifications : [];
-
-    const mappedWf = wf.map((w) => {
-        const actionType = normalizeActionType(w.action_type);
-        const courseLabel = [w.course_no, w.course_title].filter(Boolean).join(' — ');
-        const statusWord = actionType === 'RETURNED' ? 'Returned'
-            : actionType === 'APPROVED' ? 'Approved'
-            : actionType === 'ACCEPTED' ? 'Endorsed'
-            : 'Assigned';
-        const statusParam = actionType === 'RETURNED' ? 'Returned'
-            : actionType === 'APPROVED' ? 'Approved'
-            : 'Draft';
-        return {
-            _source: 'log',
-            key_id: `log-${w.log_id}`,
-            log_id: w.log_id,
-            action_type: actionType,
-            title: w.title || (courseLabel ? `${statusWord}: ${courseLabel}` : `Learning Plan ${statusWord}`),
-            message: w.message || w.note || (w.actor_name ? `${w.actor_name} updated your learning plan.` : 'Learning plan status updated.'),
-            is_viewed: Boolean(w.is_viewed ?? w.is_read),
-            createdAt: w.createdAt || w.created_at,
-            comments: Array.isArray(w.comments) ? w.comments : [],
-            related_log_ids: w.related_log_ids || [w.log_id],
-            target_url: w.target_url || (w.pc_offering_id ? `/courses/${w.pc_offering_id}/${w.revision_number || 1}/${statusParam}` : '/instructor/assigned-courses'),
-        };
-    });
-
-    const mappedBase = base.map((n) => {
-        const actionType = normalizeActionType(n.action_type || n.type);
-        const isLegacyLog = Boolean(n.log_id && !n.id);
-        const targetUrl = n.target_url || n.link_url || (n.pc_offering_id ? `/courses/${n.pc_offering_id}/1/Draft` : '/instructor/assigned-courses');
-        return {
-            _source: isLegacyLog ? 'log' : 'notif',
-            key_id: isLegacyLog ? `log-${n.log_id}` : `notif-${n.id}`,
-            id: n.id,
-            log_id: n.log_id || n.id,
-            action_type: actionType,
-            title: n.title || 'Learning Plan Update',
-            message: n.message || n.body || '',
-            is_viewed: Boolean(n.is_viewed ?? n.is_read),
-            createdAt: n.createdAt || n.created_at,
-            comments: Array.isArray(n.comments) ? n.comments : [],
-            related_log_ids: n.related_log_ids,
-            target_url: targetUrl,
-        };
-    });
-
-    return [...mappedWf, ...mappedBase].sort(
-        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-    );
+const timeAgo = (iso) => {
+  if (!iso) return '';
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
+
+const normalizeWorkflowToItem = (w) => {
+  const act = String(w.action_type || '').toUpperCase();
+  const role = String(w.actor_role || '').toUpperCase();
+  const courseLabel = [w.course_no, w.course_title].filter(Boolean).join(' — ');
+  const rev = w.revision_number || 1;
+  const pcId = w.pc_offering_id || null;
+
+  let type = 'course_assigned';
+  let statusWord = 'Updated';
+  let statusParam = 'draft';
+  if (act === 'ASSIGNED') {
+    type = 'course_assigned';
+    statusWord = 'New Assignment';
+    statusParam = 'draft';
+  } else if (act === 'RETURNED' || act === 'FORWARDED') {
+    type = 'plan_returned';
+    statusWord = 'Plan Returned';
+    statusParam = 'returned';
+  } else if (act === 'APPROVED' || (act === 'ACCEPTED' && role === 'DEAN')) {
+    type = 'plan_approved';
+    statusWord = 'Learning Plan Approved';
+    statusParam = 'approved';
+  } else if (act === 'ACCEPTED') {
+    type = 'endorsed';
+    statusWord = 'Plan Endorsed';
+    statusParam = 'pending';
+  } else if (act === 'SUGGEST' || role === 'INDUSTRY_CONSULTANT') {
+    type = 'suggestion';
+    statusWord = 'Future Suggestion';
+    statusParam = 'approved';
+  }
+
+  return {
+    key: `log-${w.log_id}`,
+    source: 'log',
+    log_id: w.log_id,
+    type,
+    title: w.title || (courseLabel ? `${statusWord}: ${w.course_no || courseLabel}` : statusWord),
+    message: w.message || w.note || (w.actor_name ? `${w.actor_name} updated ${courseLabel || 'your learning plan'}.` : `Status updated for ${courseLabel || 'your learning plan'}.`),
+    link_url: w.target_url || (pcId ? `/courses/${pcId}/${rev}/${statusParam}` : '/instructor/assigned-courses'),
+    pc_offering_id: pcId,
+    isRead: Boolean(w.is_viewed ?? w.is_read),
+    createdAt: w.createdAt || w.created_at || new Date().toISOString(),
+  };
+};
+
+const normalizeBaseNotification = (n) => {
+  const pcId = n.offering_id || n.pc_offering_id || null;
+  const rawType = String(n.type || 'update').toLowerCase();
+  const statusParam = rawType.includes('return') ? 'returned' : (rawType.includes('approv') ? 'approved' : 'draft');
+  return {
+    key: `notif-${n.id}`,
+    source: 'notif',
+    id: n.id,
+    type: rawType,
+    title: n.title || '',
+    message: n.message || n.body || '',
+    link_url: n.target_url || n.link || n.link_url || (pcId ? `/courses/${pcId}/1/${statusParam}` : null),
+    pc_offering_id: pcId,
+    entity_id: n.entity_id || null,
+    isRead: Boolean(n.is_read ?? n.isRead),
+    createdAt: n.created_at || n.createdAt || new Date().toISOString(),
+  };
+};
+
+const describe = (item) => {
+  const kind = KIND[item.type] || { tag: 'Update', tone: 'grey', title: item.title || 'Update', Icon: Bell };
+  const rawMsg = String(item.message || '');
+  const [code, ...rest] = rawMsg.split(' — ');
+  const hasCode = rest.length > 0 && /^[A-Za-z0-9 ._-]{2,30}$/.test(code);
+  const text = hasCode ? rest.join(' — ') : rawMsg;
+  const sentence = text
+    ? text.charAt(0).toUpperCase() + text.slice(1) + (/[.!?]$/.test(text) ? '' : '.')
+    : '';
+  return {
+    ...kind,
+    heading: item.title || (hasCode ? `${kind.title}: ${code}` : kind.title),
+    sentence,
+  };
+};
+
+const targetForNotification = (role, item) => {
+  if (item.link_url && String(item.link_url).startsWith('/')) return item.link_url;
+  const pcId = item.pc_offering_id || item.entity_id;
+  if (/reference|title_request/.test(item.type || '')) {
+    return role === 'Director of Libraries' ? '/library/references' : null;
+  }
+  if (pcId) {
+    if (role === 'Instructor') {
+      const statusParam = /return/.test(item.type || '') ? 'returned' : (/approv/.test(item.type || '') ? 'approved' : 'draft');
+      return `/courses/${pcId}/1/${statusParam}`;
+    }
+    return `/submissions/review/${pcId}`;
+  }
+  return null;
+};
+
+const linkLabel = (target) =>
+  /^\/topics\/form\//i.test(target)
+    ? 'View Comment'
+    : /reference/i.test(target)
+      ? 'View References'
+      : /\/(courses|submissions\/review|composition\/course)\//.test(target)
+        ? 'View Learning Plan'
+        : 'Open';
 
 const NotificationBell = () => {
-    const { user } = useCurrentUser();
-    const navigate = useNavigate();
-    const [isOpen, setIsOpen] = useState(false);
-    const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [activeTab, setActiveTab] = useState('all'); // 'all' | 'unread'
-    const wrapperRef = useRef(null);
+  const navigate = useNavigate();
+  const { activeRole } = useAuth();
+  const [count, setCount] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [items, setItems] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const trigger = useRef(null);
+  const panel = useRef(null);
 
-    const loadNotifications = useCallback(async () => {
-        try {
-            const stakeholderParam = user?.id ? `?stakeholder=${encodeURIComponent(user.id)}` : '';
-            const res = await fetchJson(`/api/notifications${stakeholderParam}`);
-            if (res) {
-                const notifs = normalizeUnifiedNotifs(res);
-                setNotifications(notifs);
-                const count = typeof res.unreadCount === 'number'
-                    ? res.unreadCount
-                    : typeof res.unread_count === 'number'
-                        ? res.unread_count
-                        : typeof res.unviewed_count === 'number'
-                            ? res.unviewed_count
-                            : notifs.filter(n => !n.is_viewed).length;
-                setUnreadCount(count);
-            }
-        } catch (err) {
-            console.error('Failed to load notifications:', err);
-        }
-    }, [user?.id]);
+  const refreshCount = useCallback(async () => {
+    try {
+      const res = await fetchJson('/api/notifications/unread-count');
+      setCount(Number(res?.count ?? res?.unreadCount ?? 0));
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
+  }, []);
 
-    useEffect(() => {
-        loadNotifications();
-        const interval = setInterval(loadNotifications, 45000);
-        return () => clearInterval(interval);
-    }, [loadNotifications]);
+  const refreshList = useCallback(async () => {
+    try {
+      const res = await fetchJson('/api/notifications');
+      const baseRows = (Array.isArray(res?.notifications) ? res.notifications : []).map(normalizeBaseNotification);
+      const wfRows = (Array.isArray(res?.workflowNotifications) ? res.workflowNotifications : []).map(normalizeWorkflowToItem);
+      const merged = [...baseRows, ...wfRows].sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setItems(merged);
+      setCount(
+        typeof res?.unreadCount === 'number'
+          ? res.unreadCount
+          : merged.filter((r) => !r.isRead).length
+      );
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoadingList(false);
+    }
+  }, []);
 
-    // Close on click outside
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        }
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
+  useEffect(() => {
+    refreshList();
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      if (open) refreshList();
+      else refreshCount();
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [open, refreshCount, refreshList]);
 
-    const handleToggle = () => {
-        const nextState = !isOpen;
-        setIsOpen(nextState);
-        if (nextState) {
-            loadNotifications();
-        }
+  const close = useCallback((refocus = true) => {
+    setOpen(false);
+    if (refocus) trigger.current?.focus();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const place = () => {
+      const r = trigger.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
     };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open]);
 
-    const persistReadState = async (item, nextState) => {
-        if (item._source === 'notif' && item.id) {
-            await fetchJson(`/api/notifications/${item.id}/read`, {
-                method: 'PATCH',
-                body: JSON.stringify({ is_read: nextState }),
-                headers: { 'Content-Type': 'application/json' }
-            });
-        } else {
-            const targetIds = item.related_log_ids || [item.log_id];
-            await fetchJson(`/api/notifications/${item.log_id}/view`, {
-                method: 'PATCH',
-                body: JSON.stringify({ is_viewed: nextState, log_ids: targetIds }),
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') close();
     };
-
-    const handleMarkAsViewed = async (item, e) => {
-        if (e) e.stopPropagation();
-
-        if (!item.is_viewed) {
-            try {
-                await persistReadState(item, true);
-                setNotifications(prev =>
-                    prev.map(n => (n.key_id === item.key_id || (item.related_log_ids && n._source === 'log' && item.related_log_ids.includes(n.log_id))) ? { ...n, is_viewed: true } : n)
-                );
-                setUnreadCount(prev => Math.max(0, prev - 1));
-            } catch (err) {
-                console.error('Error marking notification as viewed:', err);
-            }
-        }
-
-        if (item.target_url) {
-            setIsOpen(false);
-            navigate(item.target_url);
-        }
+    const onDown = (event) => {
+      if (panel.current?.contains(event.target) || trigger.current?.contains(event.target)) return;
+      close(false);
     };
-
-    const handleToggleItemRead = async (item, e) => {
-        if (e) e.stopPropagation();
-        const nextState = !item.is_viewed;
-        try {
-            await persistReadState(item, nextState);
-            setNotifications(prev =>
-                prev.map(n => (n.key_id === item.key_id || (item.related_log_ids && n._source === 'log' && item.related_log_ids.includes(n.log_id))) ? { ...n, is_viewed: nextState } : n)
-            );
-            setUnreadCount(prev => nextState ? Math.max(0, prev - 1) : prev + 1);
-        } catch (err) {
-            console.error('Error toggling notification read status:', err);
-        }
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onDown);
     };
+  }, [open, close]);
 
-    const handleMarkAllAsViewed = async (e) => {
-        e.stopPropagation();
-        try {
-            await fetchJson('/api/notifications/view-all', { method: 'PATCH' });
-            setNotifications(prev => prev.map(n => ({ ...n, is_viewed: true })));
-            setUnreadCount(0);
-        } catch (err) {
-            console.error('Error marking all notifications as viewed:', err);
-        }
-    };
+  const toggle = () => {
+    if (!open) {
+      setFilter('all');
+      refreshList();
+    }
+    setOpen(!open);
+  };
 
-    const displayedNotifications = activeTab === 'unread'
-        ? notifications.filter(n => !n.is_viewed)
-        : notifications;
+  const openItem = (item) => {
+    if (!item.isRead) {
+      setItems((list) => list.map((n) => (n.key === item.key ? { ...n, isRead: true } : n)));
+      setCount((c) => Math.max(0, c - 1));
+      const endpoint = item.source === 'log'
+        ? `/api/notifications/${item.log_id}/view`
+        : `/api/notifications/${item.id}/read`;
+      fetchJson(endpoint, { method: 'PATCH' }).catch(refreshCount);
+    }
+    const target = targetForNotification(activeRole, item);
+    if (target) {
+      close(false);
+      navigate(target);
+    }
+  };
 
-    const renderTypeBadge = (actionType) => {
-        switch (actionType) {
-            case 'ASSIGNED':
-                return <span className={`${styles.typeBadge} ${styles.assigned}`}>Assigned</span>;
-            case 'RETURNED':
-                return <span className={`${styles.typeBadge} ${styles.returned}`}>Returned</span>;
-            case 'APPROVED':
-                return <span className={`${styles.typeBadge} ${styles.approved}`}>Approved</span>;
-            case 'ACCEPTED':
-                return <span className={`${styles.typeBadge} ${styles.endorsed}`}>Endorsed</span>;
-            default:
-                return <span className={styles.typeBadge}>{actionType}</span>;
-        }
-    };
+  const readAll = async () => {
+    setItems((list) => list.map((n) => ({ ...n, isRead: true })));
+    setCount(0);
+    try {
+      await fetchJson('/api/notifications/read-all', { method: 'PATCH' });
+    } catch {
+      refreshList();
+    }
+  };
 
-    return (
-        <div className={styles.wrapper} ref={wrapperRef}>
-            <button
+  const label = count > 0 ? `Notifications, ${count} unread` : 'Notifications';
+  const shown = filter === 'unread' ? items.filter((item) => !item.isRead) : items;
+
+  return (
+    <div>
+      <button
+        ref={trigger}
+        type="button"
+        className={`${headerStyles.bell} ${open ? headerStyles.bellOpen : ''}`}
+        title="Notifications"
+        aria-label={label}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={toggle}
+      >
+        <Bell size={18} />
+        {count > 0 && (
+          <span className={headerStyles.badge} aria-hidden="true">
+            {count > 9 ? '9+' : count}
+          </span>
+        )}
+      </button>
+
+      {open &&
+        createPortal(
+          <div
+            ref={panel}
+            role="dialog"
+            aria-label="Notifications"
+            className={styles.panel}
+            style={{ top: pos.top, right: pos.right }}
+          >
+            <div className={styles.head}>
+              <h2 className={styles.title}>Notifications</h2>
+              {count > 0 && <span className={styles.newCount}>{count} New</span>}
+              <button
                 type="button"
-                className={`${styles.bellButton} ${isOpen ? styles.active : ''}`}
-                onClick={handleToggle}
-                title="Notifications"
-                aria-label="Notifications"
-                aria-expanded={isOpen}
-            >
-                <Bell size={19} />
-                {unreadCount > 0 && (
-                    <span className={styles.badge}>
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                )}
-            </button>
+                className={styles.markAll}
+                onClick={readAll}
+                disabled={count === 0}
+              >
+                Mark all as read
+              </button>
+            </div>
 
-            {isOpen && (
-                <div className={styles.panel} role="dialog" aria-label="Notifications Panel">
-                    {/* Panel Header */}
-                    <div className={styles.panelHeader}>
-                        <div className={styles.headerTitleGroup}>
-                            <span className={styles.title}>Notifications</span>
-                            {unreadCount > 0 ? (
-                                <span className={styles.unreadChip}>{unreadCount} Unread</span>
-                            ) : (
-                                <span className={styles.allReadChip}>All caught up</span>
-                            )}
-                        </div>
-                        {unreadCount > 0 && (
-                            <button
-                                type="button"
-                                className={styles.markAllBtn}
-                                onClick={handleMarkAllAsViewed}
-                            >
-                                Mark all as read
-                            </button>
-                        )}
-                    </div>
+            <div className={styles.tabs} role="tablist" aria-label="Show">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filter === 'all'}
+                className={`${styles.tab} ${filter === 'all' ? styles.tabOn : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                All ({items.length})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filter === 'unread'}
+                className={`${styles.tab} ${filter === 'unread' ? styles.tabOn : ''}`}
+                onClick={() => setFilter('unread')}
+              >
+                Unread ({count})
+              </button>
+            </div>
 
-                    {/* Filter Tabs */}
-                    <div className={styles.tabsRow}>
-                        <button
-                            type="button"
-                            className={`${styles.tabButton} ${activeTab === 'all' ? styles.activeTab : ''}`}
-                            onClick={() => setActiveTab('all')}
-                        >
-                            All ({notifications.length})
-                        </button>
-                        <button
-                            type="button"
-                            className={`${styles.tabButton} ${activeTab === 'unread' ? styles.activeTab : ''}`}
-                            onClick={() => setActiveTab('unread')}
-                        >
-                            Unread ({unreadCount})
-                        </button>
-                    </div>
-
-                    {/* Notifications List */}
-                    <div className={styles.listContainer}>
-                        {displayedNotifications.length === 0 ? (
-                            <div className={styles.emptyState}>
-                                <CheckCircle size={32} color="#10B981" />
-                                <div className={styles.emptyTitle}>
-                                    {activeTab === 'unread' ? 'All caught up!' : 'No notifications'}
-                                </div>
-                                <div className={styles.emptySubtitle}>
-                                    {activeTab === 'unread'
-                                        ? 'No unread notifications at the moment. Switch to the "All" tab to view history.'
-                                        : 'You have no notifications yet.'}
-                                </div>
-                            </div>
-                        ) : (
-                            displayedNotifications.map((item) => (
-                                <div
-                                    key={item.key_id || item.log_id}
-                                    className={`${styles.notificationItem} ${!item.is_viewed ? styles.unread : ''}`}
-                                    onClick={(e) => handleMarkAsViewed(item, e)}
-                                >
-                                    <div className={styles.itemTopRow}>
-                                        <div className={styles.itemBadgeGroup}>
-                                            {!item.is_viewed ? (
-                                                <span className={styles.newBadge}>NEW</span>
-                                            ) : (
-                                                <span className={styles.readStatusText}>Read</span>
-                                            )}
-                                            {renderTypeBadge(item.action_type)}
-                                        </div>
-                                        <div className={styles.itemTopRight}>
-                                            <span className={styles.timeText}>{formatTimeAgo(item.createdAt)}</span>
-                                            <button
-                                                type="button"
-                                                className={styles.toggleReadBtn}
-                                                onClick={(e) => handleToggleItemRead(item, e)}
-                                                title={item.is_viewed ? "Mark as unread" : "Mark as read"}
-                                                aria-label={item.is_viewed ? "Mark as unread" : "Mark as read"}
-                                            >
-                                                {item.is_viewed ? <EyeOff size={13} /> : <Eye size={13} />}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.itemTitle}>{item.title}</div>
-                                    <div className={styles.itemMessage}>{item.message}</div>
-
-                                    {/* Review Comments Section for Returned Learning Plans */}
-                                    {item.action_type === 'RETURNED' && item.comments && item.comments.length > 0 && (
-                                        <div className={styles.commentsBox}>
-                                            <div className={styles.commentsHeader}>
-                                                <MessageSquare size={13} />
-                                                <span>Review Comments ({item.comments.length}):</span>
-                                            </div>
-                                            {item.comments.slice(0, 2).map((c, idx) => (
-                                                <div key={c.comment_id || idx} className={styles.commentSnippet}>
-                                                    • {c.comment_for ? `[${c.comment_for.toUpperCase()}] ` : ''}{c.message}
-                                                </div>
-                                            ))}
-                                            {item.comments.length > 2 && (
-                                                <div style={{ color: '#BE123C', marginTop: 2, fontStyle: 'italic' }}>
-                                                    + {item.comments.length - 2} more comment{item.comments.length - 2 > 1 ? 's' : ''}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    <div className={styles.itemActionHint}>
-                                        <span>View Learning Plan</span>
-                                        <ChevronRight size={14} />
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-
-                    <div className={styles.footer}>
-                        Learning Plan Composition
-                    </div>
+            <div className={styles.list}>
+              {failed && (
+                <div role="alert" className={styles.note}>
+                  Notifications could not be loaded.{' '}
+                  <button type="button" className={styles.markAll} onClick={refreshList}>
+                    Try again
+                  </button>
                 </div>
-            )}
-        </div>
-    );
+              )}
+              {!failed && loadingList && shown.length === 0 && (
+                <div className={styles.empty}>
+                  <Bell size={22} strokeWidth={1.6} aria-hidden="true" />
+                  <strong>Loading notifications...</strong>
+                </div>
+              )}
+              {!failed && !loadingList && shown.length === 0 && (
+                <div className={styles.empty}>
+                  <Bell size={22} strokeWidth={1.6} aria-hidden="true" />
+                  <strong>{filter === 'unread' ? 'Nothing unread' : 'No notifications yet'}</strong>
+                </div>
+              )}
+              {shown.map((item) => {
+                const info = describe(item);
+                const target = targetForNotification(activeRole, item);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`${styles.item} ${item.isRead ? '' : styles.unread}`}
+                    onClick={() => openItem(item)}
+                    aria-label={`${item.isRead ? '' : 'Unread. '}${info.tag}: ${info.heading}`}
+                  >
+                    <span className={`${styles.icon} ${styles[info.tone]}`} aria-hidden="true">
+                      <info.Icon size={16} />
+                    </span>
+                    <span className={styles.body}>
+                      <span className={styles.itemTop}>
+                        <span className={styles.heading}>{info.heading}</span>
+                        <time
+                          className={styles.time}
+                          dateTime={item.createdAt}
+                          title={new Date(item.createdAt).toLocaleString()}
+                        >
+                          {timeAgo(item.createdAt)}
+                        </time>
+                        {!item.isRead && <span className={styles.dot} aria-hidden="true" />}
+                      </span>
+                      {info.sentence && <span className={styles.sentence}>{info.sentence}</span>}
+                      {target && (
+                        <span className={styles.link}>
+                          {linkLabel(target)} <ChevronRight size={14} aria-hidden="true" />
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
 };
 
 export default NotificationBell;

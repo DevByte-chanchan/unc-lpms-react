@@ -146,13 +146,64 @@ async function adaptedRequest(endpoint, opts = {}) {
         },
       };
     }
-    if (sub === 'plan-checks') return rawFetchJson(`/api/assignments/${pcId}/checks${qs}`, opts);
+    if (sub === 'plan-checks') {
+      const res = await rawFetchJson(`/api/assignments/${pcId}/checks${qs}`, opts);
+      const rawChecks = Array.isArray(res?.checks) ? res.checks : [];
+      const checks = rawChecks.map((c) => {
+        let detail = c.detail;
+        if (!detail && c.details && typeof c.details === 'object') {
+          detail = `Prelim ${c.details.prelim}%, Midterm ${c.details.midterm}%, Semi-Final ${c.details.semi}%, Final ${c.details.final}%`;
+        }
+        return {
+          ...c,
+          ok: Boolean(c.ok ?? c.pass),
+          detail: detail || (c.pass ? 'Passes check' : 'Needs review'),
+        };
+      });
+      return { ...res, checks };
+    }
     if (sub === 'review-record') return rawFetchJson(`/api/assignments/${pcId}/review-record${qs}`, opts);
     if (sub === 'signatures') return rawFetchJson(`/api/assignments/${pcId}/signatures${qs}`, opts);
-    if (sub === 'history') return rawFetchJson(`/api/revisions/${pcId}${qs}`, opts);
+    if (sub === 'history') {
+      const res = await rawFetchJson(`/api/revisions/${pcId}${qs}`, opts);
+      const revs = Array.isArray(res?.revisions) ? res.revisions : [];
+      const versions = revs.map((r) => ({
+        id: r.pcId,
+        revision: r.revNum,
+        schoolYear: r.schoolYear || r.termLabel || '',
+        semester: r.semester || '',
+        current: Number(r.pcId) === Number(pcId),
+        approvedAt: r.approvedAt || null,
+        carriedFrom: Boolean(r.basePcId),
+        events: (r.timeline || []).map((ev) => ({
+          action: ev.actionLabel || ev.type,
+          who: ev.actorName || ev.actor || '',
+          role: ev.actorRole || '',
+          at: ev.date,
+          note: ev.note || null,
+        })),
+      }));
+      return { ...res, versions };
+    }
     if (sub === 'start-revision' || sub === 'carry-over') {
       return rawFetchJson(`/api/assignments/${pcId}/${sub}${qs}`, opts);
     }
+  }
+
+  // 2b. Workflow action normalization (POST /api/assignments/action)
+  if (path === '/api/assignments/action' && method === 'POST') {
+    const body = parseJsonBody(opts.body);
+    const adapted = {
+      ...body,
+      pc_offering_id: body.pc_offering_id || body.pcId || body.offering_id,
+      code: body.code || body.course_code || body.courseCode,
+    };
+    return rawFetchJson('/api/assignments/action', {
+      ...opts,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      body: JSON.stringify(adapted),
+    });
   }
 
   // 3. M2 offering routes called without /:revNum (via offeringKey when revNum is null/0)
@@ -198,7 +249,7 @@ async function adaptedRequest(endpoint, opts = {}) {
   const earlierConsultant = /^\/api\/comments\/earlier-consultant\/(\d+)$/.exec(path);
   if (earlierConsultant && method === 'GET') {
     const res = await rawFetchJson(`/api/comments/suggestions/${earlierConsultant[1]}`, opts);
-    return Array.isArray(res) ? res : (res?.suggestions || res?.comments || []);
+    return { versions: res?.earlierVersions || res?.versions || [] };
   }
 
   // 5. Reference Library adaptation
@@ -486,12 +537,28 @@ async function adaptedRequest(endpoint, opts = {}) {
   }
   const signoffsMatch = /^\/api\/course-consultants\/signoffs\/(\d+)$/.exec(path);
   if (signoffsMatch) {
+    const meId = Number(getSession()?.user_id ?? getSession()?.id ?? 0);
     if (method === 'GET') {
       const wf = await rawFetchJson(`/api/assignments/${signoffsMatch[1]}/workflow`, opts);
-      return { signoffs: wf?.consultantSignoffs || [] };
+      const list = Array.isArray(wf?.consultantSignoffs) ? wf.consultantSignoffs : [];
+      return list.map((s) => ({
+        id: s.id,
+        user_id: s.consultant_user_id,
+        name: s.consultant_name || 'Industry Consultant',
+        signedAt: s.signed_at || s.signedAt,
+        mine: meId > 0 && Number(s.consultant_user_id) === meId,
+      }));
     }
     if (method === 'POST') {
-      return rawFetchJson(`/api/course-consultants/signoff/${signoffsMatch[1]}`, { ...opts, method: 'POST' });
+      const res = await rawFetchJson(`/api/course-consultants/signoff/${signoffsMatch[1]}`, { ...opts, method: 'POST' });
+      const s = res?.signoff || res || {};
+      return {
+        id: s.id,
+        user_id: s.consultant_user_id || meId,
+        name: s.consultant_name || getSession()?.name || 'Industry Consultant',
+        signedAt: s.signed_at || s.signedAt || new Date().toISOString(),
+        mine: true,
+      };
     }
   }
 

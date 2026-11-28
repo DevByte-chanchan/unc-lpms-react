@@ -181,23 +181,32 @@ const hciReferences = [
   { reference_id: 30, course_id: 1, course_no: 'BIT313L', title: 'IEEE Xplore — IEEE Transactions on Human-Machine Systems', author: 'IEEE Systems, Man, and Cybernetics Society', isbn: null, link: 'https://ieeexplore.ieee.org/xpl/RecentIssue.jsp?punumber=6221037', publisher: 'IEEE', publication_year: '2025-01-01', copies: null, status: 'available', category: 'Subscribed E-Journals', type: 'Online Subscriptions' },
 ];
 
+// Every week slice (including both Course Orientation Week 1 and Regular Week 1)
+// includes at least 1 required Textbook reference (ids 1-5) plus optional supporting OER/Online Resources.
 const weeklyReferencePairs = [
-  [27, 28], // Week 1
-  [1, 18],  // Week 2
-  [2, 7],   // Week 3
-  [4, 25],  // Week 4
-  [12, 22], // Week 5
-  [2, 17],  // Week 6
-  [4, 16],  // Week 7
-  [8, 9],   // Week 8
-  [10, 13], // Week 9
-  [14, 15], // Week 10
-  [4, 23],  // Week 11
-  [5, 20],  // Week 12
-  [3, 21],  // Week 13
-  [3, 19],  // Week 14
-  [24, 6],  // Week 15
-  [11, 26], // Week 16
+  // Week 1: Orientation slice gets Textbook #2 + Online Resource #27;
+  // Regular Week 1 slice gets Textbook #1 + OER #28.
+  [
+    { refId: 2, is_orientation: true },
+    { refId: 27, is_orientation: true },
+    { refId: 1, is_orientation: false },
+    { refId: 28, is_orientation: false },
+  ],
+  [1, 18],      // Week 2: Textbook #1 (Carroll) + OER #18
+  [2, 7],       // Week 3: Textbook #2 (Reid) + OR #7
+  [4, 25],      // Week 4: Textbook #4 (Green & Golsby) + OER #25
+  [2, 12, 22],  // Week 5: Textbook #2 (Reid) + OER #12 + OER #22
+  [2, 17],      // Week 6: Textbook #2 (Reid) + OER #17
+  [4, 16],      // Week 7: Textbook #4 (Green & Golsby) + OER #16
+  [4, 8, 9],    // Week 8: Textbook #4 (Green & Golsby) + OR #8 + OR #9
+  [4, 10, 13],  // Week 9: Textbook #4 (Green & Golsby) + OR #10 + OER #13
+  [4, 14, 15],  // Week 10: Textbook #4 (Green & Golsby) + OER #14 + OER #15
+  [4, 23],      // Week 11: Textbook #4 (Green & Golsby) + OER #23
+  [5, 20],      // Week 12: Textbook #5 (Thatcher & Burks) + OER #20
+  [3, 21],      // Week 13: Textbook #3 (Barnum) + OER #21
+  [3, 19],      // Week 14: Textbook #3 (Barnum) + OER #19
+  [3, 24, 6],   // Week 15: Textbook #3 (Barnum) + OER #24 + OR #6
+  [4, 11, 26],  // Week 16: Textbook #4 (Green & Golsby) + OR #11 + OER #26
 ];
 
 const weeklyCurriculum = [
@@ -217,9 +226,18 @@ const weeklyCurriculum = [
         title: 'Foundations of Interactive Computing and Academic Ethics',
         is_orientation: false,
         subtopics: [
-          { title: 'Evolution of Interactive Computing Paradigms and Ubiquitous Systems', minutes: 65 },
-          { title: 'Interdisciplinary Foundations of HCI in Psychology, Ergonomics, and Design', minutes: 60 },
-          { title: 'Professional Ethics and Academic Integrity in Interface Engineering', minutes: 55 },
+          { title: 'Evolution of Interactive Computing Paradigms and Ubiquitous Systems', minutes: 30 },
+          { title: 'Interdisciplinary Foundations of HCI in Psychology, Ergonomics, and Design', minutes: 30 },
+          { title: 'Professional Ethics and Academic Integrity in Interface Engineering', minutes: 30 },
+        ],
+      },
+      {
+        title: 'Human-Centered Design Principles and Usability Goals',
+        is_orientation: false,
+        subtopics: [
+          { title: 'Core Usability Goals: Effectiveness, Efficiency, Safety, Utility, and Learnability', minutes: 30 },
+          { title: 'User Experience (UX) Goals and Emotional Interaction Quality', minutes: 30 },
+          { title: 'Human-Centered Design Lifecycle and Stakeholder Context Framing', minutes: 30 },
         ],
       },
     ],

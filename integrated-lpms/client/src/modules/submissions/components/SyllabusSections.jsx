@@ -137,11 +137,9 @@ const SyllabusSections = () => {
         }
     }
 
-    // Submission Modal States (undo-window submit flow)
+    // Submission Modal States
     const [submitPhase, setSubmitPhase] = useState('IDLE');
     const [gateResult, setGateResult] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(5);
-    const timerRef = useRef(null);
 
     useEffect(() => {
         setIsLoading(true);
@@ -220,14 +218,8 @@ const SyllabusSections = () => {
         }
     };
 
-    const confirmSubmission = () => {
-        setSubmitPhase('WAITING');
-        setTimeLeft(5);
-    };
-
     const cancelSubmission = useCallback(() => {
         setSubmitPhase('IDLE');
-        setTimeLeft(5);
     }, []);
 
     const executeFinalSubmission = useCallback(async () => {
@@ -251,19 +243,9 @@ const SyllabusSections = () => {
         }
     }, [cancelSubmission, navigate, offeringID, revisionNum]);
 
-    // Safe useEffect timer implementation. This is declared after the submit
-    // callback so the effect can track the exact function it invokes.
-    useEffect(() => {
-        if (submitPhase === 'WAITING' && timeLeft > 0) {
-            timerRef.current = setTimeout(() => {
-                setTimeLeft(timeLeft - 1);
-            }, 1000);
-        } else if (submitPhase === 'WAITING' && timeLeft === 0) {
-            executeFinalSubmission();
-        }
-
-        return () => clearTimeout(timerRef.current);
-    }, [submitPhase, timeLeft, executeFinalSubmission]);
+    const confirmSubmission = () => {
+        executeFinalSubmission();
+    };
 
 
     return (
@@ -455,23 +437,6 @@ const SyllabusSections = () => {
                             <div className={styles.submitModalActions}>
                                 <button className={styles.btnCancelPlain} onClick={() => setSubmitPhase('IDLE')}>Cancel</button>
                                 <button className={styles.btnConfirmDark} onClick={confirmSubmission}>Yes, Submit</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Waiting / Undo Phase */}
-                    {submitPhase === 'WAITING' && (
-                        <div className={styles.submitModal}>
-                            <div className={styles.waitingBody}>
-                                <div className={styles.waitingText}>
-                                    Submitting in <strong>{timeLeft}</strong> seconds...
-                                </div>
-                                <div className={styles.progressContainer}>
-                                    <div className={styles.progressBar} style={{ animationDuration: '5s' }}></div>
-                                </div>
-                            </div>
-                            <div className={styles.submitModalActionsFull}>
-                                <button className={styles.btnUndoBlock} onClick={cancelSubmission}>Cancel Submission</button>
                             </div>
                         </div>
                     )}

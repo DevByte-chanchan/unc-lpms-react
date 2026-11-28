@@ -53,58 +53,39 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
         return () => { mounted = false; };
     }, [offeringID, revisionNum, selectedSection, fetchJson]);
 
-    // 2. Fetch related workflow resolution badges per Week
+    // 2. Fetch related workflow resolution badges per Week in a single batched request
     useEffect(() => {
         if (
             status !== 'returned' ||
             selectedSection !== 'Course Coverage' ||
-            !coverageData.courseOutcomes ||
-            coverageData.courseOutcomes.length === 0
-        ) return;
+            !offeringID
+        ) {
+            setCoverageCommentCounts({});
+            return;
+        }
 
         let mounted = true;
 
         async function gatherCoverageCommentCounts() {
-            const localCountsMap = {};
-            const commentSubGroups = ['references', 'topics', 'tlas'];
-            const allWeeks = coverageData.courseOutcomes.flatMap(co => co.weeks || []);
-
             try {
-                const fetchPromises = [];
-
-                allWeeks.forEach(w => {
-                    const targetWeekId = w.week_id;
-                    if (!targetWeekId) return;
-
-                    commentSubGroups.forEach(type => {
-                        const promise = fetchJson(`/api/comments/filter/${targetWeekId}/${type}`)
-                            .then(comments => {
-                                if (!mounted || !Array.isArray(comments)) return;
-
-                                const unresolvedCount = comments.filter(c => {
-                                    return c.resolved_status === false || c.resolved_status === 0 || String(c.resolved_status).toLowerCase() === 'false';
-                                }).length;
-
-                                if (unresolvedCount > 0) {
-                                    localCountsMap[`${targetWeekId}_${type}`] = unresolvedCount;
-                                }
-                            })
-                            .catch(err => console.error(`Coverage comment mismatch on Week ${targetWeekId}:`, err));
-
-                        fetchPromises.push(promise);
-                    });
+                const res = await fetchJson(`/api/comments/unresolved-counts/${encodeURIComponent(offeringID)}/${encodeURIComponent(revisionNum || 1)}`);
+                if (!mounted) return;
+                const byWeek = res?.byWeek || {};
+                const localCountsMap = {};
+                Object.entries(byWeek).forEach(([weekId, counts]) => {
+                    if (counts?.topics > 0) localCountsMap[`${weekId}_topics`] = Number(counts.topics);
+                    if (counts?.tlas > 0) localCountsMap[`${weekId}_tlas`] = Number(counts.tlas);
+                    if (counts?.references > 0) localCountsMap[`${weekId}_references`] = Number(counts.references);
                 });
-
-                await Promise.all(fetchPromises);
-                if (mounted) setCoverageCommentCounts(localCountsMap);
+                setCoverageCommentCounts(localCountsMap);
             } catch (error) {
-                console.error("Error parsing layout badge parameters:", error);
+                console.error("Error fetching coverage unresolved comment counts:", error);
             }
         }
 
         gatherCoverageCommentCounts();
         return () => { mounted = false; };
-    }, [coverageData.courseOutcomes, status, selectedSection, fetchJson]);
+    }, [offeringID, revisionNum, status, selectedSection, fetchJson]);
 
     if (isMatrixLoading) {
         return (

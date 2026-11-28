@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ExternalLink, ChevronRight, Edit, ChevronDown, ChevronUp } from 'react-feather';
+import Select from './Select.jsx';
+import { fetchJson } from '../utils/api.js';
+import { useCurrentUser } from '../services/currentUser.jsx';
 import styles from '../styles/Dashboard.module.sass';
 
 const formatDate = (dateString) => {
@@ -231,19 +234,130 @@ const MiniCourseCard = ({ row, selectedStatus }) => {
     );
 };
 
+const computeOverallStatus = (row) => {
+    if (row.overallStatus) return row.overallStatus;
+    const logs = row.logs || row.workflowLogs || [];
+    const deanApproval = logs.find(
+        (log) =>
+            (log.action_type === 'ACCEPTED' || log.action_type === 'APPROVED') &&
+            log.actor_role === 'DEAN'
+    );
+    if (deanApproval) return 'Approved';
+
+    const instructorSubmissions = logs.filter((l) => l.action_type === 'SUBMITTED');
+    const hasBeenSubmitted =
+        row.date_submitted !== null ||
+        instructorSubmissions.length > 0 ||
+        logs.some((log) => log.action_type === 'ACCEPTED');
+    if (!hasBeenSubmitted) return 'Draft';
+
+    const sortedSubmissions = [...instructorSubmissions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const latestSubmissionTime = sortedSubmissions.length > 0
+        ? new Date(sortedSubmissions[0].createdAt).getTime()
+        : (row.date_submitted ? new Date(row.date_submitted).getTime() : 0);
+
+    const postSubLogs = [...logs]
+        .filter((l) => new Date(l.createdAt).getTime() >= latestSubmissionTime)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    let returnedToInstructor = false;
+    for (const l of postSubLogs) {
+        const act = String(l.action_type || '').toUpperCase();
+        const role = String(l.actor_role || '').toUpperCase();
+        if (act === 'RETURNED' && (role === 'LIBRARY_DIRECTOR' || role === 'PROGRAM_HEAD')) {
+            returnedToInstructor = true;
+        } else if (act === 'FORWARDED' && role === 'PROGRAM_HEAD') {
+            returnedToInstructor = true;
+        } else if (act === 'COUNTERED' && role === 'PROGRAM_HEAD') {
+            returnedToInstructor = false;
+        }
+    }
+    return returnedToInstructor ? 'Returned' : 'Pending';
+};
+
 const MiniAssignedCourses = ({ assignments = [], counts = {}, loading = false }) => {
     const navigate = useNavigate();
-    const [selectedStatus, setSelectedStatus] = useState('DRAFT');
+    const { user } = useCurrentUser();
+    const currentYear = new Date().getFullYear();
+    const startYear = 2000;
+    const semOptions = ['1st Sem', '2nd Sem'];
+    const yearOptions = [];
+    for (let i = currentYear; i >= startYear; i--) {
+        yearOptions.push(
+            <option key={i} value={String(i)}>
+                {`${i} - ${i + 1}`}
+            </option>
+        );
+    }
 
-    const statusTabs = [
+    const [selectedYear, setSelectedYear] = useState(String(currentYear));
+    const [selectedSem, setSelectedSem] = useState(semOptions[0]);
+    const [selectedStatus, setSelectedStatus] = useState('DRAFT');
+    const [fetchedAssignments, setFetchedAssignments] = useState(null);
+    const [fetching, setFetching] = useState(false);
+
+    const isDefaultCurrentTerm = String(selectedYear) === String(currentYear) && selectedSem === semOptions[0];
+    const isPastYear = String(selectedYear) !== String(currentYear);
+
+    useEffect(() => {
+        if (isPastYear) {
+            setSelectedStatus('APPROVED');
+        } else if (selectedStatus === 'APPROVED' && isDefaultCurrentTerm) {
+            setSelectedStatus('DRAFT');
+        }
+    }, [selectedYear]);
+
+    useEffect(() => {
+        if (isDefaultCurrentTerm) {
+            setFetchedAssignments(null);
+            return;
+        }
+        let mounted = true;
+        const load = async () => {
+            setFetching(true);
+            try {
+                const stakeholderParam = user?.id ? `&stakeholder=${encodeURIComponent(user.id)}` : '';
+                const url = `/api/assignments?year=${encodeURIComponent(selectedYear)}&semester=${encodeURIComponent(selectedSem)}${stakeholderParam}`;
+                const data = await fetchJson(url);
+                const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
+                if (mounted) setFetchedAssignments(rows);
+            } catch (err) {
+                console.error('Error loading filtered mini assignments:', err);
+                if (mounted) setFetchedAssignments([]);
+            } finally {
+                if (mounted) setFetching(false);
+            }
+        };
+        load();
+        return () => { mounted = false; };
+    }, [selectedYear, selectedSem, user?.id, isDefaultCurrentTerm]);
+
+    const activeAssignments = isDefaultCurrentTerm ? assignments : (fetchedAssignments || []);
+    const activeLoading = isDefaultCurrentTerm ? loading : fetching;
+
+    const computedCounts = activeAssignments.reduce(
+        (acc, row) => {
+            const st = String(computeOverallStatus(row) || 'Draft').toLowerCase();
+            if (acc[st] !== undefined) acc[st] += 1;
+            acc.total += 1;
+            return acc;
+        },
+        { total: 0, draft: 0, pending: 0, returned: 0, approved: 0 }
+    );
+    const displayCounts = isDefaultCurrentTerm && counts && typeof counts.total === 'number'
+        ? counts
+        : computedCounts;
+
+    const allStatusTabs = [
         { key: 'DRAFT', label: 'Draft', countKey: 'draft' },
         { key: 'PENDING', label: 'Pending', countKey: 'pending' },
         { key: 'RETURNED', label: 'Returned', countKey: 'returned' },
         { key: 'APPROVED', label: 'Approved', countKey: 'approved' },
     ];
+    const statusTabs = isPastYear ? allStatusTabs.filter(t => t.key === 'APPROVED') : allStatusTabs;
 
-    const filteredRows = assignments.filter((row) => {
-        const status = (row.overallStatus || 'Draft').toUpperCase();
+    const filteredRows = activeAssignments.filter((row) => {
+        const status = String(computeOverallStatus(row) || 'Draft').toUpperCase();
         return status === selectedStatus;
     });
 
@@ -254,16 +368,43 @@ const MiniAssignedCourses = ({ assignments = [], counts = {}, loading = false })
                 <div className={styles.blockTitleGroup}>
                     <h3>Assigned Learning Plans</h3>
                     <span className={styles.totalBadge}>
-                        Total: {counts.total ?? assignments.length}
+                        Total: {displayCounts.total ?? activeAssignments.length}
                     </span>
                 </div>
 
                 <div className={styles.headerActions}>
+                    {/* Year & Semester dropdowns — left of status filter */}
+                    <div className={styles.miniTermFilters}>
+                        <Select
+                            variant="pill"
+                            size="sm"
+                            value={String(selectedYear)}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            aria-label="School year"
+                        >
+                            {yearOptions}
+                        </Select>
+
+                        <Select
+                            variant="pill"
+                            size="sm"
+                            value={selectedSem}
+                            onChange={(e) => setSelectedSem(e.target.value)}
+                            aria-label="Semester"
+                        >
+                            {semOptions.map(sem => (
+                                <option key={sem} value={sem}>
+                                    {sem === '1st Sem' ? '1st Semester' : sem === '2nd Sem' ? '2nd Semester' : sem}
+                                </option>
+                            ))}
+                        </Select>
+                    </div>
+
                     {/* Status filter tabs / segmented control */}
                     <div className={styles.segmentedControl}>
                         {statusTabs.map((tab) => {
                             const active = selectedStatus === tab.key;
-                            const count = counts[tab.countKey] ?? 0;
+                            const count = displayCounts[tab.countKey] ?? 0;
                             return (
                                 <button
                                     key={tab.key}
@@ -293,11 +434,11 @@ const MiniAssignedCourses = ({ assignments = [], counts = {}, loading = false })
 
             {/* Content Body */}
             <div className={styles.blockBody}>
-                {loading ? (
+                {activeLoading ? (
                     <div className={styles.emptyState}>Loading assigned learning plans...</div>
                 ) : filteredRows.length === 0 ? (
                     <div className={styles.emptyState}>
-                        No {statusTabs.find((t) => t.key === selectedStatus)?.label || selectedStatus} learning plans found for the current term.
+                        No {statusTabs.find((t) => t.key === selectedStatus)?.label || selectedStatus} learning plans found for {selectedYear} - {Number(selectedYear) + 1} ({selectedSem}).
                     </div>
                 ) : (
                     <div className={styles.miniGridContainer}>

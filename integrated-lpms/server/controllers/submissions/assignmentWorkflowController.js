@@ -489,11 +489,31 @@ exports.getOfferingSignatures = async (req, res, next) => {
       signatureUrl: u.signature_path ? `/api/profile/signature/${u.user_id}` : null,
     } : null;
 
-    return res.json({
+    const latestSignoff = await db.ConsultantSignoff.findOne({
+      where: { offering_id: pcId },
+      order: [['signed_at', 'DESC']],
+    });
+    const consultantUser = latestSignoff?.consultant_user_id
+      ? users.find((u) => Number(u.user_id) === Number(latestSignoff.consultant_user_id))
+      : null;
+
+    const sigMap = {
       instructor: serialize(instructor, 'Instructor'),
       libraryDirector: serialize(libraryDirector, 'Director of Libraries'),
       programHead: serialize(programHead, 'Program Head'),
       dean: serialize(dean, 'Dean'),
+    };
+
+    return res.json({
+      ...sigMap,
+      signatures: sigMap,
+      consultant: latestSignoff ? {
+        user_id: latestSignoff.consultant_user_id,
+        name: latestSignoff.consultant_name || consultantUser?.name || 'Industry Consultant',
+        signedAt: latestSignoff.signed_at,
+        hasSignature: Boolean(consultantUser?.signature_path),
+        signatureUrl: consultantUser?.signature_path ? `/api/profile/signature/${consultantUser.user_id}` : null,
+      } : null,
     });
   } catch (err) {
     return next(err);
@@ -502,9 +522,27 @@ exports.getOfferingSignatures = async (req, res, next) => {
 
 exports.performWorkflowAction = async (req, res, next) => {
   try {
-    const pcOfferingId = Number(req.body?.pc_offering_id || req.body?.offering_id || req.params?.pcId);
+    let pcOfferingId = Number(
+      req.body?.pc_offering_id ||
+      req.body?.offering_id ||
+      req.body?.pcId ||
+      req.params?.pcId ||
+      0
+    );
+    const courseCode = String(req.body?.code || req.body?.course_code || req.body?.courseCode || '').trim();
     const rawAction = req.body?.action_type || req.body?.action;
     const note = req.body?.note ? String(req.body.note).trim() : null;
+
+    if (!pcOfferingId && courseCode) {
+      const course = await db.Course.findOne({ where: { course_no: courseCode } });
+      if (course) {
+        const latestOff = await db.ProgramCourseOffering.findOne({
+          where: { course_id: course.course_id },
+          order: [['pc_offering_id', 'DESC']],
+        });
+        if (latestOff) pcOfferingId = Number(latestOff.pc_offering_id);
+      }
+    }
 
     if (!pcOfferingId || !rawAction) {
       return res.status(400).json({ error: 'pc_offering_id and action_type are required.' });
@@ -537,6 +575,22 @@ exports.performWorkflowAction = async (req, res, next) => {
     const actionType = check.normalizedAction;
     const actorWorkflowRole = req.user.workflowRole;
 
+    // Prevent Instructor from resubmitting while actionable reviewer comments remain unresolved
+    if (actorWorkflowRole === 'INSTRUCTOR' && actionType === 'SUBMITTED') {
+      const unresolvedCount = await db.Comment.count({
+        where: {
+          co_assign_id: assignment.co_assign_id,
+          resolved_status: false,
+          commenter_role: { [Op.ne]: 'INDUSTRY_CONSULTANT' },
+        },
+      });
+      if (unresolvedCount > 0) {
+        return res.status(400).json({
+          error: `Cannot submit yet. There are still ${unresolvedCount} unresolved review comment(s) to address.`,
+        });
+      }
+    }
+
     const result = await db.sequelize.transaction(async (t) => {
       const log = await db.AssignmentWorkflowLog.create({
         co_assign_id: assignment.co_assign_id,
@@ -548,6 +602,11 @@ exports.performWorkflowAction = async (req, res, next) => {
         note,
         is_viewed: false,
       }, { transaction: t });
+
+      if (actorWorkflowRole === 'INSTRUCTOR' && actionType === 'SUBMITTED') {
+        const now = new Date();
+        await assignment.update({ date_submitted: now, date_updated: now }, { transaction: t });
+      }
 
       const updatedLogs = [...(assignment.logs || []), log];
       const nextWf = computeWorkflowState(updatedLogs, offering);
@@ -608,14 +667,33 @@ exports.performWorkflowAction = async (req, res, next) => {
 
     // Fire cross-module notifications outside transaction
     const courseLabel = `${offering.course?.course_no || assignment.course_code || ''} — ${offering.course?.course_title || assignment.course_name || ''}`;
-    if (actorWorkflowRole === 'DEAN' && actionType === 'ACCEPTED') {
+    if (actorWorkflowRole === 'INSTRUCTOR' && actionType === 'SUBMITTED') {
+      await notifyUsersByRole('Program Head', {
+        type: 'submitted',
+        title: `Learning Plan Submitted: ${offering.course?.course_no || ''}`,
+        message: `${req.user.name} submitted ${courseLabel} for review.`,
+        link: `/submissions/review/${offering.pc_offering_id}`,
+        offeringId: offering.pc_offering_id,
+        actorRole: 'INSTRUCTOR',
+        sentByAccountId: req.user.user_id,
+      });
+      await notifyUsersByRole('Director of Libraries', {
+        type: 'submitted',
+        title: `Learning Plan Submitted: ${offering.course?.course_no || ''}`,
+        message: `${req.user.name} submitted ${courseLabel} for reference review.`,
+        link: `/submissions/review/${offering.pc_offering_id}`,
+        offeringId: offering.pc_offering_id,
+        actorRole: 'INSTRUCTOR',
+        sentByAccountId: req.user.user_id,
+      });
+    } else if (actorWorkflowRole === 'DEAN' && actionType === 'ACCEPTED') {
       if (assignment.stakeholder_id) {
         await createNotification({
           recipientUserId: assignment.stakeholder_id,
           type: 'approved',
           title: `Learning Plan Approved: ${offering.course?.course_no || ''}`,
           message: `Dean ${req.user.name} granted final approval for ${courseLabel}.`,
-          link: `/composition/course/${offering.pc_offering_id}/${result.revisionEvaluation?.revision_number || offering.revision_number}/course-details`,
+          link: `/courses/${offering.pc_offering_id}/${result.revisionEvaluation?.revision_number || offering.revision_number}/approved`,
           offeringId: offering.pc_offering_id,
           actorRole: 'DEAN',
           sentByAccountId: req.user.user_id,
@@ -631,10 +709,15 @@ exports.performWorkflowAction = async (req, res, next) => {
         sentByAccountId: req.user.user_id,
       });
     } else if (result.nextWf.stage === 'dean_review') {
+      const isCountered = actorWorkflowRole === 'PROGRAM_HEAD' && actionType === 'COUNTERED';
       await notifyUsersByRole('Dean', {
         type: 'dean_review',
-        title: `Ready for Final Dean Approval: ${offering.course?.course_no || ''}`,
-        message: `Both Director of Libraries and Program Head approved ${courseLabel}. Ready for your final review.`,
+        title: isCountered
+          ? `Program Head Sent Back Plan: ${offering.course?.course_no || ''}`
+          : `Ready for Final Dean Approval: ${offering.course?.course_no || ''}`,
+        message: isCountered
+          ? `${req.user.name} sent ${courseLabel} back for your reconsideration.${note ? ` Note: ${note}` : ''}`
+          : `Both Director of Libraries and Program Head approved ${courseLabel}. Ready for your final review.`,
         link: `/submissions/review/${offering.pc_offering_id}`,
         offeringId: offering.pc_offering_id,
         actorRole: actorWorkflowRole,
@@ -651,13 +734,34 @@ exports.performWorkflowAction = async (req, res, next) => {
         sentByAccountId: req.user.user_id,
       });
     } else if (result.nextWf.stage === 'returned' && assignment.stakeholder_id) {
+      const returnedComments = await db.Comment.findAll({
+        where: {
+          co_assign_id: assignment.co_assign_id,
+          resolved_status: false,
+          commenter_role: { [Op.ne]: 'INDUSTRY_CONSULTANT' },
+          week_id: { [Op.ne]: null },
+        },
+        order: [['week_id', 'ASC'], ['comment_id', 'ASC']],
+      });
+      const roleMatch = returnedComments.find((c) => String(c.commenter_role || '').toUpperCase() === actorWorkflowRole);
+      const primaryComment = roleMatch || returnedComments[0] || null;
+      const tabName = ['topics', 'tlas', 'references'].includes(String(primaryComment?.comment_for || '').toLowerCase())
+        ? String(primaryComment.comment_for).toLowerCase()
+        : null;
+      const returnLink = primaryComment?.week_id
+        ? `/topics/form/${primaryComment.week_id}/returned${tabName ? `?tab=${tabName}` : ''}`
+        : `/courses/${offering.pc_offering_id}/${offering.revision_number}/returned`;
+
       await createNotification({
         recipientUserId: assignment.stakeholder_id,
         type: 'returned',
         title: `Learning Plan Returned: ${offering.course?.course_no || ''}`,
         message: `${req.user.name} (${req.user.activeRole}) returned ${courseLabel} for revision.${note ? ` Note: ${note}` : ''}`,
-        link: `/composition/course/${offering.pc_offering_id}/${offering.revision_number}/revisions`,
+        link: returnLink,
         offeringId: offering.pc_offering_id,
+        commentId: primaryComment?.comment_id || null,
+        targetType: tabName || null,
+        targetId: primaryComment?.week_id || null,
         actorRole: actorWorkflowRole,
         sentByAccountId: req.user.user_id,
       });

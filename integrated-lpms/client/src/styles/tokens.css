@@ -86,7 +86,7 @@
   /* --- motion & controls ----------------------------------------------- */
   --t-fast: .15s ease;
   --t-med: .25s ease;
-  --backdrop: rgba(0, 0, 0, 0.7);
+  --backdrop: rgba(0, 0, 0, 0.4);
   --control-radius: 8px;
   --control-border: oklch(20.77% 0.0398 265.8 / 0.2);
   --hover-tint: rgba(15, 23, 42, 0.06);

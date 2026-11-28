@@ -9,11 +9,13 @@ import {
   Maximize,
   Minimize2,
   PenLine,
+  RotateCcw,
   User,
   X,
 } from 'lucide-react';
 import { useAuth } from '../AuthContext.jsx';
 import { AuthAPI } from '../api.js';
+import AppDialog from './AppDialog.jsx';
 import SignOutDialog from './SignOutDialog.jsx';
 import SignatureTab from './SignatureTab.jsx';
 import styles from './SettingsModal.module.sass';
@@ -182,27 +184,53 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
   const [tab, setTab] = useState(initialTab);
   const [expanded, setExpanded] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (open) setTab(initialTab);
+    if (open) {
+      setTab(initialTab);
+      setResetError('');
+    }
   }, [open, initialTab]);
 
   const close = useCallback(() => {
+    if (resetting) return;
     setExpanded(false);
     onClose();
-  }, [onClose]);
+  }, [onClose, resetting]);
+
+  const handleConfirmReset = useCallback(async (confirmed) => {
+    setConfirmingReset(false);
+    if (!confirmed || resetting) return;
+    setResetError('');
+    setResetting(true);
+    try {
+      await AuthAPI.resetDatabase();
+      try {
+        await logout();
+      } catch {
+        // Session cookie was already cleared by resetDatabase.
+      }
+      window.location.assign('/login');
+    } catch (err) {
+      setResetError(err?.message || 'Could not reset and reseed the database.');
+      setResetting(false);
+    }
+  }, [logout, resetting]);
 
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => {
-      if (event.key !== 'Escape' || signingOut) return;
+      if (event.key !== 'Escape' || signingOut || confirmingReset || resetting) return;
       if (expanded) setExpanded(false);
       else close();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, expanded, close, signingOut]);
+  }, [open, expanded, close, signingOut, confirmingReset, resetting]);
 
   if (!open) return null;
 
@@ -232,10 +260,17 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
               onClick={() => setExpanded((value) => !value)}
               title={expanded ? 'Exit full screen' : 'Full screen'}
               aria-label={expanded ? 'Exit full screen' : 'Full screen'}
+              disabled={resetting}
             >
               {expanded ? <Minimize2 size={16} /> : <Maximize size={16} />}
             </button>
-            <button type="button" className="app-icon-close" onClick={close} aria-label="Close settings">
+            <button
+              type="button"
+              className="app-icon-close"
+              onClick={close}
+              aria-label="Close settings"
+              disabled={resetting}
+            >
               <X size={16} strokeWidth={2} color="currentColor" />
             </button>
           </div>
@@ -251,6 +286,7 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
                 aria-selected={current.key === item.key}
                 className={`${styles.tab} ${current.key === item.key ? styles.tabOn : ''}`}
                 onClick={() => setTab(item.key)}
+                disabled={resetting}
               >
                 <item.Icon size={16} aria-hidden="true" /> {item.label}
               </button>
@@ -259,6 +295,7 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
               type="button"
               className={`${styles.tab} ${styles.signOut}`}
               onClick={() => setSigningOut(true)}
+              disabled={resetting}
             >
               <LogOut size={16} aria-hidden="true" /> Sign out
             </button>
@@ -295,6 +332,32 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
                 <div className={styles.footnote}>
                   Your name, e-mail and roles are managed under User Accounts.
                 </div>
+
+                <div className={styles.dangerZone}>
+                  <div className={styles.dangerHead}>
+                    <div>
+                      <div className={styles.dangerTitle}>Reset &amp; Reseed Database</div>
+                      <p className={styles.dangerText}>
+                        Wipe all database tables and reseed the initial UNC-LPMS data across all
+                        modules. You will be signed out when finished.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.dangerBtn}
+                      onClick={() => setConfirmingReset(true)}
+                      disabled={resetting}
+                    >
+                      <RotateCcw size={15} aria-hidden="true" />
+                      {resetting ? 'Resetting database…' : 'Wipe & Reseed Database'}
+                    </button>
+                  </div>
+                  {resetError && (
+                    <div role="alert" className={`${styles.note} ${styles.bad}`} style={{ marginTop: 4 }}>
+                      <AlertCircle size={14} aria-hidden="true" /> {resetError}
+                    </div>
+                  )}
+                </div>
               </>
             )}
             {current.key === 'security' && <SecurityTab />}
@@ -313,6 +376,18 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
           navigate('/login', { replace: true });
         }}
       />
+
+      {confirmingReset && (
+        <AppDialog
+          title="Wipe and reseed database?"
+          message="This will permanently erase all current changes in the database and restore the initial seeded data for all modules. You will be signed out when the reset finishes."
+          confirmLabel="Wipe & Reseed"
+          cancelLabel="Cancel"
+          danger
+          tone="warning"
+          onDone={handleConfirmReset}
+        />
+      )}
     </>,
     document.body
   );

@@ -199,6 +199,7 @@ const TopicSubForm = forwardRef(({
     onClearHighlight,
     courseCode,
     cachedWeekTopics,
+    initialTopicsSnapshot,
     previousWeekFrontendTopics,
     onTopicsChangeForWeek,
     onOpenAiSuggest,
@@ -210,6 +211,7 @@ const TopicSubForm = forwardRef(({
     const [loading, setLoading] = useState(false);
     const [reviewComments, setReviewComments] = useState([]);
     const [whitelistVersion, setWhitelistVersion] = useState(0);
+    const [savedVersion, setSavedVersion] = useState(0);
     const initialTopicsStateRef = useRef(null);
     const initialCommentsStateRef = useRef(null);
 
@@ -230,6 +232,8 @@ const TopicSubForm = forwardRef(({
         if (!iloId) return;
         let mounted = true;
         setLoading(true);
+        initialTopicsStateRef.current = null;
+        initialCommentsStateRef.current = null;
 
         async function loadData() {
             try {
@@ -255,13 +259,16 @@ const TopicSubForm = forwardRef(({
 
                 setAvailableTopics(Array.isArray(resAvailable) ? resAvailable : []);
 
+                const dbAssigned = Array.isArray(resAssigned) ? resAssigned : [];
                 // Prefer in-memory frontend topics if the user already modified this week during the current session (including AI-suggested border flag)
                 const initialTopics = Array.isArray(cachedWeekTopics)
                     ? cachedWeekTopics
-                    : (Array.isArray(resAssigned) ? resAssigned : []);
+                    : dbAssigned;
 
                 setSelectedTopics(initialTopics);
-                initialTopicsStateRef.current = serializeTopics(initialTopics);
+                initialTopicsStateRef.current = initialTopicsSnapshot !== undefined
+                    ? initialTopicsSnapshot
+                    : serializeTopics(dbAssigned);
                 if (onTopicsChangeForWeek) {
                     onTopicsChangeForWeek(iloId, isOrientation, initialTopics);
                 }
@@ -508,15 +515,23 @@ const TopicSubForm = forwardRef(({
             tooltip: timeTooltip
         };
 
+        const isDirty = initialTopicsStateRef.current !== null && (
+            serializeTopics(selectedTopics) !== initialTopicsStateRef.current ||
+            serializeComments(reviewComments) !== initialCommentsStateRef.current
+        );
+
+        void savedVersion;
+
         return {
             contentIssues,
             validItemCount,
             validSummaryText: `${validItemCount} valid ${validItemCount === 1 ? 'topic' : 'topics'} added.`,
             timeInfo,
             spellItems,
-            isValid: contentIssues.length === 0 && timeInfo.isValid && spellItems.length === 0
+            isValid: contentIssues.length === 0 && timeInfo.isValid && spellItems.length === 0,
+            isDirty
         };
-    }, [selectedTopics, weeklyHours, whitelistVersion]);
+    }, [selectedTopics, reviewComments, weeklyHours, whitelistVersion, savedVersion]);
 
     useEffect(() => {
         if (!loading && onValidationStateChange) {
@@ -541,6 +556,7 @@ const TopicSubForm = forwardRef(({
         resetInitialState: () => {
             initialTopicsStateRef.current = serializeTopics(selectedTopics);
             initialCommentsStateRef.current = serializeComments(reviewComments);
+            setSavedVersion(v => v + 1);
         },
         getSpellWarnings: () => liveValidationState.spellItems,
         getSelectedTopics: () => selectedTopics,
@@ -617,6 +633,7 @@ const TopicSubForm = forwardRef(({
             });
             initialTopicsStateRef.current = serializeTopics(selectedTopics);
             initialCommentsStateRef.current = serializeComments(reviewComments);
+            setSavedVersion(v => v + 1);
         },
         getCommentTargetDetails: (comment) => resolveTopicGroupsForComment(comment),
         getCommentTargetLabel: (comment) => {
@@ -662,6 +679,19 @@ const TopicSubForm = forwardRef(({
 // ==========================================
 // 2. MASTER MAP CONTENTS ORCHESTRATOR 
 // ==========================================
+const resolveStepFromSearchParams = (params) => {
+    const rawTab = String(params.get('tab') || '').trim().toLowerCase();
+    if (rawTab === 'topics' || rawTab === 'topic') return 0;
+    if (rawTab === 'tlas' || rawTab === 'tla') return 1;
+    if (rawTab === 'references' || rawTab === 'reference') return 2;
+    const rawStep = params.get('step');
+    if (rawStep !== null && rawStep !== '') {
+        const parsed = Number(rawStep);
+        if (parsed === 0 || parsed === 1 || parsed === 2) return parsed;
+    }
+    return null;
+};
+
 const TopicForm = () => {
     const navigate = useNavigate();
     const { courseCode, iloId, status } = useParams();
@@ -669,7 +699,8 @@ const TopicForm = () => {
     const initialIsOrientation = searchParams.get('orientation') === 'true' || searchParams.get('orientation') === '1';
     const [isOrientation, setIsOrientation] = useState(initialIsOrientation);
 
-    const [currentStep, setCurrentStep] = useState(0);
+    const initialStepParam = resolveStepFromSearchParams(searchParams);
+    const [currentStep, setCurrentStep] = useState(initialStepParam ?? 0);
     const [pinnedSteps, setPinnedSteps] = useState([true, true, true]);
     const [recentlyPinnedStep, setRecentlyPinnedStep] = useState(null);
     const [blockedUnpinStep, setBlockedUnpinStep] = useState(null);
@@ -677,6 +708,19 @@ const TopicForm = () => {
     const blockedPinTimerRef = useRef(null);
     const [isImportPrevOpen, setIsImportPrevOpen] = useState(false);
     const steps = ['Topics', 'TLAs', 'References'];
+
+    useEffect(() => {
+        const targetStep = resolveStepFromSearchParams(searchParams);
+        if (targetStep !== null) {
+            setCurrentStep(targetStep);
+            setPinnedSteps(prev => {
+                if (prev[targetStep]) return prev;
+                const next = [...prev];
+                next[targetStep] = true;
+                return next;
+            });
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         return () => {
@@ -777,6 +821,11 @@ const TopicForm = () => {
 
     // Floating Comment State logic
     const [isCommentsOpen, setIsCommentsOpen] = useState(true);
+    useEffect(() => {
+        if (resolveStepFromSearchParams(searchParams) !== null) {
+            setIsCommentsOpen(true);
+        }
+    }, [searchParams]);
     const [selectedRoleFilter, setSelectedRoleFilter] = useState('ALL');
     const [stepComments, setStepComments] = useState({ 0: [], 1: [], 2: [] });
     const [revisionReturnMeta, setRevisionReturnMeta] = useState({
@@ -840,10 +889,11 @@ const TopicForm = () => {
 
     // Live per-column validation state (gates FormNavigation Save button) + spell-jump highlight + save confirmation modal
     const [columnValidations, setColumnValidations] = useState({
-        topics: { isValid: false, timeInfo: null },
-        tlas: { isValid: false },
-        references: { isValid: false }
+        topics: { isValid: false, isDirty: false, timeInfo: null },
+        tlas: { isValid: false, isDirty: false },
+        references: { isValid: false, isDirty: false }
     });
+    const [savedTopicsVersion, setSavedTopicsVersion] = useState(0);
     const [highlightedFieldId, setHighlightedFieldId] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
@@ -899,9 +949,9 @@ const TopicForm = () => {
     useEffect(() => {
         setHighlightedFieldId(null);
         setColumnValidations({
-            topics: { isValid: false, timeInfo: null },
-            tlas: { isValid: false },
-            references: { isValid: false }
+            topics: { isValid: false, isDirty: false, timeInfo: null },
+            tlas: { isValid: false, isDirty: false },
+            references: { isValid: false, isDirty: false }
         });
     }, [effectiveWeekId, isOrientation]);
 
@@ -911,15 +961,37 @@ const TopicForm = () => {
         columnValidations.references?.isValid
     );
 
+    const hasOtherWeekTopicChanges = useMemo(() => {
+        void savedTopicsVersion;
+        const activeKey = effectiveWeekId ? getWeekCacheKey(effectiveWeekId, isOrientation) : null;
+        return Object.entries(weekTopicsMap).some(([key, topicsArr]) => {
+            if (key === activeKey) return false;
+            if (!Array.isArray(topicsArr)) return false;
+            const initialSnap = initialWeekTopicsMapRef.current[key];
+            if (initialSnap === undefined) return false;
+            return serializeTopics(topicsArr) !== initialSnap;
+        });
+    }, [weekTopicsMap, effectiveWeekId, isOrientation, getWeekCacheKey, savedTopicsVersion]);
+
+    const hasUnsavedChanges = Boolean(
+        columnValidations.topics?.isDirty ||
+        columnValidations.tlas?.isDirty ||
+        columnValidations.references?.isDirty ||
+        hasOtherWeekTopicChanges
+    );
+
+    const isSaveDisabled = !allColumnsValid || !hasUnsavedChanges || isSaving;
+
     const saveDisabledReason = useMemo(() => {
         if (isSaving) return 'Saving changes...';
         const pending = [];
         if (!columnValidations.topics?.isValid) pending.push('Topics');
         if (!columnValidations.tlas?.isValid) pending.push('Teaching & Learning Activities');
         if (!columnValidations.references?.isValid) pending.push('References');
-        if (pending.length === 0) return 'Save weekly content changes';
-        return `Resolve validation issues in: ${pending.join(', ')}`;
-    }, [columnValidations, isSaving]);
+        if (pending.length > 0) return `Resolve validation issues in: ${pending.join(', ')}`;
+        if (!hasUnsavedChanges) return 'No unsaved changes';
+        return 'Save weekly content changes';
+    }, [columnValidations, hasUnsavedChanges, isSaving]);
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isWeekSwitching, setIsWeekSwitching] = useState(false);
@@ -937,7 +1009,7 @@ const TopicForm = () => {
         if (weekSwitchTimerRef.current) clearTimeout(weekSwitchTimerRef.current);
         weekSwitchTimerRef.current = setTimeout(() => {
             setIsWeekSwitching(false);
-        }, 500);
+        }, 150);
     }, []);
 
     useEffect(() => {
@@ -949,12 +1021,9 @@ const TopicForm = () => {
         setIsInitialLoading(true);
 
         if (!iloId) {
-            const fallbackTimer = setTimeout(() => {
-                if (mounted) setIsInitialLoading(false);
-            }, 500);
+            setIsInitialLoading(false);
             return () => {
                 mounted = false;
-                clearTimeout(fallbackTimer);
             };
         }
 
@@ -1036,12 +1105,7 @@ const TopicForm = () => {
             }
         }
 
-        let minDelayTimer = null;
-        const minDelay = new Promise((resolve) => {
-            minDelayTimer = setTimeout(resolve, 500);
-        });
-
-        Promise.all([loadWeekContext(), minDelay]).finally(() => {
+        loadWeekContext().finally(() => {
             if (mounted) {
                 setIsInitialLoading(false);
             }
@@ -1049,17 +1113,17 @@ const TopicForm = () => {
 
         return () => {
             mounted = false;
-            if (minDelayTimer) clearTimeout(minDelayTimer);
         };
     }, [iloId, initialIsOrientation, courseCode]);
 
-    // Pre-populate frontend weekTopicsMap for all weeks of the active Course Outcome (without overwriting any unsaved edits already in weekTopicsMap)
+    // Pre-populate frontend weekTopicsMap for other weeks of the active Course Outcome (without overwriting any unsaved edits already in weekTopicsMap)
     useEffect(() => {
         if (isOrientation || !Array.isArray(weekContext.weeks) || weekContext.weeks.length === 0) return;
         let mounted = true;
 
         weekContext.weeks.forEach(w => {
             const wid = Number(w.week_id);
+            if (wid === Number(effectiveWeekId)) return;
             const key = getWeekCacheKey(wid, false);
             fetchJson(`/api/topics/assigned/${encodeURIComponent(wid)}?isOrientation=false`)
                 .then(data => {
@@ -1079,7 +1143,7 @@ const TopicForm = () => {
         });
 
         return () => { mounted = false; };
-    }, [weekContext.co_id, weekContext.weeks, isOrientation, getWeekCacheKey]);
+    }, [weekContext.co_id, weekContext.weeks, isOrientation, effectiveWeekId, getWeekCacheKey]);
 
     // Fetch revision timeline metadata to enrich return numbers, dates, and stakeholder names
     useEffect(() => {
@@ -1273,7 +1337,7 @@ const TopicForm = () => {
     };
 
     const handleSaveClick = () => {
-        if (!allColumnsValid || isSaving) return;
+        if (isSaveDisabled) return;
         syncLiveTopicsToFrontendMap();
         setShowSaveConfirmModal(true);
     };
@@ -1351,6 +1415,7 @@ const TopicForm = () => {
                 const liveTopics = topicRef.current?.getSelectedTopics ? topicRef.current.getSelectedTopics() : weekTopicsMap[savedActiveKey];
                 initialWeekTopicsMapRef.current[savedActiveKey] = serializeTopics(liveTopics);
             }
+            setSavedTopicsVersion(v => v + 1);
 
             setShowSuccessModal(true);
             setTimeout(() => {
@@ -1684,7 +1749,7 @@ const TopicForm = () => {
                         status={status}
                         stepCommentCounts={stepCommentCounts}
                         weekCommentCounts={weekContext.commentCountsByWeek}
-                        isSaveDisabled={!allColumnsValid || isSaving}
+                        isSaveDisabled={isSaveDisabled}
                         saveDisabledReason={saveDisabledReason}
                         blockedUnpinStep={blockedUnpinStep}
                     />
@@ -1730,6 +1795,7 @@ const TopicForm = () => {
                                             onClearHighlight={clearHighlight}
                                             courseCode={weekContext.courseNo || courseCode}
                                             cachedWeekTopics={currentWeekCachedTopics}
+                                            initialTopicsSnapshot={effectiveWeekId ? initialWeekTopicsMapRef.current[getWeekCacheKey(effectiveWeekId, isOrientation)] : undefined}
                                             previousWeekFrontendTopics={previousWeekCachedTopics}
                                             onTopicsChangeForWeek={handleTopicsChangeForWeek}
                                             onOpenAiSuggest={handleOpenAiSuggest}

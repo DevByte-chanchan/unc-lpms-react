@@ -71,6 +71,7 @@ const TLAForm = forwardRef(({
     const scrollContainerRef = useRef(null);
 
     const [reviewComments, setReviewComments] = useState([]);
+    const [savedVersion, setSavedVersion] = useState(0);
     const initialTlasRef = useRef(null);
     const initialCommentsRef = useRef(null);
 
@@ -128,6 +129,8 @@ const TLAForm = forwardRef(({
         let mounted = true;
         setIsLoading(true);
         setErrors({});
+        initialTlasRef.current = null;
+        initialCommentsRef.current = null;
 
         const fetchTlaData = async () => {
             try {
@@ -279,15 +282,23 @@ const TLAForm = forwardRef(({
                 : 'Assign at least 1 assessment (Name required; Detail is optional) across your TLAs.'
         };
 
+        const isDirty = initialTlasRef.current !== null && (
+            serializeTlas(tlas) !== initialTlasRef.current ||
+            serializeComments(reviewComments) !== initialCommentsRef.current
+        );
+
+        void savedVersion;
+
         return {
             contentIssues,
             validItemCount,
             validSummaryText: `${validItemCount} valid ${validItemCount === 1 ? 'TLA' : 'TLAs'} covering all ${allowedPhases.length} phases (${allowedPhases.join(', ')}).`,
             assessmentInfo,
             spellItems,
-            isValid: contentIssues.length === 0 && assessmentInfo.isValid && spellItems.length === 0
+            isValid: contentIssues.length === 0 && assessmentInfo.isValid && spellItems.length === 0,
+            isDirty
         };
-    }, [tlas, whitelistVersion, allowedPhases, courseHasLab]);
+    }, [tlas, reviewComments, whitelistVersion, savedVersion, allowedPhases, courseHasLab]);
 
     useEffect(() => {
         if (!isLoading && onValidationStateChange) {
@@ -428,6 +439,7 @@ const TLAForm = forwardRef(({
         resetInitialState: () => {
             initialTlasRef.current = serializeTlas(tlas);
             initialCommentsRef.current = serializeComments(reviewComments);
+            setSavedVersion(v => v + 1);
         },
         getSpellWarnings: collectSpellWarnings,
         getComments: () => reviewComments,
@@ -462,6 +474,7 @@ const TLAForm = forwardRef(({
             });
             initialTlasRef.current = serializeTlas(tlas);
             initialCommentsRef.current = serializeComments(reviewComments);
+            setSavedVersion(v => v + 1);
         },
         getCommentTargetLabel: (comment) => {
             if (comment.target_title) return comment.target_title;

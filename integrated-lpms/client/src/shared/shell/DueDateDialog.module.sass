@@ -18,8 +18,9 @@
   flex-direction: column
   overflow: hidden
   background: #fff
-  border-radius: var(--radius-lg)
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2)
   font-family: var(--font-ui)
   // opens with a short ease-out from 96% (everyday UI: no bounce)
   animation: windowIn .18s ease-out
@@ -45,7 +46,7 @@
 
 .chip
   padding: 3px 10px
-  border: 1px solid var(--control-border)
+  border: 1px solid #D1D5DB
   border-radius: 999px
   background: var(--surface-muted)
   color: var(--ink-soft)
@@ -60,22 +61,22 @@
 .label
   font-size: 13px
   font-weight: var(--fw-medium)
-  color: var(--ink)
+  color: #374151
 
 .control
   width: 100%
-  height: 36px
+  height: 40px
   padding: 0 12px
   box-sizing: border-box
-  border: 1px solid var(--control-border)
-  border-radius: var(--control-radius)
+  border: 1px solid #D1D5DB
+  border-radius: 6px
   background: #fff
-  color: var(--ink)
+  color: #18191A
   font: var(--fw-normal) var(--fs-md) var(--font-ui)
 
   &:focus-visible
-    outline: 2px solid var(--accent)
-    outline-offset: 1px
+    outline: none
+    border-color: #18191A
 
 .hint
   margin-top: -8px

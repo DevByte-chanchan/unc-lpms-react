@@ -13,12 +13,13 @@ const {
   weeklyCurriculum,
   weeklyTlasAndAssessments,
 } = require('./hciFoundationData');
+const { seedOopRevisions } = require('./seedOopRevisions');
 
 async function seedIntegratedMaster() {
   const existingUsers = await db.User.count();
   const existingOfferings = await db.ProgramCourseOffering.count();
 
-  if (existingUsers >= 6 && existingOfferings >= 2) {
+  if (existingUsers >= 6 && existingOfferings >= 4) {
     console.log('[db:seed] Database already seeded (idempotent check passed). Skipping duplicate inserts.');
     return { skipped: true };
   }
@@ -503,26 +504,22 @@ async function seedIntegratedMaster() {
 
     const baselineCfg = offeringConfigs[0];
 
-    // Weekly References (Offering #1 only)
+    // Weekly References (Offering #1 only — supports both { refId, is_orientation } objects and plain numeric ref IDs)
     for (let wIdx = 0; wIdx < 16; wIdx++) {
       const currentWeekId = baselineCfg.weekStart + wIdx;
-      const [ref1, ref2] = weeklyReferencePairs[wIdx];
-      weeklyRefsToInsert.push({
-        weekly_reference_id: wrIdCounter++,
-        week_id: currentWeekId,
-        reference_id: ref1,
-        is_orientation: wIdx === 0,
-        createdAt: baselineCfg.tsCreated,
-        updatedAt: baselineCfg.tsUpdated,
-      });
-      weeklyRefsToInsert.push({
-        weekly_reference_id: wrIdCounter++,
-        week_id: currentWeekId,
-        reference_id: ref2,
-        is_orientation: false,
-        createdAt: baselineCfg.tsCreated,
-        updatedAt: baselineCfg.tsUpdated,
-      });
+      const refEntries = weeklyReferencePairs[wIdx] || [];
+      for (const entry of refEntries) {
+        const refId = typeof entry === 'object' && entry !== null ? entry.refId : entry;
+        const isOrientation = typeof entry === 'object' && entry !== null ? Boolean(entry.is_orientation) : false;
+        weeklyRefsToInsert.push({
+          weekly_reference_id: wrIdCounter++,
+          week_id: currentWeekId,
+          reference_id: refId,
+          is_orientation: isOrientation,
+          createdAt: baselineCfg.tsCreated,
+          updatedAt: baselineCfg.tsUpdated,
+        });
+      }
     }
 
     // Topics & Subtopics (Offering #1 only)
@@ -723,7 +720,7 @@ async function seedIntegratedMaster() {
         type: 'assignment',
         title: 'Course Assigned: BIT313L',
         message: 'Program Head Olivia Vance assigned you as Lead Instructor for BIT313L — Human and Computer Interaction (1st Semester SY 2026-2027).',
-        link: '/composition/course/2/1/course-details',
+        link: '/courses/2/1/draft',
         offering_id: 2,
         actor_role: 'PROGRAM_HEAD',
         sent_by_account_id: 2,
@@ -731,9 +728,14 @@ async function seedIntegratedMaster() {
         created_at: now,
       },
     ], { transaction: t, ignoreDuplicates: true });
+
+    // ------------------------------------------------------------------
+    // 16. Standardized OOP (BIT213L) Approved Rev 1 (SY 2025-2026) & Rev 2 (SY 2026-2027)
+    // ------------------------------------------------------------------
+    await seedOopRevisions(t);
   });
 
-  console.log('[db:seed] Successfully seeded unified UNC-LPMS database (6 roles, 2 periods, 5 depts, 6 programs, 8 courses, 30 refs, 1 Approved baseline + 1 blank Draft HCI BIT313L offering).');
+  console.log('[db:seed] Successfully seeded unified UNC-LPMS database (6 roles, 2 periods, 5 depts, 6 programs, 9 courses, HCI BIT313L Approved baseline + Draft, and OOP BIT213L Approved Rev 1 & Rev 2).');
   return { skipped: false };
 }
 

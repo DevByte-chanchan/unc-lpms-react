@@ -136,11 +136,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // The Program Head sending a Dean return back to the Dean (with a reason).
   const [sendBackOpen, setSendBackOpen] = useState(false)
   const closeSendBack = React.useCallback(() => setSendBackOpen(false), [])
-  // Approve confirmation flow (matches the instructor's submit modal):
-  // IDLE → CONFIRM → WAITING (undo countdown) → DONE
+  // Approve submission flow: IDLE → SUBMITTING → DONE
   const [approvePhase, setApprovePhase] = useState('IDLE')
-  const [approveTimeLeft, setApproveTimeLeft] = useState(5)
-  const approveTimerRef = useRef(null)
   // After a return and resubmission: what the instructor changed (server/utils/planChanges.js).
   const [planChanges, setPlanChanges] = useState(null)
   const [planChangesOpen, setPlanChangesOpen] = useState(false)
@@ -572,34 +569,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     })
   }, [codeToUse, roleKey, validPcId])
 
-  const handleApprove = React.useCallback(() => {
-    if (!reviewRecordAvailable) return
-    // The server records the approval (and who signed it: "pwede ba naka-attach na digital
-    // signature?" [53:41]); the screen then re-reads the log instead of keeping its own copy.
-    recordWorkflowAction('ACCEPTED').then(() => {
+  const handleApprove = React.useCallback(async () => {
+    if (!reviewRecordAvailable) return false
+    try {
+      // The server records the approval (and who signed it); the screen then re-reads the log.
+      await recordWorkflowAction('ACCEPTED')
       reloadWorkflow()
       setRefreshKey(k => k + 1)
       toast('Approved. The plan moves on to the next approver.')
-    }).catch(e => alertDialog(apiErrorMessage(e, 'Could not record your approval.'), { title: 'Approval not saved' }))
-  }, [recordWorkflowAction, reloadWorkflow, reviewRecordAvailable])
-
-  // Approve countdown: gives the approver a window to undo before it takes effect
-  useEffect(() => {
-    if (approvePhase === 'WAITING' && approveTimeLeft > 0) {
-      approveTimerRef.current = setTimeout(() => setApproveTimeLeft(t => t - 1), 1000)
-    } else if (approvePhase === 'WAITING' && approveTimeLeft === 0) {
-      if (reviewRecordAvailable) {
-        handleApprove()
-        setApprovePhase('DONE')
-        setTimeout(() => setApprovePhase('IDLE'), 1500)
-      } else {
-        setApprovePhase('IDLE')
-      }
+      return true
+    } catch (e) {
+      alertDialog(apiErrorMessage(e, 'Could not record your approval.'), { title: 'Approval not saved' })
+      return false
     }
-    return () => clearTimeout(approveTimerRef.current)
-  }, [approvePhase, approveTimeLeft, handleApprove, reviewRecordAvailable])
-
-  const cancelApprove = () => { setApprovePhase('IDLE'); setApproveTimeLeft(5) }
+  }, [recordWorkflowAction, reloadWorkflow, reviewRecordAvailable])
 
   // Submitting hands the plan to the reviewers, so the app's confirm window asks first.
   const handleSubmitForReview = async () => {
@@ -863,10 +846,17 @@ ${suggestionLine}` : text,
 
   const activeSelectedSection = (externalSelectedSection || selectedSection) === 'References' ? 'References Summary' : (externalSelectedSection || selectedSection)
 
-  // Approving used to be a confirm modal AND a countdown — two confirmations
-  // for one decision [17:15] [50:56]. The countdown alone is enough: it is
-  // still undoable, and it costs one click instead of two.
-  const startApprove = () => { setApprovePhase('WAITING'); setApproveTimeLeft(5) }
+  const startApprove = async () => {
+    if (!reviewRecordAvailable) return
+    setApprovePhase('SUBMITTING')
+    const ok = await handleApprove()
+    if (ok) {
+      setApprovePhase('DONE')
+      setTimeout(() => setApprovePhase('IDLE'), 1200)
+    } else {
+      setApprovePhase('IDLE')
+    }
+  }
 
   // getRoleColor, getComponentTags, isRecent imported from approvalHelpers
 
@@ -1391,25 +1381,14 @@ ${suggestionLine}` : text,
         mode={commentMode}
       />
 
-      {/* ── APPROVE CONFIRMATION (matches instructor submit modal, with undo countdown) ── */}
+      {/* ── APPROVE STATUS MODAL (direct approval, no 5s waiting countdown) ── */}
       {approvePhase !== 'IDLE' && (
         <div className={subStyles.submitOverlay}>
-          {/* No separate "are you sure?" step — the countdown below IS the
-              confirmation, and it can be cancelled for the whole 5 seconds.
-              Two confirmations for one decision was the click count the panel
-              objected to [17:15] [50:56]. */}
-          {approvePhase === 'WAITING' && (
+          {approvePhase === 'SUBMITTING' && (
             <div className={subStyles.submitModal}>
-              <div className={subStyles.waitingBody}>
-                <div className={subStyles.waitingText}>
-                  Approving <strong>{codeToUse}</strong> in <strong>{approveTimeLeft}</strong> seconds...
-                </div>
-                <div className={subStyles.progressContainer}>
-                  <div className={subStyles.progressBar} style={{ animationDuration: '5s' }}></div>
-                </div>
-              </div>
-              <div className={subStyles.submitModalActionsFull}>
-                <button className="btn btn-secondary" onClick={cancelApprove}>Cancel Approval</button>
+              <div className={subStyles.waitingBodyCenter}>
+                <Spinner inline size={32} label="Recording approval" />
+                <div className={subStyles.waitingTextSmall}>Recording approval…</div>
               </div>
             </div>
           )}

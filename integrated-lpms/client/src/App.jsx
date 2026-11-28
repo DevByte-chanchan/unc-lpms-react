@@ -51,8 +51,10 @@ function RoleHomeRedirect() {
 }
 
 function CompositionDeepLinkRedirect() {
-  const { pcId, revNum } = useParams();
-  return <Navigate to={`/courses/${pcId}/${revNum || 1}/Draft`} replace />;
+  const { pcId, revNum, section } = useParams();
+  const s = String(section || '').toLowerCase();
+  const targetStatus = (s === 'returned' || s === 'revisions') ? 'returned' : (s === 'approved' ? 'approved' : 'draft');
+  return <Navigate to={`/courses/${pcId}/${revNum || 1}/${targetStatus}`} replace />;
 }
 
 function CompositionScopeWrap({ children }) {

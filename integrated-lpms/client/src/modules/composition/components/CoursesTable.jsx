@@ -1,9 +1,10 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle, List, Grid, ChevronDown, ChevronUp, Search, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { useCurrentUser } from "../services/currentUser.jsx";
+import Select from "./Select.jsx";
 
 // --- Custom Date Formatters to Ensure Global Consistency ---
 const formatDate = (dateString) => {
@@ -142,11 +143,24 @@ const CoursesTable = () => {
             ? new Date(sortedSubmissions[0].createdAt).getTime()
             : (row.date_submitted ? new Date(row.date_submitted).getTime() : 0);
 
-        // 2. Is it Returned? Check if any approver returned it on or after latest submission
-        const hasActiveReturn = logs.some(
-            (l) => l.action_type === 'RETURNED' && new Date(l.createdAt).getTime() >= latestSubmissionTime
-        );
-        if (hasActiveReturn) {
+        // 2. Replay post-submission logs to determine Returned vs Pending (hides unforwarded Dean return during PH triage)
+        const postSubLogs = [...logs]
+            .filter((l) => new Date(l.createdAt).getTime() >= latestSubmissionTime)
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        let returnedToInstructor = false;
+        for (const l of postSubLogs) {
+            const act = String(l.action_type || '').toUpperCase();
+            const role = String(l.actor_role || '').toUpperCase();
+            if (act === 'RETURNED' && (role === 'LIBRARY_DIRECTOR' || role === 'PROGRAM_HEAD')) {
+                returnedToInstructor = true;
+            } else if (act === 'FORWARDED' && role === 'PROGRAM_HEAD') {
+                returnedToInstructor = true;
+            } else if (act === 'COUNTERED' && role === 'PROGRAM_HEAD') {
+                returnedToInstructor = false;
+            }
+        }
+        if (returnedToInstructor) {
             return 'Returned';
         }
 
@@ -478,23 +492,27 @@ const CoursesTable = () => {
                 <div className={styles.headerLeft}>
                     <h2>ASSIGNED COURSE OFFERINGS</h2>
                     <div className={styles.filterA}>
-                        <select
-                            className={styles['header-select']}
-                            value={selectedYear}
+                        <Select
+                            variant="pill"
+                            value={String(selectedYear)}
                             onChange={(e) => setSelectedYear(e.target.value)}
+                            aria-label="School year"
                         >
                             {yearOptions}
-                        </select>
+                        </Select>
 
-                        <select
-                            className={styles['header-select']}
+                        <Select
+                            variant="pill"
                             value={selectedSem}
                             onChange={(e) => setSelectedSem(e.target.value)}
+                            aria-label="Semester"
                         >
                             {semOptions.map(sem => (
-                                <option key={sem} value={sem}>{sem}</option>
+                                <option key={sem} value={sem}>
+                                    {sem === '1st Sem' ? '1st Semester' : sem === '2nd Sem' ? '2nd Semester' : sem}
+                                </option>
                             ))}
-                        </select>
+                        </Select>
                     </div>
                 </div>
 

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
+import { X } from "react-feather";
+import Select from "./Select.jsx";
 import { fetchJson } from "../utils/api";
 import styles from '../styles/SyllabusPreview.module.sass';
 import stylesB from "../styles/SyllabusPreview.module.sass";
@@ -12,46 +14,54 @@ import ReferenceSummary from "./ReferenceSummary";
 import CriteriaForGrading from "./CriteriaForGrading";
 
 const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, code: propCode }) => {
-    // 1. Guard clause for modal visibility
-    if (!isOpen) return null;
-
-    // 2. Extract identifiers from both props and URL params to maximize flexibility
     const { status, revNum: paramRevNum, pcId: paramPcId } = useParams();
+    const [selectedSection, setSelectedSection] = useState('Course Details');
+
+    if (!isOpen) return null;
 
     const currentPcId = propPcId || paramPcId;
     const currentRevNum = propRevNum || paramRevNum;
-
-    // Local section selection control state for a clean preview user experience
-    const [selectedSection, setSelectedSection] = useState('Course Details');
 
     const handleSectionChange = (e) => {
         setSelectedSection(e.target.value);
     };
 
     return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modalContent}>
-
-                {/* Close Button */}
-                <button className={styles.closeButton} onClick={onClose}>×</button>
-
-                <h2 className={styles.previewTitle}>Syllabus Preview</h2>
+        <div className={styles.modalOverlay} onClick={onClose}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.previewHeader}>
+                    <h2 className={styles.previewTitle}>Syllabus Preview</h2>
+                    <button
+                        type="button"
+                        className={styles.closeButton}
+                        onClick={onClose}
+                        aria-label="Close syllabus preview"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
 
                 {/* Dropdown Navigation Menu */}
-                <div className={styles.navi} style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                <div className={styles.navi}>
                     <div className={styles['section-select']}>
-                        <select value={selectedSection} onChange={handleSectionChange}>
+                        <Select
+                            value={selectedSection}
+                            onChange={handleSectionChange}
+                            aria-label="Syllabus preview section"
+                            size="lg"
+                            block
+                        >
                             <option value="Course Details">Course Details</option>
                             <option value="Course and Program Outcome Alignment">Course and Program Outcome Alignment</option>
                             <option value="Course Coverage">Course Coverage</option>
                             <option value="References">References</option>
                             <option value="Criteria for Grading">Criteria for Grading</option>
-                        </select>
+                        </Select>
                     </div>
                 </div>
 
                 {/* Dynamic Display Rendering Panel */}
-                <div className={styles['dynamic-sections']} style={{ overflowY: 'auto', maxHeight: '60vh' }}>
+                <div className={styles['dynamic-sections']}>
 
                     {/* ---------------- COURSE DETAILS ---------------- */}
                     {selectedSection === 'Course Details' && (

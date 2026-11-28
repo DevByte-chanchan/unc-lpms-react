@@ -44,8 +44,11 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
         return () => { mounted = false; };
     }, [offeringID, revisionNum, fetchJson]);
 
+    const hasChanges = JSON.stringify(editData) !== JSON.stringify(cpaData.courseOutcomes);
+
     const handleEditToggle = () => {
         if (isEditing) {
+            if (!hasChanges) return;
             setShowConfirm(true);
         } else {
             setEditData(JSON.parse(JSON.stringify(cpaData.courseOutcomes)));
@@ -54,11 +57,12 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
     };
 
     const handleMappingChange = (coIndex, poIndex, value) => {
-        setEditData(prev => {
-            const upd = [...prev];
-            upd[coIndex].poMappings[poIndex] = value;
-            return upd;
-        });
+        setEditData(prev => prev.map((co, idx) => {
+            if (idx !== coIndex) return co;
+            const nextMappings = Array.isArray(co.poMappings) ? [...co.poMappings] : [];
+            nextMappings[poIndex] = value;
+            return { ...co, poMappings: nextMappings };
+        }));
     };
 
     const handleSaveConfirm = async () => {
@@ -131,7 +135,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                             type="button"
                             className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                             onClick={handleEditToggle}
-                            disabled={isEditing && JSON.stringify(editData) === JSON.stringify(cpaData.courseOutcomes)}
+                            disabled={isEditing && !hasChanges}
                         >
                             {isEditing ? (
                                 <>

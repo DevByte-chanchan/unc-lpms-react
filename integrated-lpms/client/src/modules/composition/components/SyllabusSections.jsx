@@ -1,8 +1,10 @@
 import styles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass';
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical} from 'react-feather';
-import React, {useEffect, useRef, useState} from "react";
+import {ChevronLeft, Play, Send, MoreVertical, MessageSquare, Clock, Download, X} from 'react-feather';
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import { createPortal } from "react-dom";
 import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
+import Select from "./Select.jsx";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 import Revisions from "./Revisions.jsx";
 import {fetchJson} from "../utils/api";
@@ -22,11 +24,117 @@ const SyllabusSections = () => {
     const { status, revNum: revisionNum, pcId: offeringID } = useParams();
     const navigate = useNavigate();
 
+    const isEditableStatus = status === 'draft' || status === 'returned';
+    const isDraftCoverage = status === 'draft' && selectedSection === 'Intended Learning Outcomes';
+
     const [isLoading, setIsLoading] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
     const [suggestionsModal, setSuggestionsModal] = useState({ isOpen: false, data: [] });
     const [infoModal, setInfoModal] = useState({ isOpen: false, title: '', message: '' });
+
+    // Weekly content validation state (drives Submit button enabled/disabled & hover tooltip)
+    const [weeklyValidation, setWeeklyValidation] = useState({
+        loading: true,
+        data: null,
+        error: null
+    });
+    const [submitTooltipPos, setSubmitTooltipPos] = useState(null);
+    const submitBtnRef = useRef(null);
+
+    // Developer bulk import from previous term state
+    const [importAllModal, setImportAllModal] = useState({
+        isOpen: false,
+        importing: false,
+        error: ''
+    });
+    const [iloRefreshKey, setIloRefreshKey] = useState(0);
+
+    const fetchWeeklyValidation = useCallback(async () => {
+        if (!offeringID || !revisionNum || !isEditableStatus) {
+            setWeeklyValidation({ loading: false, data: null, error: null });
+            return;
+        }
+        setWeeklyValidation(prev => ({ ...prev, loading: true, error: null }));
+        try {
+            const data = await fetchJson(`/api/courses/${offeringID}/${revisionNum}/weekly-validation`);
+            setWeeklyValidation({ loading: false, data, error: null });
+        } catch (err) {
+            console.error('Failed to validate weekly content:', err);
+            setWeeklyValidation({
+                loading: false,
+                data: null,
+                error: err?.message || 'Unable to verify weekly content validity.'
+            });
+        }
+    }, [offeringID, revisionNum, isEditableStatus]);
+
+    useEffect(() => {
+        fetchWeeklyValidation();
+    }, [fetchWeeklyValidation, selectedSection]);
+
+    useEffect(() => {
+        if (!isEditableStatus) return undefined;
+        const onFocus = () => fetchWeeklyValidation();
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [fetchWeeklyValidation, isEditableStatus]);
+
+    const invalidGroups = weeklyValidation.data?.invalidGroups || [];
+    const invalidSlicesCount = Number(weeklyValidation.data?.invalidSlicesCount || 0);
+    const totalSlices = Number(weeklyValidation.data?.totalSlices || 0);
+    const unresolvedCommentCount = status === 'returned' ? Number(weeklyValidation.data?.unresolvedCommentCount || 0) : 0;
+    const isWeeklyContentValid = Boolean(weeklyValidation.data?.allValid) && unresolvedCommentCount === 0;
+    const isSubmitDisabled = weeklyValidation.loading || !isWeeklyContentValid;
+
+    const handleSubmitMouseEnter = () => {
+        if (!isSubmitDisabled || !submitBtnRef.current) return;
+        const rect = submitBtnRef.current.getBoundingClientRect();
+        const tooltipW = 340;
+        const vw = window.innerWidth;
+        let left = rect.right - tooltipW;
+        if (left < 12) left = 12;
+        if (left + tooltipW > vw - 12) left = Math.max(12, vw - tooltipW - 12);
+        setSubmitTooltipPos({
+            top: rect.bottom + 8,
+            left
+        });
+    };
+
+    const handleSubmitMouseLeave = () => {
+        setSubmitTooltipPos(null);
+    };
+
+    const handleOpenImportAllModal = (e) => {
+        e.stopPropagation();
+        setIsOpen(false);
+        setImportAllModal({ isOpen: true, importing: false, error: '' });
+    };
+
+    const handleConfirmImportAll = async () => {
+        if (importAllModal.importing) return;
+        setImportAllModal(prev => ({ ...prev, importing: true, error: '' }));
+        try {
+            const res = await fetchJson(`/api/courses/${offeringID}/${revisionNum}/import-previous-all-weeks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            setImportAllModal({ isOpen: false, importing: false, error: '' });
+            setIloRefreshKey(k => k + 1);
+            await fetchWeeklyValidation();
+            setInfoModal({
+                isOpen: true,
+                title: 'Previous Term Contents Imported',
+                message: res?.message || 'Previous term weekly contents have been imported to all weeks.'
+            });
+        } catch (err) {
+            setImportAllModal(prev => ({
+                ...prev,
+                importing: false,
+                error: err?.message || 'Failed to import previous term weekly contents.'
+            }));
+        }
+    };
 
     const handleRevisionsClick = async (e) => {
         e.stopPropagation();
@@ -87,16 +195,9 @@ const SyllabusSections = () => {
 
     // Submission Modal States
     const [submitPhase, setSubmitPhase] = useState('IDLE');
-    const [timeLeft, setTimeLeft] = useState(5);
-    const timerRef = useRef(null);
 
     useEffect(() => {
-        setIsLoading(true);
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 500);
-
-        return () => clearTimeout(timer);
+        setIsLoading(false);
     }, [selectedSection]);
 
     const handleSectionChange = (e) => {
@@ -127,33 +228,16 @@ const SyllabusSections = () => {
         };
     }, [isOpen]);
 
-    // --- Corrected Submission Logic ---
+    // --- Submission Logic (direct submit on confirm, no 5s waiting animation) ---
     const handleInitialSubmitClick = () => {
+        if (isSubmitDisabled) return;
+        setSubmitTooltipPos(null);
         setSubmitPhase('CONFIRM');
-    };
-
-    const confirmSubmission = () => {
-        setSubmitPhase('WAITING');
-        setTimeLeft(5);
     };
 
     const cancelSubmission = () => {
         setSubmitPhase('IDLE');
-        setTimeLeft(5);
     };
-
-    // Safe useEffect timer implementation
-    useEffect(() => {
-        if (submitPhase === 'WAITING' && timeLeft > 0) {
-            timerRef.current = setTimeout(() => {
-                setTimeLeft(timeLeft - 1);
-            }, 1000);
-        } else if (submitPhase === 'WAITING' && timeLeft === 0) {
-            executeFinalSubmission();
-        }
-
-        return () => clearTimeout(timerRef.current);
-    }, [submitPhase, timeLeft]);
 
     const executeFinalSubmission = async () => {
         setSubmitPhase('SUBMITTING');
@@ -176,6 +260,10 @@ const SyllabusSections = () => {
         }
     };
 
+    const confirmSubmission = () => {
+        executeFinalSubmission();
+    };
+
 
     return (
         <div className={styles.container}>
@@ -185,7 +273,13 @@ const SyllabusSections = () => {
                 </Link>
 
                 <div className={styles['section-select']}>
-                    <select value={selectedSection} onChange={handleSectionChange}>
+                    <Select
+                        value={selectedSection}
+                        onChange={handleSectionChange}
+                        aria-label="Learning plan section"
+                        size="lg"
+                        block
+                    >
                         <option value="Course Details">Course Details</option>
                         <option value="Course and Program Outcome Alignment">Course and Program Outcome Alignment</option>
                         {(status === 'approved' || status === 'pending') &&
@@ -198,7 +292,7 @@ const SyllabusSections = () => {
                             <option value="Intended Learning Outcomes">Course Coverage</option>
                         }
                         <option value="Criteria for Grading">Criteria for Grading</option>
-                    </select>
+                    </Select>
                 </div>
 
                 {(status === 'draft' || status === 'returned') &&
@@ -208,9 +302,20 @@ const SyllabusSections = () => {
                             Preview
                         </div>
 
-                        <div className={styles.submit} onClick={handleInitialSubmitClick}>
-                            <Send size={14}/>
-                            Submit
+                        <div
+                            ref={submitBtnRef}
+                            className={styles.submitWrapper}
+                            onMouseEnter={handleSubmitMouseEnter}
+                            onMouseLeave={handleSubmitMouseLeave}
+                        >
+                            <div
+                                className={`${styles.submit} ${isSubmitDisabled ? styles.submitDisabled : ''}`}
+                                onClick={handleInitialSubmitClick}
+                                aria-disabled={isSubmitDisabled}
+                            >
+                                <Send size={14}/>
+                                Submit
+                            </div>
                         </div>
                     </>
                 }
@@ -219,18 +324,60 @@ const SyllabusSections = () => {
                     <div className={styles.line}></div>
                 </div>
 
-                <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
-                    <div className={styles.moreIcon}>
+                <div
+                    onClick={toggleMenu}
+                    ref={dropdownRef}
+                    className={`${styles.more} ${isOpen ? styles.active : ''}`}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Escape' && isOpen) {
+                            e.stopPropagation();
+                            setIsOpen(false);
+                            dropdownRef.current?.querySelector('button')?.focus();
+                        }
+                    }}
+                >
+                    <button
+                        type="button"
+                        className={styles.moreIcon}
+                        aria-label="More actions"
+                        aria-haspopup="menu"
+                        aria-expanded={isOpen}
+                    >
                         <MoreVertical strokeWidth={2} size={16} />
-                    </div>
+                    </button>
 
-                    <div className={styles.dropdownMenu}>
-                        <button type="button" onClick={handleSuggestionsClick}>
+                    <div className={styles.dropdownMenu} role="menu">
+                        <button type="button" role="menuitem" onClick={handleSuggestionsClick}>
+                            <MessageSquare strokeWidth={2} size={14} />
                             Future Suggestion
                         </button>
-                        <button type="button" onClick={handleRevisionsClick}>
+                        <button type="button" role="menuitem" onClick={handleRevisionsClick}>
+                            <Clock strokeWidth={2} size={14} />
                             Revisions
                         </button>
+                        {isDraftCoverage && (
+                            <>
+                                <div className={styles.menuDivider} />
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className={styles.devMenuItem}
+                                    onClick={handleOpenImportAllModal}
+                                    disabled={!weeklyValidation.data?.hasPreviousTerm}
+                                    title={
+                                        weeklyValidation.data?.hasPreviousTerm
+                                            ? `Import previous term weekly contents (${weeklyValidation.data?.previousSource?.termLabel || 'Previous Term'}) to all weeks`
+                                            : 'No previous term offering found for this course'
+                                    }
+                                >
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                                        <Download strokeWidth={2} size={14} />
+                                        Import Previous Contents (All Weeks)
+                                    </span>
+                                    <span className={styles.devBadge}>DEV</span>
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -252,7 +399,7 @@ const SyllabusSections = () => {
                         }
 
                         {selectedSection === 'Intended Learning Outcomes' && (
-                            <ILOs offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} fetchJson={fetchJson} />
+                            <ILOs key={iloRefreshKey} offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} fetchJson={fetchJson} />
                         )}
 
                         {selectedSection === 'Criteria for Grading' && (
@@ -269,11 +416,133 @@ const SyllabusSections = () => {
 
                         <SyllabusPreview isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} />
 
-                        <Revisions isOpen={isRevisionsOpen} onClose={() => setIsRevisionsOpen(false)} courseId={revisionNum} offeringID={offeringID} />
+                        <Revisions isOpen={isRevisionsOpen} onClose={() => setIsRevisionsOpen(false)} pcId={offeringID} revNum={revisionNum} />
                     </>
                 )}
             </div>
 
+            {/* Disabled Submit Hover Tooltip Portal */}
+            {submitTooltipPos && isSubmitDisabled && createPortal(
+                <div
+                    className={styles.submitTooltipPortal}
+                    style={{ top: submitTooltipPos.top, left: submitTooltipPos.left }}
+                    role="tooltip"
+                >
+                    <div className={styles.submitTooltipHeader}>
+                        <span>Submission Unavailable</span>
+                        {!weeklyValidation.loading && !weeklyValidation.error && invalidSlicesCount > 0 && (
+                            <span className={styles.submitTooltipCount}>
+                                {invalidSlicesCount}/{totalSlices} invalid
+                            </span>
+                        )}
+                    </div>
+
+                    {weeklyValidation.loading ? (
+                        <p className={styles.submitTooltipSub} style={{ marginBottom: 0 }}>
+                            Checking weekly content validation across all Course Outcomes...
+                        </p>
+                    ) : weeklyValidation.error ? (
+                        <p className={styles.submitTooltipSub} style={{ marginBottom: 0 }}>
+                            {weeklyValidation.error}
+                        </p>
+                    ) : (
+                        <>
+                            {invalidGroups.length > 0 && (
+                                <>
+                                    <p className={styles.submitTooltipSub}>
+                                        Invalid weekly content found in the following Course Outcomes:
+                                    </p>
+                                    <ul className={styles.submitTooltipList}>
+                                        {invalidGroups.map((group) => {
+                                            const weekSummary = group.invalidWeeks.length <= 2
+                                                ? group.invalidWeeks
+                                                    .map((w) => {
+                                                        const cols = Array.isArray(w.invalidColumns) && w.invalidColumns.length > 0
+                                                            ? ` (${w.invalidColumns.join(', ')})`
+                                                            : '';
+                                                        return `${w.weekLabel}${cols}`;
+                                                    })
+                                                    .join(', ')
+                                                : group.invalidWeeks.map((w) => w.weekLabel).join(', ');
+                                            return (
+                                                <li key={group.key} className={styles.submitTooltipRow}>
+                                                    <span className={styles.submitTooltipCo}>{group.label}</span>
+                                                    <span className={styles.submitTooltipWeeks}>
+                                                        Invalid: {weekSummary}
+                                                    </span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </>
+                            )}
+                            {unresolvedCommentCount > 0 && (
+                                <div className={styles.submitTooltipCommentWarn}>
+                                    {unresolvedCommentCount} unresolved review {unresolvedCommentCount === 1 ? 'comment' : 'comments'} must be addressed before resubmitting.
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>,
+                document.body
+            )}
+
+            {/* Developer Bulk Import Confirmation Modal */}
+            {importAllModal.isOpen && (
+                <div
+                    className={styles.submitOverlay}
+                    onClick={() => !importAllModal.importing && setImportAllModal({ isOpen: false, importing: false, error: '' })}
+                >
+                    <div className={styles.submitModal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.submitModalHeader}>
+                            Import Previous Term Contents (All Weeks)
+                        </div>
+                        <div className={styles.submitModalBody}>
+                            <p style={{ margin: '0 0 10px 0' }}>
+                                This developer action will import and save previous term weekly contents
+                                {weeklyValidation.data?.previousSource?.termLabel
+                                    ? ` from ${weeklyValidation.data.previousSource.termLabel} (Rev ${weeklyValidation.data.previousSource.revision_number})`
+                                    : ''}
+                                {' '}into <strong>all weeks</strong> (Course Orientation and Weeks 1–16) of this draft learning plan.
+                            </p>
+                            <p style={{ margin: 0, fontSize: '12.5px', color: '#64748b' }}>
+                                Topics &amp; Subtopics, TLAs &amp; Assessments, and Weekly References will be mapped and assigned directly to the database for every matching week. Existing contents on those weeks will be replaced.
+                            </p>
+                            {importAllModal.error && (
+                                <div style={{
+                                    marginTop: '12px',
+                                    padding: '8px 10px',
+                                    borderRadius: '6px',
+                                    background: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    color: '#b91c1c',
+                                    fontSize: '12.5px'
+                                }}>
+                                    {importAllModal.error}
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.submitModalActions}>
+                            <button
+                                type="button"
+                                className={styles.btnCancelPlain}
+                                disabled={importAllModal.importing}
+                                onClick={() => setImportAllModal({ isOpen: false, importing: false, error: '' })}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.btnConfirmDark}
+                                disabled={importAllModal.importing}
+                                onClick={handleConfirmImportAll}
+                            >
+                                {importAllModal.importing ? 'Importing...' : 'Confirm & Import All'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Info / Notice Modal */}
             {infoModal.isOpen && (
@@ -304,10 +573,12 @@ const SyllabusSections = () => {
                         <div className={styles.submitModalHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>Future Suggestions</span>
                             <button
+                                type="button"
+                                className="app-icon-close"
+                                aria-label="Close"
                                 onClick={() => setSuggestionsModal({ isOpen: false, data: [] })}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', lineHeight: 1, color: '#6b7280' }}
                             >
-                                &times;
+                                <X size={18} />
                             </button>
                         </div>
                         <div className={styles.suggestionModalBody}>
@@ -319,7 +590,7 @@ const SyllabusSections = () => {
                                     <div key={item.id} style={{
                                         background: '#f8fafc',
                                         border: '1px solid #e2e8f0',
-                                        borderRadius: '6px',
+                                        borderRadius: '8px',
                                         padding: '12px'
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -343,6 +614,7 @@ const SyllabusSections = () => {
                         </div>
                         <div className={styles.submitModalActions}>
                             <button
+                                type="button"
                                 className={styles.btnConfirmDark}
                                 onClick={() => setSuggestionsModal({ isOpen: false, data: [] })}
                             >
@@ -364,28 +636,11 @@ const SyllabusSections = () => {
                                 Submit Learning Plan
                             </div>
                             <div className={styles.submitModalBody}>
-                                Are you sure you want to finalize and submit this learning plan for review? You will no longer be edit it unless it is returned.
+                                Are you sure you want to finalize and submit this learning plan for review? You will no longer be able to edit it unless it is returned.
                             </div>
                             <div className={styles.submitModalActions}>
-                                <button className={styles.btnCancelPlain} onClick={() => setSubmitPhase('IDLE')}>Cancel</button>
-                                <button className={styles.btnConfirmDark} onClick={confirmSubmission}>Yes, Submit</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Waiting / Undo Phase */}
-                    {submitPhase === 'WAITING' && (
-                        <div className={styles.submitModal}>
-                            <div className={styles.waitingBody}>
-                                <div className={styles.waitingText}>
-                                    Submitting in <strong>{timeLeft}</strong> seconds...
-                                </div>
-                                <div className={styles.progressContainer}>
-                                    <div className={styles.progressBar} style={{ animationDuration: '5s' }}></div>
-                                </div>
-                            </div>
-                            <div className={styles.submitModalActionsFull}>
-                                <button className={styles.btnUndoBlock} onClick={cancelSubmission}>Cancel Submission</button>
+                                <button type="button" className={styles.btnCancelPlain} onClick={() => setSubmitPhase('IDLE')}>Cancel</button>
+                                <button type="button" className={styles.btnConfirmDark} onClick={confirmSubmission}>Yes, Submit</button>
                             </div>
                         </div>
                     )}

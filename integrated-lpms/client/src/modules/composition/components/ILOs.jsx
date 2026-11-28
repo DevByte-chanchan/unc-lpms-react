@@ -77,48 +77,34 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
         return () => { mounted = false; };
     }, [offeringID, revisionNum, fetchJson]);
 
-    // 2. Dynamic Badge Counter: Fetches unresolved comment counts per week
+    // 2. Dynamic Badge Counter: Fetches unresolved comment counts per week in a single batched request
     useEffect(() => {
-        if (status !== 'returned' || !iloData.courseOutcomes || iloData.courseOutcomes.length === 0) return;
+        if (status !== 'returned' || !offeringID) {
+            setCommentCounts({});
+            return;
+        }
         let mounted = true;
 
         async function gatherAllCommentCounts() {
-            const targetTypes = ['references', 'topics', 'tlas'];
-            const localCountsMap = {};
-
             try {
-                const fetchPromises = [];
-                const allWeeks = iloData.courseOutcomes.flatMap(co => co.weeks || []);
-
-                allWeeks.forEach(w => {
-                    targetTypes.forEach(type => {
-                        const promise = fetchJson(`/api/comments/filter/${w.week_id}/${type}`)
-                            .then(comments => {
-                                if (!mounted || !Array.isArray(comments)) return;
-                                const unresolvedCount = comments.filter(c => !c.resolved_status).length;
-                                if (unresolvedCount > 0) {
-                                    localCountsMap[`${w.week_id}_${type}`] = unresolvedCount;
-                                }
-                            })
-                            .catch(err => console.error(`Failed to fetch comments for Week ${w.week_id} type ${type}:`, err));
-
-                        fetchPromises.push(promise);
-                    });
+                const res = await fetchJson(`/api/comments/unresolved-counts/${encodeURIComponent(offeringID)}/${encodeURIComponent(revisionNum || 1)}`);
+                if (!mounted) return;
+                const byWeek = res?.byWeek || {};
+                const localCountsMap = {};
+                Object.entries(byWeek).forEach(([weekId, counts]) => {
+                    if (counts?.topics > 0) localCountsMap[`${weekId}_topics`] = Number(counts.topics);
+                    if (counts?.tlas > 0) localCountsMap[`${weekId}_tlas`] = Number(counts.tlas);
+                    if (counts?.references > 0) localCountsMap[`${weekId}_references`] = Number(counts.references);
                 });
-
-                await Promise.all(fetchPromises);
-
-                if (mounted) {
-                    setCommentCounts(localCountsMap);
-                }
+                setCommentCounts(localCountsMap);
             } catch (error) {
-                console.error("Error batching comment layout parameters:", error);
+                console.error("Error fetching unresolved comment counts:", error);
             }
         }
 
         gatherAllCommentCounts();
         return () => { mounted = false; };
-    }, [iloData.courseOutcomes, status, fetchJson]);
+    }, [offeringID, revisionNum, status, fetchJson]);
 
     const getBadgeCount = (weekId, type) => {
         return commentCounts[`${weekId}_${type}`] || 0;
@@ -300,22 +286,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                 <div className={styles.coZoneHeader}>
                                                     <div className={styles.coTitleGroup}>
                                                         <span className={styles.coTitle}>
-                                                            {(() => {
-                                                                const totalCos = iloData.courseOutcomes.length || 4;
-                                                                const n = Number(co.coNumber);
-                                                                let period = '';
-                                                                if (totalCos <= 2) {
-                                                                    period = n === 1 ? 'Midterm' : 'Final';
-                                                                } else if (totalCos === 3) {
-                                                                    period = n === 1 ? 'Prelim' : n === 2 ? 'Midterm' : 'Final';
-                                                                } else {
-                                                                    const map = { 1: 'Prelim', 2: 'Midterm', 3: 'Semi-Final', 4: 'Final' };
-                                                                    period = map[n] || '';
-                                                                }
-                                                                return period
-                                                                    ? `Course Outcome ${co.coNumber} — ${period}`
-                                                                    : `Course Outcome ${co.coNumber}`;
-                                                            })()}
+                                                            {`Course Outcome ${co.coNumber}`}
                                                         </span>
                                                     </div>
                                                     <div className={styles.weekHourBadge}>

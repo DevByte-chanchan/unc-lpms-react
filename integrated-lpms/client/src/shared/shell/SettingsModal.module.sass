@@ -20,8 +20,9 @@
   flex-direction: column
   overflow: hidden
   background: #fff
-  border-radius: var(--radius-lg)
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2)
   font-family: var(--font-ui)
 
 .window.expanded
@@ -229,6 +230,56 @@
   margin-top: 16px
   font-size: 12px
   color: var(--ink-muted)
+
+.dangerZone
+  margin-top: 22px
+  padding: 16px
+  border: 1px solid var(--danger-line)
+  border-radius: var(--radius-lg)
+  background: var(--danger-soft)
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.dangerHead
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 14px
+  flex-wrap: wrap
+
+.dangerTitle
+  font-size: 14px
+  font-weight: var(--fw-semibold)
+  color: var(--danger)
+
+.dangerText
+  margin: 4px 0 0
+  font-size: 12px
+  line-height: 1.45
+  color: var(--ink-soft)
+
+.dangerBtn
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  flex: none
+  height: 36px
+  padding: 0 14px
+  border: 1px solid var(--danger)
+  border-radius: var(--control-radius)
+  background: var(--danger)
+  color: #fff
+  font: var(--fw-medium) var(--fs-sm) var(--font-ui)
+  cursor: pointer
+  transition: opacity var(--t-fast), filter var(--t-fast)
+
+  &:hover:not(:disabled)
+    filter: brightness(0.94)
+
+  &:disabled
+    opacity: 0.65
+    cursor: not-allowed
 
 @media (max-width: 720px)
   .row

@@ -1,4 +1,4 @@
-﻿const {
+const {
     ProgramCourseOffering,
     CourseOfferingAssignment,
     AssignmentWorkflowLog,
@@ -14,6 +14,7 @@
     Reference
 } = require('../../models');
 const { formatTermFromDate, evaluateAndIncrementRevisionOnApproval } = require('../../utils/versionHelper');
+const { computeWorkflowState, normalizeAction } = require('../../utils/workflowRules');
 
 // Helper to format roles neatly
 const formatRoleLabel = (rawRole) => {
@@ -34,9 +35,20 @@ const formatRoleLabel = (rawRole) => {
         .join(' ');
 };
 
+const formatOfferingTermLabel = (offering, assignment) => {
+    if (offering?.school_year && offering?.semester) {
+        const sem = String(offering.semester).trim();
+        const semLabel = /semester/i.test(sem) ? sem : `${sem.replace(/\bsem\b/i, 'Semester')}`;
+        const finalSem = /semester/i.test(semLabel) ? semLabel : `${semLabel} Semester`;
+        return `${finalSem}, SY ${offering.school_year}`;
+    }
+    return formatTermFromDate(assignment?.date_assigned || offering?.createdAt);
+};
+
 exports.getRevisionsByOffering = async (req, res) => {
     try {
         const { pcId } = req.params;
+        const isInstructorViewer = req.user?.activeRole === 'Instructor';
 
         // 1. Get the target offering to extract its Course and Program IDs
         const targetOffering = await ProgramCourseOffering.findByPk(pcId);
@@ -87,13 +99,22 @@ exports.getRevisionsByOffering = async (req, res) => {
             }
         }
 
-        const resolveActorInfo = (stakeholderId, rawRole, fallbackAssignmentStakeholderId = null) => {
+        const resolveActorInfo = (log, fallbackAssignmentStakeholderId = null) => {
+            const rawRole = log.actor_role || 'USER';
             const roleLabel = formatRoleLabel(rawRole);
-            const lookupId = stakeholderId
-                ? String(stakeholderId)
+            const lookupId = log.stakeholder_id
+                ? String(log.stakeholder_id)
                 : (rawRole === 'INSTRUCTOR' && fallbackAssignmentStakeholderId
                     ? String(fallbackAssignmentStakeholderId)
                     : null);
+
+            if (log.actor_name) {
+                return {
+                    stakeholderId: lookupId,
+                    actorName: log.actor_name,
+                    actorRole: roleLabel
+                };
+            }
 
             if (lookupId && userById[lookupId]?.name) {
                 return {
@@ -137,57 +158,81 @@ exports.getRevisionsByOffering = async (req, res) => {
         const formattedRevisions = [];
 
         for (const offering of offerings) {
-            const assignment = offering.assignments?.[0] || {};
+            const sortedAssigns = [...(offering.assignments || [])].sort((a, b) => Number(b.co_assign_id) - Number(a.co_assign_id));
+            const assignment = sortedAssigns[0] || {};
             const rawLogs = assignment.workflowLogs || [];
             const rawComments = assignment.comments || [];
 
+            const wfState = computeWorkflowState(rawLogs, offering);
+            const hideDeanTriage = isInstructorViewer && wfState.stage === 'with_program_head';
+
             // Sort chronologically (oldest first) to build the timeline correctly
-            const sortedLogs = [...rawLogs].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            let unassignedComments = [...rawComments].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            const sortedLogs = [...rawLogs]
+                .sort((a, b) => (new Date(a.createdAt) - new Date(b.createdAt)) || (Number(a.log_id || 0) - Number(b.log_id || 0)))
+                .filter((log) => {
+                    if (hideDeanTriage && String(log.actor_role || '').toUpperCase() === 'DEAN' && normalizeAction(log.action_type) === 'RETURNED') {
+                        return false;
+                    }
+                    return true;
+                });
+
+            let unassignedComments = [...rawComments]
+                .filter((c) => !(hideDeanTriage && String(c.commenter_role || '').toUpperCase() === 'DEAN'))
+                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
             let pendingReviewers = new Set();
             const timeline = [];
 
             for (const log of sortedLogs) {
-                const rawRole = log.actor_role || 'USER';
-                const role = formatRoleLabel(rawRole);
+                const rawRole = String(log.actor_role || 'USER').toUpperCase();
                 const type = log.action_type;
+                const normType = normalizeAction(type);
                 const logTime = new Date(log.createdAt).getTime();
 
-                const { stakeholderId, actorName, actorRole } = resolveActorInfo(
-                    log.stakeholder_id,
-                    rawRole,
-                    assignment.stakeholder_id
-                );
+                const { stakeholderId, actorName, actorRole } = resolveActorInfo(log, assignment.stakeholder_id);
 
                 let actionMessage = "";
                 let actionLabel = type;
                 let eventComments = [];
 
-                if (type === 'ASSIGNED') {
+                if (normType === 'ASSIGNED') {
                     actionLabel = 'Assigned';
                     actionMessage = `Assigned the course learning plan for preparation and composition.`;
-                } else if (type === 'RETURNED') {
-                    actionLabel = 'Returned for Revision';
-                    actionMessage = `Returned the course learning plan with review comments requiring revision.`;
+                } else if (normType === 'RETURNED') {
+                    actionLabel = rawRole === 'DEAN' ? 'Returned to Program Head' : 'Returned for Revision';
+                    actionMessage = rawRole === 'DEAN'
+                        ? `Returned the course learning plan to the Program Head for review triage.${log.note ? ` Note: ${log.note}` : ''}`
+                        : `Returned the course learning plan with review comments requiring revision.${log.note ? ` Note: ${log.note}` : ''}`;
                     pendingReviewers.add(`${actorName} (${actorRole})`);
 
-                    // Check for comments by this role up to 5 minutes AFTER the log (exclude consultant comments)
                     eventComments = unassignedComments.filter(c =>
-                        c.commenter_role === rawRole &&
-                        c.commenter_role !== 'INDUSTRY_CONSULTANT' &&
+                        String(c.commenter_role || '').toUpperCase() === rawRole &&
+                        String(c.commenter_role || '').toUpperCase() !== 'INDUSTRY_CONSULTANT' &&
                         new Date(c.createdAt).getTime() <= (logTime + 5 * 60000)
                     );
 
                     if (eventComments.length === 0) {
                         eventComments = unassignedComments.filter(c =>
-                            c.commenter_role === rawRole &&
-                            c.commenter_role !== 'INDUSTRY_CONSULTANT'
+                            String(c.commenter_role || '').toUpperCase() === rawRole &&
+                            String(c.commenter_role || '').toUpperCase() !== 'INDUSTRY_CONSULTANT'
                         );
                     }
 
                     unassignedComments = unassignedComments.filter(c => !eventComments.includes(c));
-                } else if (type === 'SUBMITTED') {
+                } else if (normType === 'FORWARDED') {
+                    actionLabel = 'Forwarded for Revision';
+                    actionMessage = `Forwarded the Dean's review feedback to the instructor for revision.${log.note ? ` Note: ${log.note}` : ''}`;
+                    pendingReviewers.add(`${actorName} (${actorRole})`);
+
+                    eventComments = unassignedComments.filter(c =>
+                        ['DEAN', 'PROGRAM_HEAD'].includes(String(c.commenter_role || '').toUpperCase()) &&
+                        new Date(c.createdAt).getTime() <= (logTime + 5 * 60000)
+                    );
+                    unassignedComments = unassignedComments.filter(c => !eventComments.includes(c));
+                } else if (normType === 'COUNTERED') {
+                    actionLabel = 'Sent Back to Dean';
+                    actionMessage = `Responded to the Dean's return and sent the plan back for reconsideration.${log.note ? ` Note: ${log.note}` : ''}`;
+                } else if (normType === 'SUBMITTED') {
                     if (pendingReviewers.size > 0) {
                         const reviewersList = Array.from(pendingReviewers).join(' & ');
                         actionLabel = 'Resubmitted';
@@ -197,18 +242,18 @@ exports.getRevisionsByOffering = async (req, res) => {
                         actionLabel = 'Submitted';
                         actionMessage = `Submitted the course learning plan for multi-stakeholder evaluation.`;
                     }
-                } else if (type === 'ACCEPTED' || type === 'APPROVED') {
-                    if (rawRole === 'DEAN' || type === 'APPROVED') {
+                } else if (normType === 'ACCEPTED') {
+                    if (rawRole === 'DEAN' || String(type).toUpperCase() === 'APPROVED') {
                         actionLabel = 'Approved';
                         actionMessage = `Granted final institutional approval for the course learning plan.`;
                     } else {
                         actionLabel = 'Endorsed';
                         actionMessage = `Reviewed and endorsed the course learning plan for the next approval stage.`;
                     }
-                } else if (type === 'Suggest' || type === 'SUGGEST' || rawRole === 'INDUSTRY_CONSULTANT') {
+                } else if (type === 'Suggest' || normType === 'SUGGEST' || rawRole === 'INDUSTRY_CONSULTANT') {
                     actionLabel = 'Future Suggestion';
                     actionMessage = `Provided industry recommendations and future suggestions to be applied next school year/term.`;
-                    eventComments = unassignedComments.filter(c => c.commenter_role === 'INDUSTRY_CONSULTANT');
+                    eventComments = unassignedComments.filter(c => String(c.commenter_role || '').toUpperCase() === 'INDUSTRY_CONSULTANT');
                     unassignedComments = unassignedComments.filter(c => !eventComments.includes(c));
                 } else {
                     actionMessage = `Performed ${type}.`;
@@ -265,9 +310,13 @@ exports.getRevisionsByOffering = async (req, res) => {
                     });
                 }
 
+                const displayType = (normType === 'ACCEPTED' && rawRole === 'DEAN')
+                    ? 'APPROVED'
+                    : (normType === 'FORWARDED' ? 'RETURNED' : (type === 'Suggest' || normType === 'SUGGEST' ? 'SUGGEST' : normType));
+
                 timeline.push({
                     id: log.log_id,
-                    type: (type === 'ACCEPTED' && rawRole === 'DEAN') ? 'APPROVED' : (type === 'Suggest' ? 'SUGGEST' : type),
+                    type: displayType,
                     date: log.createdAt,
                     stakeholderId,
                     actorName,
@@ -275,33 +324,17 @@ exports.getRevisionsByOffering = async (req, res) => {
                     actionLabel,
                     actor: `${actorName} (${actorRole})`,
                     message: actionMessage,
+                    note: log.note || null,
                     comments: mappedComments
                 });
             }
 
-            const sortedLogsDesc = [...rawLogs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            const latestLog = sortedLogsDesc.length > 0 ? sortedLogsDesc[0] : null;
-
-            let computedStatus = 'Draft';
-            const deanApproved = rawLogs.some(log => (log.action_type === 'ACCEPTED' || log.action_type === 'APPROVED') && log.actor_role === 'DEAN');
-            if (deanApproved) {
-                computedStatus = 'Approved';
-                if (offering.base_pc_offering_id && !offering.is_revision_incremented) {
-                    const evalRes = await evaluateAndIncrementRevisionOnApproval(offering.pc_offering_id);
-                    if (evalRes.incremented) {
-                        offering.revision_number = evalRes.revision_number;
-                        offering.is_revision_incremented = true;
-                    }
-                }
-            } else if (latestLog && latestLog.action_type === 'RETURNED') {
-                computedStatus = 'Returned';
-            } else {
-                const hasBeenSubmitted =
-                    Boolean(assignment.date_submitted) ||
-                    rawLogs.some(log => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
-
-                if (hasBeenSubmitted) {
-                    computedStatus = 'Pending';
+            let computedStatus = wfState.compositionStatus;
+            if (wfState.stage === 'approved' && offering.base_pc_offering_id && !offering.is_revision_incremented) {
+                const evalRes = await evaluateAndIncrementRevisionOnApproval(offering.pc_offering_id);
+                if (evalRes.incremented) {
+                    offering.revision_number = evalRes.revision_number;
+                    offering.is_revision_incremented = true;
                 }
             }
 
@@ -309,10 +342,14 @@ exports.getRevisionsByOffering = async (req, res) => {
                 revNum: offering.revision_number,
                 pcId: offering.pc_offering_id,
                 basePcId: offering.base_pc_offering_id || null,
+                schoolYear: offering.school_year || '',
+                semester: offering.semester || '',
+                approvedAt: offering.approved_at || wfState.approvedAt || null,
                 hasModifications: Boolean(offering.has_modifications),
                 isRevisionIncremented: Boolean(offering.is_revision_incremented),
-                termLabel: formatTermFromDate(assignment.date_assigned || offering.createdAt),
+                termLabel: formatOfferingTermLabel(offering, assignment),
                 status: computedStatus,
+                workflowStage: wfState.stage,
                 updatedAt: offering.updatedAt,
                 timeline: timeline
             });

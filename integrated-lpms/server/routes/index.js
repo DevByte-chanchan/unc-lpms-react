@@ -42,6 +42,7 @@ const iloRefCtrl = require('../controllers/composition/iloReferenceController');
 const refSummaryCtrl = require('../controllers/composition/referenceSummaryController');
 const revisionCtrl = require('../controllers/composition/revisionController');
 const submissionCtrl = require('../controllers/composition/submissionController');
+const weeklyContentWorkflowCtrl = require('../controllers/composition/weeklyContentWorkflowController');
 
 // M3 Learning Plan Submissions Management Controllers
 const workflowCtrl = require('../controllers/submissions/assignmentWorkflowController');
@@ -58,6 +59,7 @@ router.post('/auth/login', authCtrl.login);
 router.post('/auth/logout', authCtrl.logout);
 router.get('/auth/me', authCtrl.getMe);
 router.get('/auth/session', authCtrl.getSession);
+router.post('/auth/reset-database', requireAuth, authCtrl.resetDatabase);
 router.post('/auth/switch-role', requireAuth, authCtrl.switchRole);
 router.post('/auth/change-password', requireAuth, authCtrl.changePassword);
 router.post('/auth/forgot-password', authCtrl.forgotPassword);
@@ -214,7 +216,9 @@ router.get('/ilo-references/:iloId', requireAuth, iloRefCtrl.getReferencesByILO)
 router.post('/ilo-references/assign', requireAuth, requireEditableByWeek, iloRefCtrl.assignReferencesToILO);
 router.delete('/ilo-references/:iloReferenceId', requireAuth, requireEditableByIloRef, iloRefCtrl.deleteILOReference);
 
-// Revision History & Submission
+// Revision History, Weekly Validation, Bulk Previous Import & Submission
+router.get('/courses/:pcId/:revNum/weekly-validation', requireAuth, requireOfferingAccess, weeklyContentWorkflowCtrl.getWeeklyContentValidation);
+router.post('/courses/:pcId/:revNum/import-previous-all-weeks', requireAuth, requireEditableByOffering, weeklyContentWorkflowCtrl.importPreviousTermAllWeeks);
 router.get('/revisions/:pcId', requireAuth, requireOfferingAccess, revisionCtrl.getRevisionsByOffering);
 router.post('/submit-learning-plan/:pcId/:revNum', requireAuth, requireEditableByOffering, submissionCtrl.submitLearningPlan);
 
@@ -242,6 +246,8 @@ router.get('/comments/offering/:pcId', requireAuth, commentCtrl.getCommentsByOff
 router.get('/comments/course/:courseCode', requireAuth, commentCtrl.getCommentsByCourseCode);
 router.get('/comments/suggestions/:pcId', requireAuth, commentCtrl.listSuggestions);
 router.post('/comments/suggestions/:pcId', requireAuth, requireRole('Industry Consultant', 'Program Head', 'Dean', 'VPAA'), commentCtrl.createSuggestion);
+router.put('/comments/suggestions/item/:commentId', requireAuth, requireRole('Industry Consultant', 'Program Head', 'Dean', 'VPAA'), commentCtrl.updateSuggestion);
+router.delete('/comments/suggestions/item/:commentId', requireAuth, requireRole('Industry Consultant', 'Program Head', 'Dean', 'VPAA'), commentCtrl.deleteComment);
 router.put('/comments/update-resolution', requireAuth, commentCtrl.updateResolution);
 router.post('/comments', requireAuth, commentCtrl.createComment);
 router.delete('/comments/:commentId', requireAuth, commentCtrl.deleteComment);

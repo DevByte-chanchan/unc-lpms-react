@@ -39,10 +39,11 @@
 
 .filterA
   display: flex
-  padding: 6px 10px
-  gap: 20px
-  background: #FFF
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.15)
+  align-items: center
+  padding: 0
+  gap: 10px
+  background: transparent
+  box-shadow: none
   border-radius: 6px
 
 .filter-container
@@ -81,6 +82,9 @@
       &:hover
         color: #334155
         background: rgba(0, 0, 0, 0.03)
+
+      &:active
+        transform: scale(0.97)
 
       &.active
         background-color: #ffffff
@@ -155,6 +159,9 @@
   &:hover
     color: #444
     background: rgba(0,0,0,0.05)
+
+  &:active
+    transform: scale(0.97)
 
   &.active
     background: #fff
@@ -335,6 +342,9 @@
     background: #e9ecef
     color: #000 !important
 
+  &:active
+    transform: scale(0.97)
+
 .gridExportBtn
   display: inline-flex
   align-items: center
@@ -354,6 +364,9 @@
     background: #e9ecef
     color: #000 !important
 
+  &:active
+    transform: scale(0.97)
+
 .toggleDetailsBtn
   background: transparent
   border: none
@@ -369,6 +382,9 @@
   &:hover
     background: #f1f3f5
     color: #333
+
+  &:active
+    transform: scale(0.97)
 
 .cardDetails
   background: #fafafa

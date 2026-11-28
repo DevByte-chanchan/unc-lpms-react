@@ -39,8 +39,22 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
         return () => { mounted = false; };
     }, [offeringID, revisionNum, apiFetch]);
 
+    const normalizeGradingSystem = (list) => (Array.isArray(list) ? list : []).map(group => ({
+        ...group,
+        ilos: (Array.isArray(group.ilos) ? group.ilos : []).map(ilo => ({
+            ...ilo,
+            assessments: Array.isArray(ilo.assessments) ? ilo.assessments.join(', ') : String(ilo.assessments ?? ''),
+            weight: ilo.weight
+                ? Object.fromEntries(Object.entries(ilo.weight).map(([k, v]) => [k, String(v ?? '')]))
+                : {}
+        }))
+    }));
+
+    const hasChanges = JSON.stringify(normalizeGradingSystem(editData)) !== JSON.stringify(normalizeGradingSystem(criteriaData.gradingSystem));
+
     const handleEditToggle = () => {
         if (isEditing) {
+            if (!hasChanges) return;
             setShowConfirm(true);
         } else {
             setEditData(JSON.parse(JSON.stringify(criteriaData.gradingSystem)));
@@ -68,15 +82,19 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     };
 
     const handleChange = (coIndex, iloIndex, field, value, isWeight = false) => {
-        setEditData(prev => {
-            const upd = [...prev];
-            if (isWeight) {
-                upd[coIndex].ilos[iloIndex].weight[field] = value;
-            } else {
-                upd[coIndex].ilos[iloIndex][field] = value;
-            }
-            return upd;
-        });
+        setEditData(prev => prev.map((group, cIdx) => {
+            if (cIdx !== coIndex) return group;
+            return {
+                ...group,
+                ilos: (group.ilos || []).map((ilo, iIdx) => {
+                    if (iIdx !== iloIndex) return ilo;
+                    if (isWeight) {
+                        return { ...ilo, weight: { ...(ilo.weight || {}), [field]: value } };
+                    }
+                    return { ...ilo, [field]: value };
+                })
+            };
+        }));
     };
 
     const renderInput = (coIndex, iloIndex, field, isWeight = false) => {
@@ -134,9 +152,10 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                         </button>
                     )}
                     <button 
+                        type="button"
                         className={'matrix-edit-btn ' + (isEditing ? 'save-mode' : '')} 
                         onClick={handleEditToggle}
-                        disabled={isEditing && JSON.stringify(editData) === JSON.stringify(criteriaData.gradingSystem)}
+                        disabled={isEditing && !hasChanges}
                     >
                         {isEditing ? (
                             <>

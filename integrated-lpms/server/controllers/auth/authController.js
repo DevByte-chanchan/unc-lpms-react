@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -379,6 +379,45 @@ exports.acceptInvitation = async (req, res, next) => {
     const payload = await buildClientUserPayload(user, user.active_role);
     return res.json({ ok: true, token, user: payload });
   } catch (err) {
+    return next(err);
+  }
+};
+
+exports.resetDatabase = async (req, res, next) => {
+  try {
+    const { wipeAndReseedLiveDatabase } = require('../../services/resetDatabaseService');
+    const actor = req.user ? {
+      user_id: req.user.user_id,
+      name: req.user.name,
+      role: req.user.activeRole,
+    } : null;
+
+    const result = await wipeAndReseedLiveDatabase();
+
+    if (db.AuditLog) {
+      await db.AuditLog.create({
+        actor_user_id: actor?.user_id || null,
+        actor_name: actor?.name || 'System',
+        actor_role: actor?.role || 'User',
+        action: 'POST /api/auth/reset-database',
+        entity_type: 'database',
+        entity_id: result.database,
+        outcome: 'success',
+        details: `Wiped ${result.droppedCount} table(s) and reseeded initial integrated-lpms data.`,
+        ip_address: req.ip || null,
+      }).catch(() => {});
+    }
+
+    clearSessionCookie(res);
+    return res.json({
+      ok: true,
+      message: 'Database wiped and reseeded with initial data.',
+      droppedCount: result.droppedCount,
+    });
+  } catch (err) {
+    if (err?.status === 409) {
+      return res.status(409).json({ error: err.message });
+    }
     return next(err);
   }
 };

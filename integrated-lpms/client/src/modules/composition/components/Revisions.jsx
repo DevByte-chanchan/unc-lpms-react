@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { X } from "react-feather";
+import Select from "./Select.jsx";
 import { fetchJson } from "../utils/api";
 import styles from '../styles/Revisions.module.sass';
 import stylesB from "../styles/SyllabusPreview.module.sass";
@@ -11,8 +13,6 @@ import ReferenceSummary from "./ReferenceSummary";
 import CriteriaForGrading from "./CriteriaForGrading";
 
 const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
-    if (!isOpen) return null;
-
     const { status, revNum: paramRevNum, pcId: paramPcId } = useParams();
 
     const currentPcId = propPcId || paramPcId;
@@ -27,8 +27,17 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!isOpen) return;
+        const onKey = (e) => {
+            if (e.key === 'Escape') onClose?.();
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isOpen, onClose]);
+
+    useEffect(() => {
+        if (!isOpen || !currentPcId) return;
         const loadRevisions = async () => {
-            if (!currentPcId) return;
             try {
                 setLoading(true);
                 const data = await fetchJson(`/api/revisions/${currentPcId}`);
@@ -48,7 +57,9 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
             }
         };
         loadRevisions();
-    }, [currentPcId]);
+    }, [isOpen, currentPcId]);
+
+    if (!isOpen) return null;
 
     const handleAccordionToggle = (revNum, pcId) => {
         const numericPcId = Number(pcId);
@@ -82,27 +93,42 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
     };
 
     return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modalContent}>
-                <button className={styles.closeButton} onClick={onClose}>×</button>
-                <h2 className={styles.previewTitle}>Revisions Tracking</h2>
+        <div className={styles.modalOverlay} onClick={onClose}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.previewHeader}>
+                    <h2 className={styles.previewTitle}>Revisions Tracking</h2>
+                    <button
+                        type="button"
+                        className={styles.closeButton}
+                        onClick={onClose}
+                        aria-label="Close revisions"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
 
                 <div className={styles.splitContainer}>
                     {/* LEFT SECTION */}
                     <div className={styles.leftPreviewPane}>
-                        <div className={styles.navi} style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+                        <div className={styles.navi}>
                             <div className={styles['section-select']}>
-                                <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)}>
+                                <Select
+                                    value={selectedSection}
+                                    onChange={(e) => setSelectedSection(e.target.value)}
+                                    aria-label="Revision section"
+                                    size="lg"
+                                    block
+                                >
                                     <option value="Course Details">Course Details</option>
                                     <option value="Course and Program Outcome Alignment">Course and Program Outcome Alignment</option>
                                     <option value="Course Coverage">Course Coverage</option>
                                     <option value="References Summary">References Summary</option>
                                     <option value="Criteria for Grading">Criteria for Grading</option>
-                                </select>
+                                </Select>
                             </div>
                         </div>
 
-                        <div className={styles['dynamic-sections']} style={{ overflowY: 'auto', maxHeight: '72vh', paddingRight: '4px' }}>
+                        <div className={styles['dynamic-sections']}>
                             {selectedSection === 'Course Details' && (
                                 <CourseDetails isReadOnly={true} offeringID={activePcId} revisionNum={selectedRevNum} stylesB={stylesB} fetchJson={fetchJson} />
                             )}

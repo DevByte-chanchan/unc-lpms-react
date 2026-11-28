@@ -16,6 +16,8 @@ const pageFor = (role, type) => {
 }
 
 export const notificationPath = (role, notification = {}) => {
+  const direct = notification.target_url || notification.link || notification.link_url
+  if (direct && String(direct).startsWith('/')) return direct
   const { offeringId, courseCode, revisionNumber, state, type, commentId } = notification
   if (!offeringId || !courseCode) return pageFor(role, type)
   const status = String(state || 'pending').toLowerCase()

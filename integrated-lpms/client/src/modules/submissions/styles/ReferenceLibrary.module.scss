@@ -763,26 +763,8 @@ button.previewClose.previewClose {
 
   thead {
     flex: 0 0 auto;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    scrollbar-gutter: stable;
+    overflow: hidden;
     background: #EDEFF2;
-  }
-
-  // The header keeps an invisible bar as wide as the body's, so the columns line up (8px, as in index.css).
-  thead::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  @supports (-moz-appearance: none) {
-    thead {
-      scrollbar-color: transparent transparent;
-    }
-  }
-
-  thead::-webkit-scrollbar-track,
-  thead::-webkit-scrollbar-thumb {
-    background: transparent;
   }
 
   thead th {

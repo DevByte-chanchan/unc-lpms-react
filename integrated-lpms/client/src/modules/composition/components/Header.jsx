@@ -1,35 +1,30 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronDown } from 'lucide-react';
-import styles from '../styles/Header.module.sass';
-import { useCurrentUser } from '../services/currentUser.jsx';
-import { ROLE_DISPLAY } from '../services/roles.js';
-import { getDefaultRouteForRole } from '../../../shared/navConfig.js';
+import { Check, ChevronDown, Key, Settings } from 'lucide-react';
+import { useAuth } from '../../../shared/AuthContext.jsx';
+import { ROLE_DESCRIPTIONS, getDefaultRouteForRole } from '../../../shared/navConfig.js';
+import FullscreenToggle from '../../../shared/shell/FullscreenToggle.jsx';
+import SettingsModal, { initialsOf } from '../../../shared/shell/SettingsModal.jsx';
 import NotificationBell from './NotificationBell.jsx';
+import styles from '../styles/Header.module.sass';
 
-const Header = ({ department, name: propName, role: propRole }) => {
-  const { user, activeRole, roles = [], switchRole } = useCurrentUser();
+const Header = ({ department }) => {
+  const { user, activeRole, roles = [], switchRole } = useAuth();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
+  const [open, setOpen] = React.useState(false);
+  const [settings, setSettings] = React.useState(null);
+  const ref = React.useRef(null);
 
-  const meta = (activeRole && ROLE_DISPLAY[activeRole]) || {};
-  const displayName = user
-    ? user.lastName && user.firstName
-      ? `${user.lastName.toUpperCase()}, ${user.firstName.toUpperCase()}`
-      : (user.name || user.email || 'USER').toUpperCase()
-    : propName || 'NORTON, MONICA';
-
-  const displayRole = activeRole ? meta.title || activeRole : propRole || 'Instructor';
   const canSwitch = roles.length > 1;
+  const initials = initialsOf(user?.name);
 
-  useEffect(() => {
-    if (!menuOpen) return undefined;
+  React.useEffect(() => {
+    if (!open) return undefined;
     const onDown = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
     const onKey = (e) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') setOpen(false);
     };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
@@ -37,110 +32,124 @@ const Header = ({ department, name: propName, role: propRole }) => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen]);
+  }, [open]);
 
-  const handleSwitchRole = async (nextRole) => {
-    setMenuOpen(false);
-    if (nextRole === activeRole) return;
+  const switchTo = async (role) => {
+    setOpen(false);
+    if (role === activeRole) return;
     try {
-      await switchRole(nextRole);
+      await switchRole(role);
     } finally {
-      navigate(getDefaultRouteForRole(nextRole), { replace: true });
+      React.startTransition(() => {
+        navigate(getDefaultRouteForRole(role), { replace: true });
+      });
     }
   };
 
+  const openSettings = (tab) => {
+    setOpen(false);
+    setSettings(tab);
+  };
+
+  // Intentionally do NOT add department name text on the left side when none is explicitly passed
+  const departmentLabel = department || '';
+
   return (
     <div className={styles.header}>
-      <div className={styles.department}>{department}</div>
-      <div className={styles.userSection}>
-        <div ref={menuRef} style={{ position: 'relative' }}>
-          <div
-            className={styles.info}
-            onClick={canSwitch ? () => setMenuOpen((o) => !o) : undefined}
-            role={canSwitch ? 'button' : undefined}
-            tabIndex={canSwitch ? 0 : undefined}
-            title={canSwitch ? 'Switch role' : undefined}
-            style={canSwitch ? { cursor: 'pointer', padding: '4px 8px', borderRadius: 8 } : undefined}
+      <div className={styles.department}>{departmentLabel}</div>
+      {user && (
+        <div className={styles.userMenu} ref={ref}>
+          <button
+            type="button"
+            className={`${styles.info} ${open ? styles.infoOpen : ''}`}
+            onClick={() => setOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={open}
+            title={canSwitch ? 'Account and role' : 'Account'}
           >
-            <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span>{displayName}</span>
-              {canSwitch && (
-                <ChevronDown
-                  size={15}
-                  style={{
-                    color: '#6B7280',
-                    transform: menuOpen ? 'rotate(180deg)' : 'none',
-                    transition: 'transform 0.15s ease',
-                  }}
-                />
-              )}
-            </div>
-            <div className={styles.role}>{displayRole}</div>
-          </div>
+            <span className={styles.avatar} aria-hidden="true">
+              {initials}
+            </span>
+            <span className={styles.text}>
+              <span className={styles.name}>{user.name}</span>
+              <span className={styles.role}>{activeRole}</span>
+            </span>
+            <ChevronDown
+              size={16}
+              className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
+              aria-hidden="true"
+            />
+          </button>
 
-          {canSwitch && menuOpen && (
-            <div
-              role="menu"
-              style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                right: 0,
-                width: 240,
-                background: '#FFFFFF',
-                border: '1px solid #E5E7EB',
-                borderRadius: 10,
-                boxShadow: '0 10px 28px rgba(0,0,0,0.12)',
-                padding: 6,
-                zIndex: 1000,
-              }}
-            >
-              <div
-                style={{
-                  padding: '4px 10px 6px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
-                  color: '#9CA3AF',
-                }}
-              >
-                Switch role
+          {open && (
+            <div className={styles.menu} role="menu">
+              <div className={styles.menuHead}>
+                <span className={`${styles.avatar} ${styles.avatarLg}`} aria-hidden="true">
+                  {initials}
+                </span>
+                <div className={styles.menuWho}>
+                  <div className={styles.menuName}>{user.name}</div>
+                  <div className={styles.menuEmail}>{user.email}</div>
+                  {!canSwitch && <span className={styles.roleChip}>{activeRole}</span>}
+                </div>
               </div>
-              {roles.map((r) => {
-                const isCurrent = r === activeRole;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={isCurrent}
-                    onClick={() => handleSwitchRole(r)}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 10px',
-                      border: 'none',
-                      borderRadius: 7,
-                      background: isCurrent ? '#F3F4F6' : 'transparent',
-                      color: '#18191A',
-                      fontSize: 13.5,
-                      fontWeight: isCurrent ? 600 : 500,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <span>{r}</span>
-                    {isCurrent && <Check size={15} />}
-                  </button>
-                );
-              })}
+
+              {canSwitch && (
+                <div className={styles.section}>
+                  <div className={styles.sectionLabel}>Switch role</div>
+                  {roles.map((role) => {
+                    const active = role === activeRole;
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={active}
+                        className={`${styles.roleItem} ${active ? styles.roleItemActive : ''}`}
+                        onClick={() => switchTo(role)}
+                      >
+                        <span className={styles.roleItemText}>
+                          <span className={styles.roleItemName}>{role}</span>
+                          {ROLE_DESCRIPTIONS[role] && (
+                            <span className={styles.roleItemDesc}>{ROLE_DESCRIPTIONS[role]}</span>
+                          )}
+                        </span>
+                        <span className={styles.roleCheck}>{active && <Check size={16} />}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className={styles.section}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.menuItem}
+                  onClick={() => openSettings('account')}
+                >
+                  <Settings size={16} /> Settings
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className={styles.menuItem}
+                  onClick={() => openSettings('security')}
+                >
+                  <Key size={16} /> Change password
+                </button>
+              </div>
             </div>
           )}
         </div>
-        <NotificationBell />
-      </div>
+      )}
+      <FullscreenToggle className={styles.bell} />
+      {user && activeRole !== 'Superuser' && <NotificationBell />}
+      <SettingsModal
+        open={settings !== null}
+        initialTab={settings || 'account'}
+        onClose={() => setSettings(null)}
+      />
     </div>
   );
 };

@@ -3,44 +3,65 @@
   top: 0
   left: 0
   width: 100%
-  height: 100dvh
-  padding: 12px
-  box-sizing: border-box
-  background: rgba(0, 0, 0, 0.7)
+  height: 100%
+  background: rgba(0, 0, 0, 0.4)
   z-index: 1000
   display: flex
   justify-content: center
   align-items: center
+  padding: 16px
+  box-sizing: border-box
 
 .modalContent
   background: #FFFFFF
-  padding: 0
-  border-radius: var(--radius-lg)
+  padding: 24px 28px
+  border-radius: 12px
+  border: 1px solid #E5E7EB
   width: 95vw
-  height: min(90vh, calc(100dvh - 24px))
-  max-height: calc(100dvh - 24px)
+  height: 90vh
   display: flex
   flex-direction: column
   position: relative
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2)
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.2)
   overflow: hidden
+  box-sizing: border-box
 
-// Full screen: the window covers the whole page, no margin and no rounded corners.
-.modalOverlay.expanded
+.previewHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 16px
+  margin-bottom: 12px
+  flex-shrink: 0
+
+.closeButton
+  width: 32px
+  height: 32px
   padding: 0
-
-.modalContent.expanded
-  width: 100vw
-  height: 100dvh
-  max-height: 100dvh
-  border-radius: 0
+  border-radius: 8px
+  background: transparent
+  border: none
+  cursor: pointer
+  color: #6B7280
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+  outline: none
+  transition: background-color 150ms ease, color 150ms ease, transform 120ms ease
+  &:hover
+    background: #F3F4F6
+    color: #111827
     outline: none
+  &:active
+    transform: scale(0.95)
 
 .previewTitle
-  margin: 0 0 10px 0
+  margin: 0
   font-size: 20px
   font-weight: 700
-  color: #333
+  color: #111827
+  line-height: 1.25
 
 // Workspace Separation Architecture
 .splitContainer
@@ -48,8 +69,6 @@
   flex: 1
   width: 100%
   min-height: 0
-  box-sizing: border-box
-  padding: 16px 24px 24px
   gap: 24px
   overflow: hidden
 
@@ -63,46 +82,44 @@
 .rightLedgerPane
   width: 35%
   height: 100%
-  border-left: 1px solid var(--line)
+  border-left: 1px solid #e2e8f0
   padding-left: 20px
   overflow-y: auto
   display: flex
   flex-direction: column
 
 .titleBorder
-  margin-top: 0.5rem
-  margin-bottom: 1rem
+  margin-top: 0
+  margin-bottom: 12px
   display: flex
   border-radius: 4px
   align-items: center
-  height: 36px
+  height: 40px
+  flex-shrink: 0
 
 
 .sidebarTitle
   font-size: 16px
   font-weight: 600
+  color: #111827
 
 // Section Selector Elements Architecture
 .navi
   width: 100%
   display: flex
   align-items: center
+  margin-bottom: 12px
+  flex-shrink: 0
 
 .section-select
-  width: 99.5%
-  padding-right: 20px
-  border: 1px solid #CCC
-  border-radius: 4px
+  width: 100%
+  min-width: 0
 
-.section-select
-  select
-    padding: 6px 10px
-    font-size: 14px
-    outline: none
-    background-color: transparent
-    cursor: pointer
-    width: 100%
-    border: 0
+.dynamic-sections
+  flex: 1
+  min-height: 0
+  overflow-y: auto
+  padding-right: 4px
 
 
 // Revision Accordion System Design
@@ -113,8 +130,8 @@
   margin-top: 10px
 
 .accordionItem
-  border: 1px solid var(--line)
-  border-radius: 4px
+  border: 1px solid #e2e8f0
+  border-radius: 3px
   background: #ffffff
   overflow: hidden
 
@@ -146,11 +163,11 @@
   font-size: 10px
   font-weight: 500
   padding: 2px 6px
-  border-radius: var(--radius-pill)
+  border-radius: 4px
   text-transform: uppercase
 
 .approved
-  background: var(--good-soft)
+  background: #dcfce7
   color: #15803d
 
 .archived
@@ -159,7 +176,7 @@
 
 .accordionContent
   display: none
-  border-top: 1px solid var(--line)
+  border-top: 1px solid #e2e8f0
   padding: 16px
   &.open
     display: block
@@ -170,7 +187,7 @@
   padding-left: 28px
   display: flex
   flex-direction: column
-  gap: 24px
+  gap: 18px
 
   &::before
     content: ''
@@ -186,118 +203,11 @@
   display: flex
   flex-direction: column
 
-// Solid Core Geometric Node Indicators (Replaces broken Icon dependency)
+// Solid Core Geometric Node Indicators
 .circleIndicator
   position: absolute
   left: -24px
-  top: 4px
-  width: 10px
-  height: 10px
-  border-radius: 50%
-  background: #cbd5e1
-  border: 2px solid #ffffff
-  box-shadow: 0 0 0 2px #e2e8f0
-  z-index: 2
-
-  &.routed
-    background: #3b82f6
-    box-shadow: 0 0 0 2px #dbeafe
-  &.warn
-    background: #ef4444
-    box-shadow: 0 0 0 2px var(--danger-soft)
-  &.fix
-    background: #10b981
-    box-shadow: 0 0 0 2px #d1fae5
-  &.endorse
-    background: #6366f1
-    box-shadow: 0 0 0 2px #e0e7ff
-  &.approve
-    background: #059669
-    box-shadow: 0 0 0 2px #d1fae5
-
-.timelineNodeBody
-  padding-left: 6px
-
-.timelineMessageText
-  font-size: 13px
-  color: #555
-  line-height: 1.5
-
-.highlightText
-  font-weight: 700
-  color: #111
-
-.highlightRole
-  font-weight: 700
-  color: #111
-  text-decoration: underline
-  text-decoration-color: #e2e8f0
-
-// Dynamic Context Card Frames Design
-.commentsWrapperList
-  display: flex
-  flex-direction: column
-  gap: 10px
-  margin-top: 12px
-
-.commentCardFrame
-  background: #f8fafc
-  border: 1px solid var(--line)
-  border-radius: var(--radius-lg)
-  padding: 10px 12px
-  min-width: 0
-  overflow: hidden
-
-.commentCardMetaBar
-  display: flex
-  align-items: center
-  gap: 6px
-  margin-bottom: 6px
-  flex-wrap: wrap
-
-.staticMutedLabel
-  font-size: 11px
-  color: #888
-  text-transform: uppercase
-  letter-spacing: 0.5px
-
-.highContrastEntityText
-  font-size: 12px
-  font-weight: 700
-  color: #111
-
-.contextBadge
-  font-size: 10px
-  font-weight: 700
-  padding: 1px 5px
-  border-radius: var(--radius-pill)
-  text-transform: uppercase
-  &.topic
-    background: #e0e7ff
-    color: #4f46e5
-  &.reference
-    background: #ccfbf1
-    color: #0d9488
-  &.tla
-    background: var(--warn-soft)
-    color: #d97706
-
-.commentBlockquoteBox
-  margin: 0
-  padding-left: 8px
-  border-left: 2px solid var(--control-border)
-  font-size: 12px
-  font-style: italic
-  color: #555
-  line-height: 1.4
-  // a long word or a pasted line with no spaces wraps inside the card instead of running past it
-  overflow-wrap: anywhere
-
-
-.circleIndicator
-  position: absolute
-  left: -24px
-  top: 4px
+  top: 12px
   width: 10px
   height: 10px
   border-radius: 50%
@@ -307,58 +217,111 @@
   z-index: 2
 
   &.assigned
-    background: #6366f1 // Indigo
+    background: #6366f1
     box-shadow: 0 0 0 2px #e0e7ff
   &.submitted
-    background: #3b82f6 // Blue
+    background: #3b82f6
     box-shadow: 0 0 0 2px #dbeafe
   &.returned
-    background: #ef4444 // Red
-    box-shadow: 0 0 0 2px var(--danger-soft)
+    background: #ef4444
+    box-shadow: 0 0 0 2px #fee2e2
   &.accepted
-    background: #10b981 // Green
+    background: #10b981
     box-shadow: 0 0 0 2px #d1fae5
   &.approved
-    background: #059669 // Dark Green
+    background: #059669
     box-shadow: 0 0 0 2px #a7f3d0
+  &.suggest
+    background: #f59e0b
+    box-shadow: 0 0 0 2px #fef3c7
 
 .timelineNodeBody
   padding-left: 6px
 
+.eventCard
+  background: #ffffff
+  border: 1px solid #e2e8f0
+  border-radius: 6px
+  padding: 10px 12px
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04)
+
+.eventHeaderRow
+  display: flex
+  justify-content: space-between
+  align-items: flex-start
+  gap: 8px
+  margin-bottom: 8px
+
+.actorMetaGroup
+  display: flex
+  flex-direction: column
+  align-items: flex-start
+  gap: 1px
+
+.actorNameText
+  font-size: 13.5px
+  font-weight: 700
+  color: #1e293b
+  line-height: 1.25
+
+.actorRoleSubtext
+  font-size: 11.5px
+  font-weight: 500
+  color: #64748b
+  line-height: 1.25
+
+.eventFooterRow
+  display: flex
+  justify-content: flex-start
+  align-items: center
+  margin-top: 8px
+
+.eventDateText
+  font-size: 11px
+  font-weight: 500
+  color: #64748b
+  white-space: nowrap
+
+.actionStatusPill
+  font-size: 10px
+  font-weight: 700
+  text-transform: uppercase
+  letter-spacing: 0.4px
+  padding: 2px 8px
+  border-radius: 999px
+  background: #f1f5f9
+  color: #334155
+  white-space: nowrap
+  flex-shrink: 0
+
+  &.assigned
+    background: #e0e7ff
+    color: #4338ca
+  &.submitted
+    background: #dbeafe
+    color: #1d4ed8
+  &.returned
+    background: #fee2e2
+    color: #b91c1c
+  &.accepted
+    background: #d1fae5
+    color: #047857
+  &.approved
+    background: #dcfce7
+    color: #15803d
+  &.suggest
+    background: #fef3c7
+    color: #b45309
+
 .timelineMessageText
-  font-size: 13px
-  color: #555
-  line-height: 1.5
+  margin: 0
+  font-size: 12.5px
+  color: #334155
+  line-height: 1.45
 
 .semiBoldText
   font-weight: 600
   color: #111
-
-.revCounts
-  margin: 6px 0 2px
-  font-size: 12px
-  color: #888
-
-.headerEnd
-  display: flex
-  align-items: center
-  gap: 14px
-
-.revStatus
-  padding: 2px 10px
-  border: 1px solid var(--good-line)
-  border-radius: 999px
-  background: var(--good-soft)
-  color: var(--good)
-  font-size: 12px
-  font-weight: 500
-
-// The date sits under the sentence in a quiet tone instead of ending it.
-.timelineDate
-  display: block
-  margin-top: 2px
-  font-size: 12px
-  color: #888
 
 .highlightRole
   font-weight: 700
@@ -375,18 +338,17 @@
 
 .commentCardFrame
   background: #f8fafc
-  border: 1px solid var(--line)
-  border-radius: var(--radius-lg)
+  border: 1px solid #e2e8f0
+  border-radius: 6px
   padding: 10px 12px
-  min-width: 0
-  overflow: hidden
+  margin-bottom: 8px
 
 .commentCardMetaBar
   display: flex
-  align-items: center
-  gap: 6px
+  justify-content: space-between
+  align-items: flex-start
+  gap: 8px
   margin-bottom: 6px
-  flex-wrap: wrap
 
 .staticMutedLabel
   font-size: 11px
@@ -396,8 +358,43 @@
 
 .highContrastEntityText
   font-size: 12px
-  font-weight: 600 // Diminished from overly bold 700
+  font-weight: 600
   color: #111
+  line-height: 1.35
+
+.contextBadge
+  font-size: 10px
+  font-weight: 700
+  padding: 1px 6px
+  border-radius: 3px
+  text-transform: uppercase
+  white-space: nowrap
+  flex-shrink: 0
+  &.warn
+    background: #fee2e2
+    color: #b91c1c
+  &.suggestBadge
+    background: #fef3c7
+    color: #b45309
+  &.topic
+    background: #e0e7ff
+    color: #4f46e5
+  &.reference
+    background: #ccfbf1
+    color: #0d9488
+  &.tla
+    background: #fef3c7
+    color: #d97706
+
+.commentBlockquoteBox
+  margin: 0
+  padding-left: 8px
+  border-left: 2px solid #cbd5e1
+  font-size: 12px
+  font-style: italic
+  color: #555
+  line-height: 1.4
+  overflow-wrap: anywhere
 
 @media (max-width: 1024px)
   .splitContainer
@@ -416,7 +413,7 @@
 
   .rightLedgerPane
     border-left: 0
-    border-top: 1px solid var(--line)
+    border-top: 1px solid #e2e8f0
     padding-left: 0
     padding-top: 20px
     overflow: visible
