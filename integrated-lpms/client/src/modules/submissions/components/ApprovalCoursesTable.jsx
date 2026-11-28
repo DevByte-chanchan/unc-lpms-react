@@ -79,7 +79,37 @@ const ApprovalCard = ({ code, date, title, link, exportButton }) => {
     );
 };
 
-const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
+const matchesDepartment = (row, department) => {
+    if (!department) return true;
+    const pco = row.ProgramCourseOffering || {};
+    const deptObj = pco.Department || pco.department || {};
+    const rowDeptId = pco.dept_id ?? deptObj.dept_id ?? deptObj.id ?? pco.Program?.dept_id ?? null;
+    const targetId = department.id ?? department.dept_id ?? null;
+    if (targetId != null && rowDeptId != null && Number(rowDeptId) === Number(targetId)) return true;
+
+    const rowCode = String(row.department_code || deptObj.code || '').trim().toUpperCase();
+    const targetCode = String(department.code || '').trim().toUpperCase();
+    if (targetCode && rowCode && rowCode === targetCode) return true;
+
+    const rowName = String(row.department_name || deptObj.name || '').trim().toLowerCase();
+    const targetName = String(department.name || '').trim().toLowerCase();
+    if (targetName && rowName && rowName === targetName) return true;
+
+    return false;
+};
+
+const ApprovalCoursesTable = ({
+    role = 'approver',
+    styleHooks = {},
+    department = null,
+    externalYear = null,
+    externalSem = null,
+    externalAssignments = null,
+    externalLoading = false,
+    externalError = false,
+    onReload = null,
+    embedded = false,
+}) => {
     // The school year starts in June, so from January to May the current one began last calendar year.
     const today = new Date();
     const currentYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1;
@@ -94,8 +124,12 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const schoolYears = [];
     for (let i = currentYear + 1; i >= startYear; i--) schoolYears.push(i);
     const query = usePageSearch('Search course code or title');
-    const [selectedYear, setSelectedYear] = useState(linkedCourseFilters.year);
-    const [selectedSem, setSelectedSem] = useState(linkedCourseFilters.semester);
+    const [internalYear, setInternalYear] = useState(linkedCourseFilters.year);
+    const [internalSem, setInternalSem] = useState(linkedCourseFilters.semester);
+    const selectedYear = externalYear != null ? externalYear : internalYear;
+    const selectedSem = externalSem != null ? externalSem : internalSem;
+    const setSelectedYear = setInternalYear;
+    const setSelectedSem = setInternalSem;
 
     // The VPAA and the Industry Consultant see Dean-approved plans only (the server lists nothing else for them).
     const approvedOnly = role === 'vpaa' || role === 'industry-consultant';
@@ -226,7 +260,16 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
       if (failed.length) alertDialog(`${failed.length} plan${failed.length === 1 ? ' was' : 's were'} left out (the server could not make the PDF): ${failed.join(', ')}. Try again, or export ${failed.length === 1 ? 'it' : 'them'} one by one.`, { title: 'Some plans were left out' });
     };
 
+    const useExternalData = Array.isArray(externalAssignments);
+    const effectiveAssignments = useExternalData ? externalAssignments : assignments;
+    const effectiveLoading = useExternalData ? externalLoading : loading;
+    const effectiveLoadError = useExternalData ? externalError : loadError;
+
     const loadAssignments = useCallback(async () => {
+        if (useExternalData) {
+            if (typeof onReload === 'function') onReload();
+            return;
+        }
         setLoading(true);
         setLoadError(false);
         try {
@@ -239,12 +282,13 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         } finally {
             setLoading(false);
         }
-    }, [selectedYear, selectedSem]);
+    }, [useExternalData, onReload, selectedYear, selectedSem]);
 
-    // Fetch data whenever Year or Semester changes
+    // Fetch data whenever Year or Semester changes (skipped when parent supplies externalAssignments)
     useEffect(() => {
+        if (useExternalData) return;
         loadAssignments();
-    }, [loadAssignments]);
+    }, [useExternalData, loadAssignments]);
 
     const getCode = (row) => {
         const pco = row.ProgramCourseOffering || {};
@@ -263,7 +307,8 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     };
 
     const rowsFor = (status) => {
-        const rows = filterAssignmentsByCourse(assignments, targetCourse)
+        const rows = filterAssignmentsByCourse(effectiveAssignments, targetCourse)
+            .filter(row => matchesDepartment(row, department))
             .filter(row => computeOverallStatus(row).toUpperCase() === status);
         if (status !== 'APPROVED') return rows;
         // Approved tab: show only the LATEST revision per course (older approved
@@ -280,13 +325,20 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     };
 
     // What the table shows: the chosen tab, narrowed by what was typed in the top bar's search.
-    const programOf = (row) => row.ProgramCourseOffering?.Program?.name || '';
-    const termPrograms = role === 'vpaa' ? [...new Set(rowsFor(selectedStatus).map(programOf).filter(Boolean))].sort() : [];
+    const programOf = (row) => row.ProgramCourseOffering?.Program?.name || row.program_name || '';
+    const deptProgramNames = Array.isArray(department?.programs)
+        ? department.programs
+            .filter((p) => p && p.name && p.status !== 'Unlisted' && p.status !== 'Archived')
+            .map((p) => p.name)
+        : [];
+    const termPrograms = role === 'vpaa'
+        ? [...new Set([...deptProgramNames, ...rowsFor(selectedStatus).map(programOf).filter(Boolean)])].sort()
+        : [];
     // A program picked in another term that this term does not have: show all, as the picker then says.
     const programFilter = termPrograms.includes(selectedProgram) ? selectedProgram : '';
     const filteredRows = rowsFor(selectedStatus)
         .filter(row => !programFilter || programOf(row) === programFilter)
-        .filter(row => matchesSearch(query, [getCode(row), getName(row)]));
+        .filter(row => matchesSearch(query, [getCode(row), getName(row), row.instructor_name || '']));
 
 
     // The columns, described once. `sortValue` exists because the code and the
@@ -355,7 +407,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         APPROVED: {
             icon: <CheckCircle size={22} strokeWidth={1.6} />,
             title: 'No approved learning plans yet',
-            hint: 'A plan shows here once the Dean has given the final approval.'
+            hint: department
+                ? `No learning plans for ${department.code || department.name} have received final Dean approval for this term yet.`
+                : 'A plan shows here once the Dean has given the final approval.'
         }
     };
 
@@ -367,6 +421,16 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     icon={<Clock size={22} strokeWidth={1.6} />}
                     title={`${targetCourse} is not available in this view`}
                     hint="Its status or term may have changed. Open it again from the Reference Library."
+                />
+            );
+        }
+        if (programFilter) {
+            return (
+                <EmptyState
+                    colSpan={colSpan}
+                    icon={<CheckCircle size={22} strokeWidth={1.6} />}
+                    title={`No approved plans for ${programFilter}`}
+                    hint="Choose another program or switch back to All programs."
                 />
             );
         }
@@ -382,54 +446,60 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         const offeringId = getOfferingID(row);
         // A working copy has no revision number yet, so it is addressed by its offering id alone.
         const revNum = revisionOf((row.ProgramCourseOffering || {}).revision_number);
-        return `${base}?status=${computeOverallStatus(row).toLowerCase()}&fromStatus=${selectedStatus.toLowerCase()}&pcId=${offeringId}${revNum ? `&revNum=${revNum}` : ''}`;
+        const deptParam = department?.code ? `&dept=${encodeURIComponent(department.code)}` : '';
+        return `${base}?status=${computeOverallStatus(row).toLowerCase()}&fromStatus=${selectedStatus.toLowerCase()}&pcId=${offeringId}${revNum ? `&revNum=${revNum}` : ''}${deptParam}`;
     };
 
 
     return (
-        <div className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}>
-            <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
-                <h2>{approvedOnly ? 'APPROVED LEARNING PLANS' : 'ASSIGNED COURSE OFFERINGS'}</h2>
-                <div className={`${styles.filterA} ${styleHooks.filters || ''}`.trim()} style={{ background: 'transparent', boxShadow: 'none', padding: 0, gap: 10, alignItems: 'center' }}>
-                    {/* School year and semester, as the Course Assignment module's pickers. */}
-                    <Select variant="pill" value={String(selectedYear)} onChange={(e) => setSelectedYear(e.target.value)} aria-label="School year">
-                        {schoolYears.map(y => <option key={y} value={String(y)}>{y} - {y + 1}</option>)}
-                    </Select>
-                    <Select variant="pill" value={selectedSem} onChange={(e) => setSelectedSem(e.target.value)} aria-label="Semester">
-                        {semOptions.map(sem => <option key={sem} value={sem}>{SEM_NAME[sem]}</option>)}
-                    </Select>
-                    {termPrograms.length > 0 && (
-                        <Select variant="pill" value={programFilter} onChange={(e) => setSelectedProgram(e.target.value)} aria-label="Program">
-                            <option value="">All programs</option>
-                            {termPrograms.map(name => <option key={name} value={name}>{name}</option>)}
+        <div
+            className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}
+            style={embedded ? { padding: 0, background: 'transparent' } : undefined}
+        >
+            {!embedded && (
+                <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
+                    <h2>{approvedOnly ? 'APPROVED LEARNING PLANS' : 'ASSIGNED COURSE OFFERINGS'}</h2>
+                    <div className={`${styles.filterA} ${styleHooks.filters || ''}`.trim()} style={{ background: 'transparent', boxShadow: 'none', padding: 0, gap: 10, alignItems: 'center' }}>
+                        {/* School year and semester, as the Course Assignment module's pickers. */}
+                        <Select variant="pill" value={String(selectedYear)} onChange={(e) => setSelectedYear(e.target.value)} aria-label="School year">
+                            {schoolYears.map(y => <option key={y} value={String(y)}>{y} - {y + 1}</option>)}
                         </Select>
+                        <Select variant="pill" value={selectedSem} onChange={(e) => setSelectedSem(e.target.value)} aria-label="Semester">
+                            {semOptions.map(sem => <option key={sem} value={sem}>{SEM_NAME[sem]}</option>)}
+                        </Select>
+                        {termPrograms.length > 0 && (
+                            <Select variant="pill" value={programFilter} onChange={(e) => setSelectedProgram(e.target.value)} aria-label="Program">
+                                <option value="">All programs</option>
+                                {termPrograms.map(name => <option key={name} value={name}>{name}</option>)}
+                            </Select>
+                        )}
+                    </div>
+
+                    <div className={styles.fill}></div>
+
+                    {!approvedOnly && (
+                        <div className={styles['filter-container']}>
+                            <div className={styles['segmented-control']}>
+                                {statuses.map((status) => {
+                                    const count = status === 'NOT_SUBMITTED' ? notSubmittedCount : (effectiveLoading ? null : rowsFor(status).length);
+                                    return (
+                                        <button
+                                            key={status}
+                                            type="button"
+                                            className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
+                                            onClick={() => updateStatus(status)}
+                                            aria-pressed={selectedStatus === status}
+                                        >
+                                            {statusLabel(status)}
+                                            {count !== null && <span className={styles.segCount}>{count}</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
                 </div>
-
-                <div className={styles.fill}></div>
-
-                {!approvedOnly && (
-                    <div className={styles['filter-container']}>
-                        <div className={styles['segmented-control']}>
-                            {statuses.map((status) => {
-                                const count = status === 'NOT_SUBMITTED' ? notSubmittedCount : (loading ? null : rowsFor(status).length);
-                                return (
-                                    <button
-                                        key={status}
-                                        type="button"
-                                        className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
-                                        onClick={() => updateStatus(status)}
-                                        aria-pressed={selectedStatus === status}
-                                    >
-                                        {statusLabel(status)}
-                                        {count !== null && <span className={styles.segCount}>{count}</span>}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-            </div>
+            )}
 
             <div className={styles.tableControlsOuter}>
                 <div className={styles.searchContainer}>
@@ -442,6 +512,12 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                         aria-label="Search course code or name"
                     />
                 </div>
+                {embedded && termPrograms.length > 0 && (
+                    <Select variant="pill" value={programFilter} onChange={(e) => setSelectedProgram(e.target.value)} aria-label="Program">
+                        <option value="">All programs</option>
+                        {termPrograms.map(name => <option key={name} value={name}>{name}</option>)}
+                    </Select>
+                )}
                 {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && role !== 'instructor' && sortedRows.length >= 2 && (
                     <button type="button" className={`btn btn-secondary btn-sm ${styles.termExport}`} onClick={exportTerm} disabled={termProgress !== null}
                         title="Every approved plan in this list as a ZIP: one PDF per plan, each with its program's front pages">
@@ -467,9 +543,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
             </div>
 
             {!notSubmitted && layoutMode === 'grid' && (
-                loading
+                effectiveLoading
                     ? <Loading label="Loading course offerings…"><TableSkeleton rows={3} cols={['1fr', '1fr', '1fr']} /></Loading>
-                    : loadError
+                    : effectiveLoadError
                         ? <table><tbody><EmptyState colSpan={1} icon={<XCircle size={22} strokeWidth={1.6} />} title="Could not load assigned course offerings"
                             hint="The course list could not be loaded. Try again."
                             action={<button type="button" className="btn btn-secondary btn-sm" onClick={loadAssignments}>Try again</button>} /></tbody></table>
@@ -505,9 +581,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     table meant the empty state ("No learning plans waiting for
                     you") was on screen at the same time as "Loading…", which
                     tells the reader two contradictory things. */}
-                {loading && <Loading label="Loading course offerings…"><TableSkeleton rows={6} cols={[165, 130, '1fr', 165, 230]} /></Loading>}
+                {effectiveLoading && <Loading label="Loading course offerings…"><TableSkeleton rows={6} cols={[165, 130, '1fr', 165, 230]} /></Loading>}
 
-                {!loading && loadError && (
+                {!effectiveLoading && effectiveLoadError && (
                     <EmptyState
                         icon={<XCircle size={22} strokeWidth={1.6} />}
                         title="Could not load assigned course offerings"
@@ -516,7 +592,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     />
                 )}
 
-                {!loading && !loadError && selectedStatus === 'APPROVED' &&
+                {!effectiveLoading && !effectiveLoadError && selectedStatus === 'APPROVED' &&
                     <table className={`${styles.truncate} ${styles.approvalTable} ${styles.approvedTable}`}>
                         <thead>
                         <tr>
@@ -539,12 +615,12 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
-                        {!loading && sortedRows.length === 0 && emptyRow(5)}
+                        {!effectiveLoading && sortedRows.length === 0 && emptyRow(5)}
                         </tbody>
                     </table>
                 }
 
-                {!loading && !loadError && (selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
+                {!effectiveLoading && !effectiveLoadError && (selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
                     <table className={`${styles.truncate} ${styles.approvalTable}`}>
                         <thead>
                         <tr>
@@ -562,7 +638,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
-                        {!loading && sortedRows.length === 0 && emptyRow(4)}
+                        {!effectiveLoading && sortedRows.length === 0 && emptyRow(4)}
                         </tbody>
                     </table>
                 }

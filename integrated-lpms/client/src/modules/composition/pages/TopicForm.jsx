@@ -584,7 +584,7 @@ const TopicSubForm = forwardRef(({
                         title: s.title || '',
                         estimated_minutes: s.estimated_minutes != null && s.estimated_minutes !== ''
                             ? Number(s.estimated_minutes)
-                            : '',
+                            : 30,
                         sequence_order: s.sequence_order ?? sIdx
                     }))
                 }));

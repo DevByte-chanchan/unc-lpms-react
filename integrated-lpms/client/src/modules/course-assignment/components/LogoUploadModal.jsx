@@ -16,6 +16,7 @@
  * which lets the mock flow round-trip without a backend.
  */
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, UploadCloud, Trash2, Lock, Check } from 'react-feather';
 import {
   getLogoLibrary, getBundledLogos, addToLogoLibrary, removeFromLogoLibrary,
@@ -147,16 +148,17 @@ const LogoUploadModal = ({ dept, departments, onClose, onSaved }) => {
     onSaved && onSaved();
   };
 
-  return (
+  const modalContent = (
     <>
       <div onClick={() => !busy && onClose()}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 100, backdropFilter: 'blur(2px)' }} />
+        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 2000, backdropFilter: 'blur(2px)' }} />
       <div style={{
         position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
         width: 'min(720px, 94vw)', maxHeight: '88vh',
-        background: '#FFFFFF', borderRadius: 14, zIndex: 101,
+        background: '#FFFFFF', borderRadius: 14, zIndex: 2001,
         boxShadow: '0 24px 60px rgba(15,23,42,0.30)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        fontFamily: "var(--font-ui, 'Inter', sans-serif)",
       }}>
         {/* Header */}
         <div style={{
@@ -389,17 +391,18 @@ const LogoUploadModal = ({ dept, departments, onClose, onSaved }) => {
         </div>
       </div>
 
-      {/* Delete confirmation — sits above this modal (zIndex > 101). */}
+      {/* Delete confirmation — sits above this modal (zIndex > 2001). */}
       {pendingDelete && (
         <>
           <div onClick={() => setPendingDelete(null)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 110 }} />
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 2010 }} />
           <div role="dialog" aria-modal="true"
             style={{
               position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
               width: 'min(420px, 92vw)', padding: 24, background: '#FFFFFF', borderRadius: 12,
-              display: 'flex', flexDirection: 'column', gap: 16, zIndex: 111,
+              display: 'flex', flexDirection: 'column', gap: 16, zIndex: 2011,
               boxShadow: '0 18px 40px rgba(0,0,0,0.22)',
+              fontFamily: "var(--font-ui, 'Inter', sans-serif)",
             }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
@@ -435,6 +438,8 @@ const LogoUploadModal = ({ dept, departments, onClose, onSaved }) => {
       )}
     </>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
 
 export default LogoUploadModal;

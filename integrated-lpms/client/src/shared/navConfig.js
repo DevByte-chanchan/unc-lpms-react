@@ -65,7 +65,7 @@ export const SIDEBAR_ITEMS = {
     { label: 'Academic Terms', path: '/vpaa/academic-terms', icon: 'calendar' },
     { label: 'Department List', path: '/vpaa/departments', icon: 'building' },
     { label: 'University VMGO', path: '/vpaa/university-vmgo', icon: 'award' },
-    { label: 'Approved Plans', path: '/vpaa/approved-plans', icon: 'fileText', matchPaths: ['/vpaa/approved-plans', '/submissions/review'] },
+    { label: 'Approved Plans', path: '/vpaa/approved-plans', icon: 'fileText', matchPaths: ['/vpaa/approved-plans', '/role/vpaa', '/submissions/review'] },
     { label: 'User Accounts', path: '/vpaa/user-accounts', icon: 'users' },
   ],
   Dean: [

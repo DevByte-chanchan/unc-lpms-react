@@ -62,7 +62,7 @@ const InitialsAvatar = ({ code, name }) => {
   );
 };
 
-const DepartmentCard = ({ dept, count, onOpen, onInsertLogo, logoRefreshKey }) => {
+const DepartmentCard = ({ dept, count, onOpen, onInsertLogo, logoRefreshKey, unitLabel }) => {
   const [hover, setHover] = React.useState(false);
   // logoRefreshKey is bumped by the parent whenever the user closes the
   // logo modal — re-renders this card so a freshly-assigned logo shows
@@ -72,6 +72,8 @@ const DepartmentCard = ({ dept, count, onOpen, onInsertLogo, logoRefreshKey }) =
     [dept.code, logoRefreshKey]
   );
   const hasLogo = !!logoUrl;
+  const singular = (unitLabel && unitLabel.singular) || 'file';
+  const plural = (unitLabel && unitLabel.plural) || 'files';
 
   return (
     <div
@@ -108,7 +110,7 @@ const DepartmentCard = ({ dept, count, onOpen, onInsertLogo, logoRefreshKey }) =
         display: 'inline-flex', alignItems: 'center', gap: 5,
       }}>
         <FileText size={11} color={count > 0 ? ACCENT : SLATE_400} />
-        {count} {count === 1 ? 'file' : 'files'}
+        {count} {count === 1 ? singular : plural}
       </div>
 
       {/* Logo / initials avatar */}
@@ -187,6 +189,7 @@ const DepartmentRepositoryGrid = ({
   onInsertLogo,
   logoRefreshKey,
   emptyMessage,
+  unitLabel,
 }) => {
   if (!departments || departments.length === 0) {
     return (
@@ -213,21 +216,29 @@ const DepartmentRepositoryGrid = ({
 
   return (
     <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-      gap: 16,
-      paddingBottom: 4,
+      flex: 1,
+      minHeight: 0,
+      overflowY: 'auto',
+      paddingTop: 2,
+      paddingBottom: 12,
     }}>
-      {departments.map((d) => (
-        <DepartmentCard
-          key={d.id || d.code}
-          dept={d}
-          count={counts[d.code] || 0}
-          onOpen={onOpen}
-          onInsertLogo={onInsertLogo}
-          logoRefreshKey={logoRefreshKey}
-        />
-      ))}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: 16,
+      }}>
+        {departments.map((d) => (
+          <DepartmentCard
+            key={d.id || d.code}
+            dept={d}
+            count={counts[d.code] || 0}
+            onOpen={onOpen}
+            onInsertLogo={onInsertLogo}
+            logoRefreshKey={logoRefreshKey}
+            unitLabel={unitLabel}
+          />
+        ))}
+      </div>
     </div>
   );
 };

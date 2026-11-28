@@ -190,14 +190,15 @@ $cell-inset: 18px
   display: flex
   justify-content: space-between
   align-items: center
+  gap: 14px
   width: 100%
   margin-bottom: 10px
 
 .searchContainer
   display: flex
   flex-grow: 1
+  min-width: 0
   align-items: center
-  margin-right: 20px
   border: 1px solid #A4A9AF
   border-radius: var(--control-radius)
   height: 40px
@@ -219,6 +220,7 @@ $cell-inset: 18px
 .layoutToggles
   display: flex
   align-items: center
+  flex-shrink: 0
   background: var(--surface-sunken)
   padding: 4px
   // concentric: the 4px buttons inside plus this 4px padding
@@ -715,7 +717,7 @@ table.approvalTable
   gap: 6px
   height: 40px
   padding: 0 16px
-  margin-right: 20px
+  flex-shrink: 0
   border-radius: var(--control-radius)
   white-space: nowrap
 
@@ -726,6 +728,5 @@ table.approvalTable
     row-gap: 10px
     .searchContainer
       flex-basis: 100%
-      margin-right: 0
     button.termExport.termExport
       margin-right: auto

@@ -96,7 +96,7 @@ const TopicSelector = ({
                 subtopic_id: null,
                 _temp_id: `temp-sub-${Date.now()}`,
                 title: "",
-                estimated_minutes: "",
+                estimated_minutes: 30,
                 sequence_order: 0
             }],
             isManual: true
@@ -130,7 +130,7 @@ const TopicSelector = ({
                     subtopic_id: null,
                     _temp_id: `temp-sub-${Date.now()}`,
                     title: "",
-                    estimated_minutes: "",
+                    estimated_minutes: 30,
                     sequence_order: 0
                 }
             ]
@@ -199,11 +199,18 @@ const TopicSelector = ({
             const index = t.subtopics.findIndex(s => getSubtopicKey(s) === getSubtopicKey(subTarget));
             if (index === -1) return t;
             const target = t.subtopics[index];
+            const rawTitle = String(target.title || '').trim();
+            const meaningfulTitle = rawTitle.replace(/(\s*\(Copy\)\s*)+$/i, '').trim();
+            const duplicatedTitle = meaningfulTitle ? `${rawTitle} (Copy)` : "";
+            const hasMinutes =
+                target.estimated_minutes !== "" &&
+                target.estimated_minutes !== null &&
+                target.estimated_minutes !== undefined;
             const newNode = {
                 subtopic_id: null,
                 _temp_id: `temp-sub-${Date.now()}-${Math.random()}`,
-                title: `${target.title} (Copy)`,
-                estimated_minutes: target.estimated_minutes ?? "",
+                title: duplicatedTitle,
+                estimated_minutes: hasMinutes ? target.estimated_minutes : 30,
                 sequence_order: target.sequence_order + 1
             };
             const newSubtopics = [...t.subtopics];
@@ -231,7 +238,7 @@ const TopicSelector = ({
                         subtopic_id: null,
                         _temp_id: `temp-sub-${Date.now()}`,
                         title: "",
-                        estimated_minutes: "",
+                        estimated_minutes: 30,
                         sequence_order: t.subtopics.length
                     }
                 ]
