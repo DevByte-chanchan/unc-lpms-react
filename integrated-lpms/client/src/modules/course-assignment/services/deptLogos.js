@@ -126,6 +126,18 @@ export const removeDeptLogo = (code) => {
 
 export const getAssignedLogoId = (code) => readMap()[code] || null;
 
+// Alias map for renamed UNC departments whose bundled seal uses the legacy code.
+const BUNDLED_CODE_ALIASES = {
+  STE: 'COE',
+};
+
+const resolveBundledCode = (upper) => {
+  if (BUNDLED[upper]) return upper;
+  const alias = BUNDLED_CODE_ALIASES[upper];
+  if (alias && BUNDLED[alias]) return alias;
+  return null;
+};
+
 /**
  * The key identifying which library/bundled tile a department currently
  * resolves to: a library id, a 'bundled:<CODE>' key, or null. Lets the
@@ -142,7 +154,8 @@ export const getCurrentLogoKey = (code) => {
     if (String(assigned).startsWith('bundled:')) return assigned;
     if (lib.find((e) => e.id === assigned)) return assigned;
   }
-  if (BUNDLED[upper]) return 'bundled:' + upper;
+  const bundledCode = resolveBundledCode(upper);
+  if (bundledCode) return 'bundled:' + bundledCode;
   const tagged = lib.filter((e) => e.code === upper);
   if (tagged.length) return tagged[tagged.length - 1].id;
   return null;
@@ -188,8 +201,9 @@ export const resolveDeptLogo = (code) => {
     if (hit) return hit.dataUrl;
   }
 
-  // 2. Pre-loaded bundled asset (src/assets/dept-logos/<CODE>.png).
-  if (BUNDLED[upper]) return BUNDLED[upper];
+  // 2. Pre-loaded bundled asset (src/assets/dept-logos/<CODE>.png or alias).
+  const bundledCode = resolveBundledCode(upper);
+  if (bundledCode) return BUNDLED[bundledCode];
 
   // 3. Auto-match: an uploaded library logo tagged with this code.
   //    Newest tagged entry wins so a re-upload supersedes an older one.

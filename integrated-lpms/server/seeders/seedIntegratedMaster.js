@@ -160,14 +160,16 @@ async function seedIntegratedMaster() {
     ], { transaction: t, ignoreDuplicates: true });
 
     // ------------------------------------------------------------------
-    // 3. Departments
+    // 3. Departments (All 7 UNC Departments from course-assignment sample_departments.xlsx)
     // ------------------------------------------------------------------
     await db.Department.bulkCreate([
-      { dept_id: 1, name: 'School of Business and Accountancy', code: 'SBA', dean: 'Dr. Arturo Mendoza', dean_email: 'arturo.mendoza@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
-      { dept_id: 2, name: 'College of Engineering and Architecture', code: 'CEA', dean: 'Engr. Ricardo Ramos', dean_email: 'ricardo.ramos@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
+      { dept_id: 1, name: 'School of Business and Accountancy', code: 'SBA', dean: 'Dr. Teresita L. Gomez', dean_email: 'teresita.gomez@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
+      { dept_id: 2, name: 'College of Engineering and Architecture', code: 'CEA', dean: 'Engr. Ramon T. Villanueva', dean_email: 'ramon.villanueva@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
       { dept_id: 3, name: 'School of Computer and Information Sciences', code: 'SCIS', dean: 'Sophia Sterling', dean_email: 'sophia.sterling@unc.edu.ph', stakeholder_id: 5, status: 'Active', academic_period_id: 2 },
-      { dept_id: 4, name: 'College of Nursing', code: 'CON', dean: 'Dr. Lourdes Bautista', dean_email: 'lourdes.bautista@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
-      { dept_id: 5, name: 'Criminal Justice Education', code: 'CJE', dean: 'Dr. Ramon Villanueva', dean_email: 'ramon.villanueva@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
+      { dept_id: 4, name: 'School of Nursing & Allied Health Sciences', code: 'SNAHS', dean: 'Dr. Lourdes A. Bautista', dean_email: 'lourdes.bautista@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
+      { dept_id: 5, name: 'College of Criminal Justice Education', code: 'CJE', dean: 'Atty. Ramon D. Fernandez', dean_email: 'ramon.fernandez@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
+      { dept_id: 6, name: 'School of Social & Natural Sciences', code: 'SSNS', dean: 'Dr. Maria Elena Santos', dean_email: 'mariaelena.santos@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
+      { dept_id: 7, name: 'School of Teacher Education', code: 'STE', dean: 'Dr. Carmela V. Reyes', dean_email: 'carmela.reyes@unc.edu.ph', stakeholder_id: null, status: 'Active', academic_period_id: 2 },
     ], { transaction: t, ignoreDuplicates: true });
 
     // ------------------------------------------------------------------
