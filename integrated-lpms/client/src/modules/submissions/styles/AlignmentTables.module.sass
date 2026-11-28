@@ -1,0 +1,96 @@
+/* ── Strict table override ──
+   Global app styles flex/deform plain <table> markup (same reason the
+   syllabus refTable carries these overrides). Every alignment table
+   must use .alignTable to render as a real grid. */
+.alignTable
+  width: 100%
+  min-width: 960px
+  border-collapse: collapse !important
+  display: table !important
+  table-layout: fixed
+  font-family: 'Poppins', sans-serif
+  font-size: 13px
+  color: #334155
+
+  thead
+    display: table-header-group !important
+
+  tbody
+    display: table-row-group !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    border: none !important
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #aeb5ba
+    padding: 8px 10px
+    vertical-align: middle
+    text-align: left
+    box-sizing: border-box
+    overflow-wrap: break-word
+    line-height: 1.5
+
+  th
+    font-weight: 700
+    background: #edeff2
+    color: #172b31
+    line-height: 1.35
+
+  td
+    background: #fff
+
+.center
+  text-align: center !important
+  padding-right: 6px !important
+  padding-left: 6px !important
+  white-space: nowrap
+
+.clickable
+  cursor: pointer
+  &:hover
+    background: #eef7f1 !important
+
+.emptyCell
+  height: 240px
+  padding: 30px !important
+  color: #94a3b8 !important
+  text-align: center !important
+
+// CO-PO owns a compact matrix so its few outcome rows do not expand to fill
+// the entire available workspace. Other alignment tables keep their sizing.
+@media (max-width: 1024px)
+@media (max-width: 720px)
+// One even grid for the alignment pages, added next to the syllabus alignment table:
+//  - every line is exactly 1px and one colour, outer edges included: the table draws its own top and left edge and
+//    each cell its right and bottom edge (a collapsed border at the edge of a scrolling box is clipped to half);
+//  - the columns keep the widths given by the <colgroup>, so a page does not re-adjust itself when its content, or
+//    its edit mode, changes;
+//  - headers do not stick (a sticky header cell paints its own border), no row striping, every cell on white.
+.plain.plain
+  border-collapse: separate !important
+  border-spacing: 0 !important
+  table-layout: fixed !important
+  border-top: 1px solid #5f6f78
+  border-left: 1px solid #5f6f78
+
+  tr
+    background: transparent !important
+
+  th, td
+    background: #fff !important
+    border: 0 !important
+    border-right: 1px solid #5f6f78 !important
+    border-bottom: 1px solid #5f6f78 !important
+    color: #000 !important
+
+  th
+    position: static !important
+    background: #efefef !important
+
+// The scrolling box around such a table has no border of its own: the table draws every line.
+.plainWrap.plainWrap
+  border: 0 !important

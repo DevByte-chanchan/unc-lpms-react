@@ -1,0 +1,68 @@
+.container
+  display: flex
+  padding: 0 0 0 20px
+  flex-direction: column
+  align-items: flex-start
+  //gap: 5px
+  width: 100%
+  height: max-content
+
+.label
+  color: #000
+  text-align: left
+  font-family: Manrope,sans-serif
+  font-size: 16px
+  font-weight: 500
+  line-height: normal
+
+.textfield
+  font-size: 16px
+  display: flex
+  align-items: center
+  gap: 10px
+  align-self: stretch
+  // the app's control box (tokens.css), like Select and the inputs
+  border-radius: var(--control-radius)
+  border: 1px solid var(--control-border)
+  transition: border-color 0.2s ease-in-out
+
+  // NEW: Error State for the wrapper
+  &.error
+    border: 1px solid #FF5252 !important
+    background-color: #FFF4F4
+
+.textfield input
+  width: 100%
+  // 34 inside the 1px border = 36, the height of every control
+  height: 34px
+  padding: 0 12px
+  outline: none
+  border-radius: var(--control-radius)
+  border: 0
+  font-size: var(--fs-sm)
+  background: transparent // Added to ensure error background shows through
+
+.textfield textarea
+  width: 100%
+  height: 100%
+  padding: 8px 15px
+  outline: none
+  border-radius: var(--control-radius)
+  border: 0
+  font-size: var(--fs-sm)
+  background: transparent // Added to ensure error background shows through
+
+.disabled-style
+  background: #F8F9F9
+
+// NEW: Error Message Text
+.errorMessage
+  color: #FF5252
+  font-size: 12px
+  font-weight: 500
+  margin-top: 5px
+  font-family: Manrope, sans-serif
+
+@media (max-width: 720px)
+  .container
+    padding-left: 0

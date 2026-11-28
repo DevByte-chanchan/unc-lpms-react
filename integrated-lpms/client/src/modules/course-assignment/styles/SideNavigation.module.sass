@@ -1,0 +1,92 @@
+.container
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.logo
+  width: 100%
+  padding: 10px 20px
+  display: flex
+  justify-content: flex-start
+
+.logo img
+  width: 50px
+  display: block
+
+.lpms
+  font-weight: 700
+  font-size: 16px
+  padding: 0 20px 40px 23px
+  margin-top: 10px
+  color: #374151
+  line-height: 1.4 // Comfortable spacing for the 3 lines
+  // white-space: nowrap // REMOVED: Must allow wrapping for <br/> to work
+  text-overflow: ellipsis
+  transition: opacity 0.2s ease
+  min-height: 24px
+
+.nav-list
+  margin: 20px 20px 0 20px
+  height: 100%
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.list
+  padding: 10px 12px
+  border-radius: 10px
+  display: flex
+  align-items: center
+  gap: 16px
+  cursor: pointer
+  font-size: 15px
+  font-weight: 500
+  color: #4B5563
+  white-space: nowrap
+  transition: background 0.2s ease
+
+  &:hover
+    background: #F3F4F6
+    color: #18191A
+
+  &.selected
+    background: #E5E7EB
+    color: #18191A
+    font-weight: 600
+
+.list svg
+  flex-shrink: 0
+
+.listText
+  white-space: nowrap
+
+// Log Out keeps its red. The rest of the brand red went black, but signing out is
+// the one control that should still stop the eye — and it is deliberately NOT
+// treated as decoration.
+.listB
+  padding: 10px 12px
+  border-radius: 10px
+  display: flex
+  align-items: center
+  gap: 16px
+  cursor: pointer
+  font-size: 15px
+  font-weight: 500
+  color: #F94545
+  white-space: nowrap
+
+  svg
+    flex-shrink: 0
+
+  &:hover
+    background: #FEF2F2
+
+// --- Log Out ---
+.logoutWrapper
+  margin-top: auto
+  display: flex
+  flex-direction: column
+  padding-bottom: 30px

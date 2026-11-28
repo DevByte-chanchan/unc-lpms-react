@@ -1,0 +1,252 @@
+.page
+  width: 100%
+  height: 100%
+  min-width: 0
+  min-height: 0
+  display: flex
+  flex-direction: column
+  gap: 10px
+  padding: 20px 30px
+  background: white
+  box-sizing: border-box
+  overflow: hidden
+  font-family: 'Poppins', sans-serif
+
+.primaryButton, .secondaryButton
+  height: 36px
+  padding: 8px 18px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 7px
+  border-radius: var(--control-radius)
+  cursor: pointer
+  white-space: nowrap
+  font: 500 14px 'Poppins', sans-serif
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
+
+  &:disabled
+    cursor: not-allowed
+    opacity: .5
+
+.contextBar
+  width: 100%
+  min-width: 0
+  min-height: 42px
+  padding: 10px 12px
+  box-sizing: border-box
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 6px 18px
+  border: 1px solid var(--line)
+  border-radius: 6px
+  background: #f8fafc
+  color: #475569
+  font-size: 13px
+  line-height: 1.5
+
+.contextLine
+  margin: 0
+  color: #64748b
+  font-size: 13px
+  line-height: 1.5
+
+.contextMuted
+  color: #64748b
+
+.managementPage
+  width: 100%
+  min-width: 0
+  min-height: calc(100dvh - 100px)
+  // The same frame as the course lists: 30px at the sides, 20px above, so a title is in the same place on every screen.
+  padding: 20px 30px
+  background: #fff
+  box-sizing: border-box
+  display: flex
+  flex-direction: column
+  overflow-x: hidden
+
+  // The title starts 20px down, as on every list page (the 36px header row centred it 4px lower).
+  .pageHeader
+    align-items: flex-start
+
+.pageHeader
+  // The rhythm of the Learning plan page, on every page: a 36px title row, 15px to the filters, 30px to the content.
+  width: 100%
+  min-width: 0
+  min-height: 36px
+  margin-bottom: 5px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 12px
+
+  h2
+    min-width: 0
+    margin: 0
+    font-size: 22px
+    font-weight: 600
+    overflow-wrap: anywhere
+
+.legendRow.legendRow
+  margin: 0
+
+.pageHeaderActions
+  min-width: 0
+  margin-left: auto
+  display: flex
+  flex-wrap: wrap
+  justify-content: flex-end
+  gap: 10px
+
+  // The title row is 36px tall, like the status tabs of the Learning plan page, so its buttons are too.
+  :global(button.btn.btn)
+    min-height: 36px
+    height: 36px
+
+.dataToolbar
+  width: 100%
+  min-width: 0
+  height: auto
+  min-height: 40px
+  margin-bottom: 12px
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  gap: 12px
+
+.toolbarControls
+  // Filters first, then the search, all starting at the left edge like the title above them.
+  min-width: 0
+  width: 100%
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  flex-wrap: wrap
+  gap: 8px
+  margin-bottom: 20px
+
+.managementDialog
+  position: fixed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  width: min(540px, calc(100vw - 24px))
+  max-width: calc(100vw - 24px)
+  max-height: calc(100dvh - 24px)
+  padding: 20px
+  box-sizing: border-box
+  display: flex
+  flex-direction: column
+  gap: 20px
+  overflow-x: hidden
+  overflow-y: auto
+  background: #fff
+  border-radius: var(--radius-lg)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15)
+  z-index: 3
+
+  h2
+    min-width: 0
+    overflow-wrap: anywhere
+
+.dialogNarrow
+  width: min(431px, calc(100vw - 24px))
+
+.dialogElevated
+  z-index: 3000
+  font-family: Poppins, sans-serif
+
+.dialogHeader
+  width: 100%
+  min-width: 0
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 12px
+
+  > *
+    min-width: 0
+    overflow-wrap: anywhere
+
+.dialogContent
+  width: 100%
+  min-width: 0
+  overflow-wrap: anywhere
+
+.managementDialogActions
+  width: 100%
+  min-width: 0
+  display: flex
+  flex-wrap: wrap
+  gap: 12px
+
+  > button
+    min-width: 0
+    flex: 1 1 140px
+
+    &:disabled
+      opacity: .5
+      cursor: not-allowed
+
+@media (max-width: 1024px)
+  .page
+    overflow-y: auto
+  .dataToolbar
+    flex-wrap: wrap
+    align-items: stretch
+  .toolbarControls
+    width: 100%
+    flex: 0 0 auto
+    justify-content: flex-start
+@media (max-width: 720px)
+  .page
+    height: auto
+    min-height: 100%
+    padding: 14px 12px
+  .titleBlock, .controlGroup, .actions
+    grid-column: 1
+  .courseSelect, .actions
+    width: 100%
+    max-width: none
+  .actions > button
+    flex: 1 1 140px
+  .contextBar
+    align-items: flex-start
+    flex-direction: column
+  .managementPage
+    min-height: 100%
+    padding: 14px 12px
+  .pageHeaderActions, .uploadButton
+    width: 100%
+  .dataToolbar, .toolbarSort, .toolbarControls
+    width: 100%
+  .toolbarControls
+    align-items: stretch
+    flex-direction: column
+  .managementDialog
+    padding: 18px
+    gap: 16px
+  .dialogMedium, .dialogSpacious
+    padding: 18px
+  .managementDialogActions
+    flex-wrap: wrap
+
+// A page whose tables are as tall as their rows: the page area scrolls, under the title, and the tables have no
+// up-and-down scrollbar of their own. A table wider than the page still scrolls sideways inside its own box.
+.flowPage
+  height: auto
+  min-height: 100%
+  overflow: visible
+
+.flowTable.flowTable
+  max-height: none
+  flex: 0 0 auto
+  overflow-y: visible

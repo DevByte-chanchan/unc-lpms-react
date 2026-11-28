@@ -1,0 +1,1200 @@
+.container
+  width: 100%
+  height: 100%
+  min-width: 0
+  min-height: 0
+  display: flex
+  flex-direction: column
+  gap: 6px
+
+.mainCont
+  width: 100%
+  min-width: 0
+  min-height: 0
+  display: flex
+  flex-direction: row
+  flex-grow: 1
+  height: 100%
+  gap: 6px
+
+.leftCont
+  flex-grow: 1
+  height: 100%
+  min-width: 0
+  min-height: 0
+
+.rightCont
+  width: 430px
+  background: white
+  height: 100%
+
+.checklistCard
+  background: #ffffff
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  box-sizing: border-box
+  padding-bottom: 100px
+
+.checklistHeader
+  display: flex
+  align-items: center
+  gap: 10px
+  padding: 16px 20px
+  background: #f8fafc
+  border-bottom: 1px solid #e0e4ec
+  width: 100%
+  box-sizing: border-box
+
+  .headerIcon
+    color: #475569
+
+  h3
+    font-size: 1.1rem
+    font-weight: 600
+    color: #1e293b
+    margin: 0
+
+.emptyChecklist
+  padding: 40px 20px
+  text-align: center
+  color: #94a3b8
+  font-size: 0.95rem
+
+.checklistWrapper
+  display: flex
+  flex-direction: column
+  overflow-y: auto
+  overflow-x: hidden
+  flex: 1
+  padding: 10px 0
+
+.checklistItem
+  display: flex
+  align-items: flex-start
+  gap: 14px
+  padding: 16px 20px
+  border-bottom: 1px solid #f1f5f9
+  cursor: pointer
+  transition: background 0.2s ease, opacity 0.2s ease
+  width: 100%
+  box-sizing: border-box
+
+  &:last-child
+    border-bottom: none
+
+  &:hover
+    background: #f8fafc
+
+  &.itemResolved
+    opacity: 0.65
+
+    .commentMessage
+      text-decoration: line-through
+      color: #94a3b8
+
+    .targetContextBadge
+      background: #f1f5f9
+      color: #94a3b8
+
+    .topicTargetGroup
+      background: #f8fafc
+      border-color: var(--line)
+      opacity: 0.8
+
+// Custom Minimalist Checkbox Realization
+.checkboxControl
+  position: relative
+  width: 18px
+  height: 18px
+  margin-top: 2px
+  flex-shrink: 0
+
+  input
+    position: absolute
+    opacity: 0
+    cursor: pointer
+    height: 0
+    width: 0
+
+    &:checked ~ .customCheckmark
+      background-color: #2e7d32
+      border-color: #2e7d32
+
+      &:after
+        display: block
+
+  .customCheckmark
+    position: absolute
+    top: 0
+    left: 0
+    height: 18px
+    width: 18px
+    background-color: #ffffff
+    border: 2px solid var(--control-border)
+    border-radius: 4px
+    transition: all 0.2s ease
+
+    &:after
+      content: ""
+      position: absolute
+      display: none
+      left: 5px
+      top: 2px
+      width: 4px
+      height: 8px
+      border: solid white
+      border-width: 0 2px 2px 0
+      transform: rotate(45deg)
+
+.commentContent
+  display: flex
+  flex-direction: column
+  gap: 8px
+  flex: 1
+  min-width: 0
+
+// Approver Role Filter & Return Grouping inside Comment Section
+.commentFilterBar
+  display: flex
+  align-items: center
+  width: 100%
+  margin-bottom: 2px
+
+.roleFilterDropdownContainer
+  position: relative
+  width: 100%
+  user-select: none
+
+.roleFilterTrigger
+  display: flex
+  align-items: center
+  justify-content: space-between
+  width: 100%
+  padding: 8px 12px
+  font-size: 13px
+  font-weight: 500
+  border: 1px solid #DDDFDF
+  border-radius: 6px
+  background-color: #ffffff
+  color: #1e293b
+  outline: none
+  cursor: pointer
+  transition: border-color 0.15s ease, box-shadow 0.15s ease
+  box-sizing: border-box
+
+  &:hover
+    border-color: #94a3b8
+
+.roleFilterTriggerOpen
+  border-color: #64748b
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06)
+
+.roleFilterTriggerLabel
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  text-align: left
+  font-weight: 600
+  color: #1e293b
+
+.roleFilterTriggerRight
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  flex-shrink: 0
+
+.roleFilterChevron
+  color: #64748b
+  transition: transform 0.18s ease
+
+.roleFilterChevronOpen
+  transform: rotate(180deg)
+
+.roleFilterMenu
+  // opens from its trigger: 95%, 160ms ease-out
+  transform-origin: top left
+  animation: popIn .16s ease-out
+  position: absolute
+  top: calc(100% + 4px)
+  left: 0
+  right: 0
+  background: #ffffff
+  border: 1px solid var(--control-border)
+  border-radius: var(--radius-lg)
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12)
+  z-index: 40
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  padding: 4px
+
+.roleFilterOption
+  display: flex
+  align-items: center
+  justify-content: space-between
+  width: 100%
+  padding: 8px 10px
+  border: none
+  border-radius: 4px
+  background: transparent
+  color: #334155
+  font-size: 12.5px
+  font-weight: 500
+  cursor: pointer
+  text-align: left
+  transition: background 0.12s ease, color 0.12s ease
+  box-sizing: border-box
+
+  &:hover
+    background: #f1f5f9
+    color: #0f172a
+
+.roleFilterOptionSelected
+  background: #eff6ff
+  color: #1d4ed8
+  font-weight: 600
+
+  &:hover
+    background: #dbeafe
+    color: #1d4ed8
+
+.roleFilterOptionLabel
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.roleOptionBadge
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  min-width: 20px
+  height: 18px
+  padding: 0 6px
+  border-radius: 999px
+  background-color: #ef4444
+  color: #ffffff
+  font-size: 11px
+  font-weight: 700
+  line-height: 1
+  flex-shrink: 0
+
+.roleOptionBadgeResolved
+  background-color: #64748b
+  color: #ffffff
+
+.returnGroupSection
+  display: flex
+  flex-direction: column
+  gap: 8px
+  width: 100%
+
+.returnGroupHeader
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 4px 0 2px 0
+
+.returnGroupTitle
+  font-size: 12.5px
+  font-weight: 600
+  color: #1e293b
+  text-align: center
+
+.returnGroupCards
+  display: flex
+  flex-direction: column
+  gap: 10px
+  width: 100%
+
+// Hierarchical Comment Card Header (2-line Name + Role on left, Checkbox on right)
+.commentItemHeader
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  gap: 10px
+  width: 100%
+  padding-bottom: 6px
+  border-bottom: 1px solid #f1f5f9
+
+.commenterIdentity
+  display: flex
+  flex-direction: column
+  gap: 2px
+  min-width: 0
+
+.commenterName
+  font-size: 13.5px
+  font-weight: 700
+  color: #0f172a
+  line-height: 1.25
+
+.commenterRole
+  font-size: 11.5px
+  font-weight: 600
+  color: #64748b
+  line-height: 1.2
+
+// Modern Context Target Component Badge Hierarchy
+.targetContextBadge
+  align-self: flex-start
+  display: inline-flex
+  align-items: baseline
+  gap: 5px
+  background: #edf2f7
+  color: #4a5568
+  padding: 6px 10px
+  border-radius: var(--radius-pill)
+  font-size: 0.78rem
+  font-weight: 600
+  letter-spacing: -0.01em
+  max-width: 100%
+  line-height: 1.35
+  word-break: break-word
+
+  .targetPrefix
+    font-weight: 800
+    color: #2563EB
+    text-transform: uppercase
+    font-size: 0.68rem
+    letter-spacing: 0.04em
+    flex-shrink: 0
+
+  .targetText
+    word-break: break-word
+    color: #1E293B
+    font-weight: 600
+
+// Topic + Multi-Subtopic Target Hierarchy for Topic Comments
+.topicTargetContainer
+  display: flex
+  flex-direction: column
+  gap: 6px
+  width: 100%
+
+.topicTargetGroup
+  display: flex
+  flex-direction: column
+  gap: 5px
+  padding: 8px 10px
+  background: #F8FAFC
+  border: 1px solid var(--line)
+  border-left: 3px solid #3182CE
+  border-radius: var(--radius-lg)
+  width: 100%
+  box-sizing: border-box
+
+.topicTargetParent
+  display: flex
+  align-items: baseline
+  gap: 5px
+  flex-wrap: wrap
+
+.topicTargetPrefix
+  font-size: 0.68rem
+  font-weight: 800
+  color: #2563EB
+  letter-spacing: 0.04em
+  text-transform: uppercase
+  flex-shrink: 0
+
+.topicTargetTitle
+  font-size: 0.8rem
+  font-weight: 700
+  color: #1E293B
+  line-height: 1.3
+  word-break: break-word
+
+.subtopicTargetList
+  display: flex
+  flex-direction: column
+  gap: 3px
+  padding-top: 4px
+  border-top: 1px dashed var(--line)
+
+.subtopicTargetPill
+  display: flex
+  align-items: flex-start
+  gap: 5px
+  font-size: 0.75rem
+  color: #475569
+  line-height: 1.35
+
+.subtopicBullet
+  color: #3182CE
+  font-weight: 800
+  flex-shrink: 0
+
+.subtopicTargetText
+  word-break: break-word
+  font-weight: 500
+
+.floatingBadge
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  min-width: 20px
+  height: 20px
+  padding: 0 6px
+  border-radius: 999px
+  background: #EF4444
+  color: #ffffff
+  font-size: 11px
+  font-weight: 700
+
+.commentMessage
+  font-size: 0.88rem
+  line-height: 1.48
+  color: #334155
+  margin: 0
+  word-break: break-word
+
+.commentMetadata
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  gap: 6px
+  font-size: 0.78rem
+  color: #64748b
+  margin-top: 2px
+
+  .metaRole
+    font-weight: 600
+    color: #475569
+
+  .metaDivider
+    color: #cbd5e1
+
+  .metaDate
+    font-size: 11.5px
+    font-weight: 500
+    color: #94a3b8
+
+.rubric-cell
+  width: 400px
+  background: yellow
+  height: 100%
+
+.form-container
+  display: flex
+  background: white
+  flex-grow: 1
+  padding: 15px 30px 100px 30px
+  flex-direction: column
+  overflow-y: auto
+  gap: 6px
+  height: 100%
+
+.list
+  display: flex
+  flex-direction: row
+  width: 100%
+  height: max-content
+  gap: 10px
+
+.tlas
+  flex-grow: 1
+  margin-left: 20px
+  display: flex
+  flex-direction: column
+  height: max-content
+  gap: 14px
+  padding: 20px
+  border-radius: 6px
+  border: 1px solid #DDDFDF
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25)
+
+.rubrics
+  flex-grow: 1
+  margin-left: 20px
+  display: flex
+  flex-direction: column
+  height: max-content
+  padding: 20px
+  border-radius: 6px
+  border: 1px solid #DDDFDF
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25)
+
+.rubric-header
+  display: grid
+  grid-template-columns: 1fr .5fr .5fr 60px
+  font-weight: 500
+  color: #333
+  margin-bottom: 8px
+
+.rubric-cell
+  padding-left: 20px
+
+.rubric-row
+  display: grid
+  grid-template-columns: 1fr .5fr .5fr 60px
+  align-items: center
+  margin-bottom: 15px
+
+.x
+  display: flex
+  height: 100%
+  background: #F94545
+  justify-content: center
+  align-items: center
+  padding: 0 10px
+  border-radius: 4px
+  cursor: pointer
+  margin-left: 20px
+
+.saveButton
+  background-color: #007bff
+  color: white
+  border: none
+  padding: 10px 20px
+  border-radius: var(--control-radius)
+  cursor: pointer
+  font-weight: 600
+  &:hover
+    background-color: #0062cc
+
+// --- MODAL / POPUP STYLES ---
+
+.modalOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100vw
+  height: 100dvh
+  padding: 16px
+  box-sizing: border-box
+  background-color: rgba(0, 0, 0, 0.7)
+  height: 100dvh
+  background-color: rgba(0, 0, 0, 0.45)
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 1000
+
+.modal
+  background: white
+  width: min(400px, 100%)
+  max-height: calc(100dvh - 32px)
+  display: flex
+  flex-direction: column
+  width: 440px
+  max-width: 92vw
+  border-radius: var(--radius-lg)
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15)
+  overflow: hidden
+  animation: fadeIn 0.2s ease-out
+
+  .modalHeader
+    padding: 12px 18px
+    border-bottom: 1px solid var(--line)
+    background: #F8FAFC
+    display: flex
+    justify-content: space-between
+    align-items: center
+
+    h3
+      margin: 0
+      font-size: 14px
+      font-weight: 700
+      color: #1E293B
+
+    .closeIcon
+      cursor: pointer
+      color: #64748B
+      border: none
+      background: transparent
+      display: flex
+      align-items: center
+      justify-content: center
+      padding: 4px
+      border-radius: 4px
+      transition: all 0.2s
+      &:hover
+        background: #EDF2F7
+        color: #1E293B
+
+  .modalBody
+    padding: 20px
+    text-align: center
+    overflow-y: auto
+    padding: 16px 20px
+    max-height: 75vh
+    overflow-y: auto
+    text-align: left
+
+    p
+      margin: 8px 0
+      color: #4A5568
+
+    .errorList
+      text-align: left
+      background: #FFF4F4
+      padding: 12px 15px 12px 25px
+      border-radius: var(--radius-lg)
+      margin-top: 10px
+      border: 1px solid #FED7D7
+      li
+        color: #C53030
+        font-size: 0.85rem
+        margin-bottom: 4px
+
+  .modalActions
+    padding: 12px 18px
+    background-color: #F8FAFC
+    border-top: 1px solid var(--line)
+    display: flex
+    justify-content: flex-end
+    gap: 8px
+
+    button
+      padding: 7px 16px
+      border-radius: var(--control-radius)
+      border: none
+      cursor: pointer
+      font-size: 13px
+      font-weight: 600
+      transition: all 0.2s
+
+    .cancelBtn
+      background: #F1F5F9
+      border: 1px solid var(--line)
+      color: #475569
+      &:hover
+        background: #E2E8F0
+        color: #1E293B
+
+    .confirmBtn
+      background: #3182CE
+      color: white
+      &:hover
+        background: #0062cc
+        background: #2B6CB0
+
+@keyframes fadeIn
+  from
+    opacity: 0
+    transform: translateY(-10px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+// --- Pre-Save Spell Check Warning Modal Styles ---
+.spellWarningList
+  display: flex
+  flex-direction: column
+  gap: 8px
+  max-height: 240px
+  overflow-y: auto
+  margin-top: 6px
+
+.spellWarningCategory
+  background: #FFFBEB
+  border: 1px solid #FDE68A
+  border-radius: 6px
+  padding: 9px 12px
+  display: flex
+  flex-direction: column
+  gap: 6px
+
+.spellWarningHeaderRow
+  display: flex
+  align-items: center
+  gap: 6px
+  flex-wrap: wrap
+
+.spellWarningSectionTag
+  font-size: 10px
+  font-weight: 800
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  background: #FEF3C7
+  color: #B45309
+  border: 1px solid #FCD34D
+  padding: 1px 6px
+  border-radius: var(--radius-pill)
+
+.spellWarningFieldTitle
+  font-size: 12px
+  font-weight: 700
+  color: #1E293B
+
+.spellWarningWordPills
+  display: flex
+  flex-wrap: wrap
+  gap: 6px
+
+.spellWarningWordBadge
+  display: inline-flex
+  align-items: center
+  background: #FEF2F2
+  color: #DC2626
+  border: 1px solid #FECACA
+  padding: 2px 8px
+  border-radius: 999px
+  font-size: 11.5px
+  font-weight: 600
+  text-decoration-line: underline
+  text-decoration-style: wavy
+  text-decoration-color: #EF4444
+
+.refModalBodyContent
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+  :global(.generic-field-container)
+    padding: 0 !important
+    margin: 0 !important
+    width: 100%
+
+  :global(.label), :global(.generic-field-label)
+    font-size: 11px !important
+    font-weight: 600 !important
+    color: #4A5568 !important
+    margin-bottom: 4px !important
+    font-family: inherit
+  
+  :global(.textfield), :global(.dropdown), :global(.generic-field-input), :global(.dropdownContainer)
+    background: #fff !important
+    border: 1px solid var(--line) !important
+    padding: 0 !important
+    border-radius: var(--control-radius) !important
+    width: 100%
+    box-sizing: border-box
+    height: 34px !important
+    min-height: 34px !important
+    &:focus-within
+      border-color: #3182CE !important
+
+  input, select, textarea
+    background: transparent !important
+    border: none !important
+    padding: 5px 10px !important
+    font-size: 12px !important
+    color: #2D3748 !important
+    outline: none !important
+    width: 100%
+    height: 100% !important
+    box-sizing: border-box
+
+  .modalError
+    color: #E53E3E
+    font-size: 12px
+    font-weight: 500
+    margin-top: 2px
+
+
+// =============================================
+// --- ADDED TLA WORKSPACE SET STYLES ---
+// =============================================
+
+.tlaCardCopycat
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  background: white
+  overflow: hidden
+  transition: all 0.3s ease
+  display: flex
+  flex-direction: column
+  height: auto
+
+.tlaBodyCopycat
+  padding: 15px
+  display: flex
+  flex-direction: column
+  gap: 15px
+  flex: 1
+  overflow-y: auto
+  box-sizing: border-box
+
+
+.tlaFieldSubtopicStyle
+  :global(.generic-field-container)
+    padding: 0 !important
+    margin: 0 !important
+
+  :global(.label)
+    font-size: 11px !important
+    font-weight: 600 !important
+    color: #4A5568 !important
+    margin-bottom: 4px !important
+    font-family: inherit
+  
+  :global(.generic-field-label)
+    font-size: 11px !important
+    font-weight: 600 !important
+    color: #4A5568 !important
+    margin-bottom: 4px !important
+
+  :global(.textfield), :global(.dropdown), :global(.generic-field-input), :global(.dropdownContainer)
+    background: #fff !important
+    border: 1px solid #EDF2F7 !important
+    padding: 0 !important
+    border-radius: var(--control-radius) !important
+    width: 100%
+    box-sizing: border-box
+    &:focus-within
+      border-color: #3182CE !important
+      
+  input, select, textarea
+    background: transparent !important
+    border: none !important
+    padding: 5px 10px !important
+    font-size: 12px !important
+    color: #4A5568 !important
+    outline: none !important
+    width: 100%
+    box-sizing: border-box
+
+  :global(.dropdownContainer)
+    padding: 0 !important
+    
+  :global(.optionCheckbox)
+    width: 14px !important
+    height: 14px !important
+    padding: 0 !important
+    border: none !important
+    background: transparent !important
+    box-shadow: none !important
+
+  input[type="checkbox"]
+    width: auto !important
+    height: auto !important
+    padding: 0 !important
+    border: none !important
+    background: transparent !important
+    
+.tlaDescriptionHigh
+  display: flex
+  flex-direction: column
+  textarea, :global(.textfield), :global(.generic-field-input)
+    height: auto !important
+    min-height: 80px !important
+    resize: none
+
+.fieldsGridThree
+  display: grid
+  grid-template-columns: 1fr 1fr 1fr
+  gap: 10px
+  align-items: end
+
+.fieldsGridTwo
+  display: grid
+  grid-template-columns: 1fr 1fr
+  gap: 10px
+  align-items: end
+
+.tlaLabDot
+  width: 12px
+  height: 12px
+  border-radius: 50%
+  background: #CBD5E0
+  flex-shrink: 0
+  &.activeLabDot
+    background: #10b981
+    box-shadow: 0 0 0 2px #d1fae5
+
+.labCheckboxWrapper
+  background: #fff
+  border: 1px solid #EDF2F7
+  padding: 5px 10px
+  border-radius: var(--radius-lg)
+  height: 38px
+  box-sizing: border-box
+  display: flex
+  align-items: center
+  &.isLabActive
+    background-color: var(--good-soft)
+    border-color: #bbf7d0
+
+.labCheckboxInput
+  width: 14px
+  height: 14px
+  accent-color: #10b981
+  cursor: pointer
+
+.labCheckboxLabel
+  margin-left: 8px
+  font-size: 12px
+  font-weight: 500
+  color: #4A5568
+  cursor: pointer
+  width: 100%
+  user-select: none
+  &.isLabActiveLabel
+    color: #15803d
+
+.tlaAssessmentSection
+  border-top: 1px dashed var(--line)
+  padding-top: 12px
+
+.assessmentCopycatBox
+  background-color: #F8FAFC
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  padding: 10px
+  position: relative
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.assessmentBoxHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+
+.assessmentBoxTitle
+  display: flex
+  align-items: center
+  gap: 6px
+  color: #4A5568
+  font-size: 12px
+  font-weight: 600
+
+.removeAssessmentBtn
+  border: none
+  background: transparent
+  color: #A0AEC0
+  cursor: pointer
+  display: flex
+  align-items: center
+  padding: 2px
+  border-radius: 4px
+  transition: all 0.2s
+  &:hover
+    color: #E53E3E
+
+.tlaPlaceholderScale
+  height: auto !important
+  min-height: 380px !important
+
+.modalSuccessIconWrapper
+  background-color: var(--good-soft)
+  padding: 10px
+  border-radius: 50%
+// =============================================
+.rightContCollapsible
+  width: 380px
+  flex-shrink: 0
+  height: 100%
+  transition: width 0.3s ease
+  background: white
+  border-left: 1px solid var(--line)
+  display: flex
+  flex-direction: column
+
+.rightContCollapsed
+  width: 60px
+  flex-shrink: 0
+  height: 100%
+  transition: width 0.3s ease
+  background: white
+  border-left: 1px solid var(--line)
+  display: flex
+  flex-direction: column
+
+  .sidebarToggle
+    background: #f8fafc
+    border: none
+    border-bottom: 1px solid var(--line)
+    cursor: pointer
+    width: 100%
+    height: 56px
+    display: flex
+    align-items: center
+    justify-content: center
+    position: relative
+    transition: background 0.2s
+    border-radius: 0
+    padding: 0
+    &:hover
+      background: #f1f5f9
+      
+    svg
+      color: #1e293b
+
+    .collapsedBadge
+      position: absolute
+      top: 6px
+      right: 8px
+      background-color: #ef4444
+      color: white
+      font-size: 11px
+      font-weight: bold
+      width: 18px
+      height: 18px
+      border-radius: 50%
+      display: flex
+      align-items: center
+      justify-content: center
+      border: 2px solid #f8fafc
+
+.checklistHeaderCollapsible
+  display: flex
+  justify-content: space-between
+  align-items: center
+  padding: 16px
+  border-bottom: 1px solid var(--line)
+  background: #f8fafc
+
+.closeCollapse
+  background: transparent
+  border: none
+  cursor: pointer
+  color: #64748b
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 4px
+  border-radius: 4px
+  transition: all 0.2s ease
+  &:hover
+    background: #f1f5f9
+    color: #0f172a
+
+@keyframes slideInFromRight
+  from
+    transform: translateX(100%)
+    opacity: 0.5
+  to
+    transform: translateX(0)
+    opacity: 1
+
+.checklistWrapper
+  padding: 12px
+  display: flex
+  flex-direction: column
+  gap: 12px
+  overflow-y: auto
+  height: 100%
+  background: #f8fafc
+
+.checklistItem
+  display: flex
+  align-items: flex-start
+  gap: 12px
+  padding: 14px 16px
+  background: #ffffff
+  border: 1px solid var(--line)
+  border-radius: 8px
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02)
+  cursor: pointer
+  transition: all 0.2s ease
+  width: 100%
+  box-sizing: border-box
+
+  &:last-child
+    border-bottom: 1px solid var(--line)
+
+  &:hover
+    background: #f8fafc
+    border-color: var(--control-border)
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05)
+
+  &.itemResolved
+    opacity: 0.6
+    background: #f1f5f9
+    border-style: dashed
+
+.modalCancelBtn
+  padding: 7px 16px
+  border-radius: var(--control-radius)
+  border: 1px solid var(--line)
+  cursor: pointer
+  font-weight: 600
+  font-size: 13px
+  background: #F1F5F9
+  color: #475569
+  transition: all 0.2s
+  &:hover
+    background: #E2E8F0
+    color: #1E293B
+
+.modalSuccessText
+  font-size: 0.88rem
+  color: #64748b
+  text-align: left
+
+@media (max-width: 1024px)
+  .mainCont
+    flex-direction: column
+    height: auto
+
+  .rightCont
+    width: 100%
+    height: auto
+    max-height: min(420px, 45dvh)
+
+  // the Review Feedback panel goes under the editor too, not beside it: kept at its 100% height it took the whole
+  // column and left the editor 0px tall (the topics were there but clipped away)
+  .leftCont
+    height: auto
+    min-height: 60dvh
+
+  .rightContCollapsible, .rightContCollapsed
+    width: 100%
+    height: auto
+    max-height: min(420px, 45dvh)
+    border-left: none
+    border-top: 1px solid var(--line)
+
+  .checklistCard
+    padding-bottom: 0
+
+@media (max-width: 720px)
+  .form-container
+    height: auto
+    padding: 14px 12px 48px
+
+  .list, .workspaceHeader, .cardHeaderTop, .assessmentBoxHeader
+    flex-direction: column
+    align-items: stretch
+
+  .fieldsGridTwo, .fieldsGridThree
+    grid-template-columns: 1fr
+
+  .cardBodyContent
+    padding: 16px 12px
+
+  .tlas, .rubrics, .labCheckboxWrapper, .assessmentSectionWrapper
+    margin-left: 0
+.modalConfirmBtn
+  padding: 7px 16px
+  border-radius: var(--control-radius)
+  border: none
+  cursor: pointer
+  font-weight: 600
+  font-size: 13px
+  background: #3182CE
+  color: white
+  transition: all 0.2s
+  &:hover
+    background: #2B6CB0
+
+.fieldsGridOne
+  display: block
+  width: 100%
+
+.emptyAssessment
+  background-color: transparent !important
+  border: 1px dashed var(--line) !important
+
+.filledAssessment
+  background-color: #f0f7ff !important
+  border: 1px solid #bfdbfe !important
+  
+.filledAssessmentTitle
+  color: #3182CE !important
+
+// Under the assessment fields of the TLA form: how much of the level weight is already used.
+.assessmentHint
+  margin: 6px 0 0
+  font-size: 12px
+  color: #4A5568
+
+@keyframes popIn
+  from
+    opacity: 0
+    transform: scale(.95)

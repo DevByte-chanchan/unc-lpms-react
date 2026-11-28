@@ -1,0 +1,419 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap')
+
+.header
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: row
+  padding: 10px 30px 10px 10px
+
+.department
+  flex-grow: 1
+  height: 100%
+  display: flex
+
+.userMenu
+  position: relative
+  height: 100%
+  display: flex
+  align-items: center
+
+// --- Trigger: avatar · name / role · chevron ---
+.info
+  display: flex
+  flex-direction: row
+  align-items: center
+  gap: 10px
+  padding: 6px 10px 6px 6px
+  border: 1px solid transparent
+  border-radius: 12px
+  background: transparent
+  font-family: inherit
+  cursor: pointer
+  transition: background 0.15s ease, border-color 0.15s ease
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+.infoOpen
+  background: #F3F4F6
+  border-color: #E5E7EB
+
+.avatar
+  flex-shrink: 0
+  width: 36px
+  height: 36px
+  border-radius: 50%
+  background: #1F2937
+  color: #FFFFFF
+  font-size: 14px
+  font-weight: 600
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  letter-spacing: 0.5px
+
+.avatarLg
+  width: 44px
+  height: 44px
+  font-size: 16px
+
+.text
+  display: flex
+  flex-direction: column
+  align-items: flex-start
+  justify-content: center
+  line-height: 1.25
+  text-align: left
+
+.name
+  font-weight: 600
+  font-size: 15px
+  color: #18191A
+
+// Neutral, not red: red is kept for Log Out, the one destructive action.
+.role
+  font-weight: 500
+  font-size: 13px
+  color: #6B7280
+
+.chevron
+  color: #6B7280
+  transition: transform 0.15s ease
+
+.chevronOpen
+  transform: rotate(180deg)
+
+// --- Menu ---
+.menu
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  width: 300px
+  padding: 6px
+  background: #FFFFFF
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12)
+  z-index: 20
+  display: flex
+  flex-direction: column
+
+.menuHead
+  display: flex
+  align-items: center
+  gap: 12px
+  padding: 10px 10px 12px
+
+.menuWho
+  min-width: 0
+  display: flex
+  flex-direction: column
+  align-items: flex-start
+  gap: 2px
+
+.menuName
+  font-size: 15px
+  font-weight: 600
+  color: #18191A
+
+.menuEmail
+  font-size: 12px
+  color: #6B7280
+  word-break: break-all
+
+.roleChip
+  margin-top: 4px
+  padding: 2px 8px
+  border-radius: 9999px
+  background: #F3F4F6
+  border: 1px solid #E5E7EB
+  font-size: 11.5px
+  font-weight: 500
+  color: #374151
+
+.section
+  display: flex
+  flex-direction: column
+  gap: 2px
+  padding: 6px 0
+  border-top: 1px solid #F3F4F6
+
+.sectionLabel
+  padding: 4px 10px 6px
+  font-size: 11px
+  font-weight: 600
+  letter-spacing: 0.6px
+  text-transform: uppercase
+  color: #9CA3AF
+
+.roleItem
+  display: flex
+  align-items: center
+  gap: 10px
+  width: 100%
+  padding: 8px 10px
+  border: none
+  border-radius: 8px
+  background: transparent
+  font-family: inherit
+  text-align: left
+  cursor: pointer
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+.roleItemActive
+  background: #F3F4F6
+
+.roleItemText
+  flex: 1
+  min-width: 0
+  display: flex
+  flex-direction: column
+  gap: 1px
+
+.roleItemName
+  font-size: 14px
+  font-weight: 600
+  color: #18191A
+
+.roleItemDesc
+  font-size: 12px
+  line-height: 1.35
+  color: #6B7280
+
+.roleCheck
+  flex-shrink: 0
+  width: 16px
+  color: #18191A
+  display: inline-flex
+
+.menuItem
+  display: flex
+  align-items: center
+  gap: 10px
+  width: 100%
+  padding: 8px 10px
+  border: none
+  border-radius: 8px
+  background: transparent
+  font-family: inherit
+  font-size: 14px
+  color: #374151
+  text-align: left
+  cursor: pointer
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+
+// --- The bell (notifications) ---
+.bellWrap
+  position: relative
+  display: flex
+  align-items: center
+  margin-left: 6px
+
+.bell
+  position: relative
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 40px
+  height: 40px
+  // The global button padding would leave the icon no width at all.
+  padding: 0
+  border: 1px solid transparent
+  border-radius: 12px
+  background: transparent
+  color: #374151
+  cursor: pointer
+  transition: background 0.15s ease, border-color 0.15s ease
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+  svg
+    flex-shrink: 0
+
+.bellOpen
+  background: #F3F4F6
+  border-color: #E5E7EB
+
+.badge
+  position: absolute
+  top: -2px
+  right: -4px
+  min-width: 10px
+  height: 14px
+  padding: 0 3px
+  border-radius: 9999px
+  background: #DC2626
+  color: #FFFFFF
+  font-size: 10px
+  font-weight: 700
+  line-height: 14px
+  text-align: center
+  border: 2px solid #FFFFFF
+  box-sizing: content-box
+
+.bellMenu
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  width: 380px
+  max-width: calc(100vw - 32px)
+  background: #FFFFFF
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12)
+  z-index: 20
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.bellHead
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 12px 14px 10px
+  border-bottom: 1px solid #F3F4F6
+
+.bellTitle
+  font-size: 14px
+  font-weight: 600
+  color: #18191A
+
+.markAll
+  border: none
+  background: transparent
+  font-family: inherit
+  font-size: 12.5px
+  font-weight: 500
+  color: #374151
+  cursor: pointer
+  padding: 4px 6px
+  border-radius: 6px
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+  &:disabled
+    color: #9CA3AF
+    cursor: default
+    background: transparent
+
+.bellList
+  max-height: 420px
+  overflow-y: auto
+  display: flex
+  flex-direction: column
+
+.item
+  display: flex
+  align-items: flex-start
+  gap: 10px
+  width: 100%
+  padding: 10px 14px
+  border: none
+  border-bottom: 1px solid #F9FAFB
+  background: transparent
+  font-family: inherit
+  text-align: left
+  cursor: pointer
+
+  &:hover
+    background: #F9FAFB
+
+  &:focus-visible
+    background: #F9FAFB
+    outline: 2px solid #2563EB
+    outline-offset: -2px
+
+.viewAll
+  padding: 10px 14px
+  border: none
+  border-top: 1px solid #F3F4F6
+  background: transparent
+  font-family: inherit
+  font-size: 12.5px
+  font-weight: 600
+  color: #374151
+  cursor: pointer
+  border-radius: 0 0 12px 12px
+
+  &:hover
+    background: #F9FAFB
+
+  &:focus-visible
+    outline: 2px solid #2563EB
+    outline-offset: -2px
+
+.appToast
+  position: fixed
+  left: 50%
+  bottom: 24px
+  transform: translateX(-50%)
+  z-index: 200
+  max-width: calc(100vw - 32px)
+  padding: 10px 16px
+  border-radius: 10px
+  background: #18191A
+  color: #FFFFFF
+  font-size: 13.5px
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2)
+
+.itemUnread
+  background: #FAFAFA
+
+.dot
+  flex-shrink: 0
+  width: 8px
+  height: 8px
+  margin-top: 6px
+  border-radius: 50%
+  background: #2563EB
+
+.dotRead
+  background: transparent
+
+.itemText
+  flex: 1
+  min-width: 0
+  display: flex
+  flex-direction: column
+  gap: 2px
+
+.itemTitle
+  font-size: 13.5px
+  line-height: 1.35
+  color: #18191A
+
+.itemTitleUnread
+  font-weight: 600
+
+.itemBody
+  font-size: 12.5px
+  line-height: 1.35
+  color: #6B7280
+
+.itemMeta
+  font-size: 11.5px
+  color: #9CA3AF
+
+.bellEmpty
+  padding: 28px 14px
+  text-align: center
+  font-size: 13px
+  color: #6B7280
+
+.bellError
+  padding: 10px 14px
+  font-size: 12.5px
+  color: #B91C1C

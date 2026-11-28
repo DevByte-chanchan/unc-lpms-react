@@ -1,0 +1,168 @@
+// The drop-down: a field like the app's other inputs, and a white list with a soft shadow and a teal selection.
+.trigger
+  display: inline-flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  height: 36px
+  min-width: 0
+  max-width: 100%
+  padding: 0 10px 0 12px
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink-soft)
+  font: var(--fw-normal) var(--fs-sm) var(--font-ui)
+  text-align: left
+  cursor: pointer
+  transition: background var(--t-fast)
+
+  &:hover:not(:disabled)
+    background: var(--hover-tint)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+  &:disabled
+    opacity: 0.55
+    cursor: not-allowed
+
+.trigger.lg
+  height: 40px
+  font-size: var(--fs-md)
+
+.trigger.block
+  display: flex
+  width: 100%
+
+// The placeholder as well: a long hint in a narrow box ends in "..." instead of wrapping word by word.
+.value, .placeholder
+  min-width: 0
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.placeholder
+  color: var(--ink-faint)
+
+.chevron
+  flex: 0 0 auto
+  color: var(--ink-muted)
+
+.list
+  position: fixed
+  // room for the scrollbar, so the widest option is not cut to "2026 - 20..."
+  scrollbar-gutter: stable
+  // above every window (the reference windows sit at 3300)
+  z-index: 3400
+  width: max-content
+  max-height: 288px
+  overflow-x: hidden
+  overflow-y: auto
+  margin: 0
+  padding: 6px
+  box-sizing: border-box
+  list-style: none
+  background: #fff
+  border: 1px solid var(--line)
+  // concentric: the 6px options inside plus this 6px padding
+  border-radius: calc(var(--radius-sm) + 6px)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18)
+  // opens from the trigger: from 95%, 160ms ease-out; upward lists grow from their bottom edge
+  transform-origin: top left
+  animation: listIn .16s ease-out
+  &[data-up]
+    transform-origin: bottom left
+  font-family: var(--font-ui)
+
+.option
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  min-height: 32px
+  padding: 6px 10px
+  border-radius: 6px
+  color: var(--ink)
+  font-size: 13px
+  cursor: pointer
+
+  span
+    min-width: 0
+    overflow: hidden
+    text-overflow: ellipsis
+    white-space: nowrap
+
+.option.active
+  background: var(--hover-tint)
+
+.option[aria-selected='true']
+  font-weight: var(--fw-medium)
+
+.option.off
+  color: var(--ink-faint)
+  cursor: default
+
+// "Clear selection": a quiet line in the same column as the options (no icon pushing it out of line), set apart by a
+// rule underneath
+.option.clear
+  min-height: 30px
+  margin-bottom: 4px
+  border-bottom: 1px solid var(--line)
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0
+  color: var(--ink-muted)
+  font-size: var(--fs-xs)
+
+// variant="term": the look of the instructor's year / semester picker on Assigned Course Offerings.
+.trigger.term
+  height: 34px
+  padding: 6px 10px
+  border: 0
+  border-radius: var(--control-radius)
+  background: #fff
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.15)
+  color: #DC2626
+  font-size: 14px
+
+  .value, .chevron
+    color: inherit
+
+// variant="inline": the same red text with no box, for pickers that sit together in one white box.
+.trigger.inline
+  height: 30px
+  padding: 0 6px
+  border: 0
+  background: transparent
+  color: #DC2626
+  font-size: 14px
+
+  .value, .chevron
+    color: inherit
+
+// The Course Assignment module's picker: rounded, bordered, dark text ("1st Semester 2026-2027", "Year Level: All Year Levels").
+.trigger.pill
+  height: 40px
+  padding: 0 12px 0 16px
+  border: 1px solid #D1D5DB
+  border-radius: var(--control-radius)
+  background: #fff
+  color: #18191A
+  font-size: 14px
+  font-weight: 600
+  gap: 6px
+
+  .value, .chevron
+    color: inherit
+
+.prefix
+  flex: 0 0 auto
+  font-weight: 400
+  color: #374151
+
+
+@keyframes listIn
+  from
+    opacity: 0
+    transform: scale(.95)

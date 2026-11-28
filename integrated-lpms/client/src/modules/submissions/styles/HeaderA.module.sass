@@ -1,0 +1,76 @@
+.header
+  width: 100%
+  box-sizing: border-box
+  min-height: 70px
+  height: auto
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 12px
+  padding: 10px 30px
+  color: var(--ink)
+  font-family: var(--font-ui)
+
+.department
+  flex: 1 1 40px
+  min-width: 0
+
+.info
+  flex: 0 1 auto
+  min-width: 0
+  height: auto
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  justify-content: center
+  gap: 0
+
+.name
+  font-weight: var(--fw-semibold)
+  font-size: var(--fs-lg)
+  max-width: 100%
+  text-align: right
+  overflow-wrap: anywhere
+
+.role
+  font-weight: var(--fw-normal)
+  font-size: var(--fs-md)
+  color: var(--danger)
+  max-width: 100%
+  text-align: right
+  overflow-wrap: anywhere
+
+.signOut
+  flex: 0 0 auto
+  min-height: 0
+  padding: 4px 10px
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  color: var(--ink-soft)
+  background: var(--surface)
+  font-size: 12px
+
+  &:hover
+    border-color: var(--ink-faint)
+    color: var(--ink)
+    background: var(--surface-muted)
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.28)
+    outline-offset: 2px
+
+@media (max-width: 720px)
+  .header
+    min-height: 58px
+    padding: 8px 12px
+
+  .department
+    display: none
+
+  .info
+    flex: 1 1 160px
+    align-items: flex-start
+
+  .name, .role
+    text-align: left
+    font-size: var(--fs-md)

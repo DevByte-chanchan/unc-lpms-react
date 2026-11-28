@@ -1,0 +1,151 @@
+// The sidebar (components/SideNavigation.jsx), in the look of feature/course-assignment: the logo with the
+// system's name under it, the page links, and Log Out at the bottom. Who is signed in, the role switch,
+// Settings and the bell are in the top bar (components/Header.jsx).
+.container
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  background: var(--surface)
+  color: var(--ink)
+
+.logo
+  width: 100%
+  box-sizing: border-box
+  padding: 10px 14px 10px 20px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 10px
+
+.logo img
+  flex: 0 0 auto
+  width: 50px
+  display: block
+
+.lpms
+  font-weight: 700
+  font-size: 16px
+  padding: 0 20px 30px 23px
+  margin-top: 10px
+  color: #374151
+  line-height: 1.4
+  min-height: 24px
+
+.nav-list
+  margin: 10px 20px 0
+  height: 100%
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.list, .listB
+  padding: 10px 12px
+  box-sizing: border-box
+  border-radius: var(--radius-lg)
+  display: flex
+  align-items: center
+  gap: 16px
+  cursor: pointer
+  font-size: 15px
+  font-weight: 500
+  white-space: nowrap
+  transition: background 0.2s ease, color 0.2s ease
+
+  svg
+    flex-shrink: 0
+
+.list
+  color: #4B5563
+
+  &:hover
+    background: #F3F4F6
+    color: #18191A
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.28)
+    outline-offset: 2px
+
+  &.selected
+    background: #E5E7EB
+    color: #18191A
+    font-weight: 600
+
+// Log Out keeps its red: signing out is the one control that should stop the eye.
+.listB
+  color: #F94545
+
+  &:hover
+    background: #FEF2F2
+
+  &:focus-visible
+    outline: 3px solid rgba(232, 17, 35, 0.24)
+    outline-offset: 2px
+
+.listText
+  white-space: nowrap
+
+.logoutWrapper
+  margin-top: auto
+  display: flex
+  flex-direction: column
+  padding-bottom: 30px
+
+// The sidebar's open / collapse button, beside the logo (under it when collapsed).
+.navToggle
+  flex: 0 0 auto
+  width: 36px
+  height: 36px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  padding: 0
+  border: 0
+  border-radius: var(--control-radius)
+  background: transparent
+  color: #6B7280
+  cursor: pointer
+
+  &:hover
+    background: #F3F4F6
+    color: #18191A
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 2px
+
+// Icons only: narrow screens always, and wider ones when the person collapses it.
+@mixin icons-only
+  .logo
+    padding: 12px 8px
+    flex-direction: column
+    justify-content: center
+
+  .logo img
+    width: 40px
+
+  .lpms
+    display: none
+
+  .nav-list
+    margin: 8px 8px 0
+
+  .list, .listB
+    width: 44px
+    height: 44px
+    margin-left: auto
+    margin-right: auto
+    justify-content: center
+    padding: 0
+    gap: 0
+
+  .listText
+    display: none
+
+@media (max-width: 1024px)
+  @include icons-only
+
+:global([data-nav-collapsed='true'])
+  @include icons-only

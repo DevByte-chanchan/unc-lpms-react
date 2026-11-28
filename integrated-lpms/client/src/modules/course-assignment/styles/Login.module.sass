@@ -1,0 +1,353 @@
+// Sign-in, change-password and the route guards' screens. Same type, colors
+// and buttons as the app's dialogs (AddRecordModal / upload modals).
+
+@keyframes cardIn
+  from
+    opacity: 0
+    transform: translateY(6px)
+  to
+    opacity: 1
+    transform: none
+
+@keyframes spin
+  to
+    transform: rotate(360deg)
+
+.screen
+  height: 100vh
+  width: 100%
+  box-sizing: border-box
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 24px 16px
+  background: #F3F4F6
+  overflow-y: auto
+
+.card
+  width: 400px
+  max-width: 100%
+  box-sizing: border-box
+  padding: 32px 28px
+  background: #FFFFFF
+  border-radius: 10px
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10)
+  display: flex
+  flex-direction: column
+  gap: 16px
+  animation: cardIn 0.22s cubic-bezier(0.4, 0, 0.2, 1)
+
+.brand
+  display: flex
+  flex-direction: column
+  align-items: center
+  text-align: center
+  gap: 4px
+  margin-bottom: 4px
+
+.logo
+  width: 72px
+  height: 72px
+  object-fit: contain
+  margin-bottom: 8px
+
+.heading
+  margin: 0
+  font-size: 20px
+  font-weight: 600
+  color: #18191A
+
+.subheading
+  font-size: 14px
+  color: #6B7280
+
+.title
+  margin: 0
+  font-size: 18px
+  font-weight: 600
+  color: #18191A
+
+.lead
+  margin: 0
+  font-size: 14px
+  color: #374151
+
+.form
+  display: flex
+  flex-direction: column
+  gap: 16px
+
+.field
+  display: flex
+  flex-direction: column
+  gap: 4px
+
+.label
+  font-size: 13px
+  color: #6B7280
+  font-weight: 500
+
+.inputWrap
+  position: relative
+  display: flex
+
+.input
+  width: 100%
+  box-sizing: border-box
+  height: 40px
+  padding: 0 12px
+  border: 1px solid #D1D5DB
+  border-radius: 6px
+  font-size: 14px
+  font-family: inherit
+  color: #18191A
+  background: #FFFFFF
+
+  &:focus
+    outline: none
+    border-color: #18191A
+
+  &::placeholder
+    color: #9CA3AF
+
+.inputWithToggle
+  padding-right: 44px
+
+.inputInvalid
+  border-color: #DC2626
+
+// index.css styles every <button> (padding, border, focus ring); undo all of
+// it here or the padding squeezes the icon out of the 32px box.
+.toggle
+  position: absolute
+  right: 4px
+  top: 4px
+  width: 32px
+  height: 32px
+  padding: 0
+  margin: 0
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  border: none
+  background: transparent
+  border-radius: 6px
+  color: #6B7280
+  cursor: pointer
+
+  svg
+    flex-shrink: 0
+
+  &:hover
+    color: #18191A
+    border: none
+
+  &:focus
+    outline: none
+
+  &:focus-visible
+    outline: 2px solid #18191A
+    outline-offset: -2px
+
+.help
+  font-size: 12px
+  color: #6B7280
+
+.fieldError
+  font-size: 13px
+  color: #B91C1C
+
+.alert
+  display: flex
+  gap: 8px
+  align-items: flex-start
+  padding: 10px 12px
+  border-radius: 6px
+  background: #FEF2F2
+  border: 1px solid #FECACA
+  color: #B91C1C
+  font-size: 13px
+
+.note
+  padding: 10px 12px
+  border-radius: 6px
+  background: #F9FAFB
+  border: 1px solid #E5E7EB
+  color: #374151
+  font-size: 13px
+
+.btn
+  width: 100%
+  height: 40px
+  border-radius: 8px
+  font-weight: 500
+  font-size: 14px
+  font-family: inherit
+  cursor: pointer
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+
+  &:disabled
+    cursor: not-allowed
+    opacity: 0.7
+
+.btnPrimary
+  background: #18191A
+  border: none
+  color: #FFFFFF
+
+.btnSecondary
+  background: #FFFFFF
+  border: 1px solid #18191A
+  color: #18191A
+
+.linkBtn
+  align-self: center
+  background: none
+  border: none
+  padding: 2px 4px
+  font-size: 13px
+  font-family: inherit
+  color: #374151
+  text-decoration: underline
+  cursor: pointer
+
+  &:hover
+    color: #18191A
+
+.spinner
+  width: 16px
+  height: 16px
+  border: 2px solid rgba(255, 255, 255, 0.4)
+  border-top-color: #FFFFFF
+  border-radius: 50%
+  animation: spin 0.7s linear infinite
+
+.spinnerDark
+  width: 28px
+  height: 28px
+  border: 3px solid #E5E7EB
+  border-top-color: #18191A
+  border-radius: 50%
+  animation: spin 0.7s linear infinite
+
+// "Continue as…" — one row per role.
+.roleList
+  display: flex
+  flex-direction: column
+  gap: 8px
+
+.roleOption
+  display: flex
+  align-items: center
+  gap: 12px
+  width: 100%
+  text-align: left
+  padding: 12px 14px
+  border: 1px solid #E5E7EB
+  border-radius: 8px
+  background: #FFFFFF
+  font-family: inherit
+  cursor: pointer
+
+  &:hover, &:focus-visible
+    border-color: #18191A
+    outline: none
+
+.roleText
+  flex: 1
+  display: flex
+  flex-direction: column
+  gap: 2px
+
+.roleName
+  font-size: 14px
+  font-weight: 600
+  color: #18191A
+
+.roleDesc
+  font-size: 12px
+  color: #6B7280
+
+// Live password checklist.
+.checklist
+  list-style: none
+  margin: 0
+  padding: 0
+  display: flex
+  flex-direction: column
+  gap: 4px
+
+.check
+  display: flex
+  align-items: center
+  gap: 6px
+  font-size: 13px
+  color: #6B7280
+
+.checkOk
+  color: #047857
+
+@media (max-width: 480px)
+  .screen
+    padding: 16px
+    align-items: flex-start
+
+  .card
+    padding: 24px 18px
+
+// --- Set password / reset password / forgot password ---
+// The person a link is for: their email (read-only) and their roles.
+.readonly
+  padding: 9px 12px
+  border-radius: 6px
+  background: #F9FAFB
+  border: 1px solid #E5E7EB
+  color: #374151
+  font-size: 14px
+  word-break: break-all
+
+.chips
+  display: flex
+  flex-wrap: wrap
+  gap: 6px
+
+.chip
+  padding: 3px 10px
+  border-radius: 9999px
+  background: #F3F4F6
+  border: 1px solid #E5E7EB
+  color: #374151
+  font-size: 12px
+  font-weight: 500
+
+// "You're signed in as someone else" — a pause, not an error.
+.notice
+  display: flex
+  flex-direction: column
+  gap: 12px
+  padding: 12px 14px
+  border-radius: 8px
+  background: #FFFBEB
+  border: 1px solid #FCD34D
+  color: #92400E
+  font-size: 13px
+  line-height: 1.5
+
+.noticeActions
+  display: flex
+  gap: 8px
+
+.success
+  display: flex
+  gap: 8px
+  align-items: flex-start
+  padding: 10px 12px
+  border-radius: 6px
+  background: #F0FDF4
+  border: 1px solid #BBF7D0
+  color: #166534
+  font-size: 13px
+  line-height: 1.5

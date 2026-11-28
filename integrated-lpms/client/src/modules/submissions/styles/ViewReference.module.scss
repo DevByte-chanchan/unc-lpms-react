@@ -1,0 +1,144 @@
+/* ──────────────────────────────────────────────────────────────────────
+   View Reference – White card, Poppins, matching app style
+   ────────────────────────────────────────────────────────────────────── */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  gap: 10px;
+  padding: 20px 30px;
+  background: white;
+  font-family: 'Poppins', sans-serif;
+  overflow-y: auto;
+}
+
+.header {
+  margin-bottom: 20px;
+
+  h1 {
+    font-weight: 600;
+    font-size: 24px;
+    color: black;
+    margin: 0;
+  }
+}
+
+.detailGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detailRow2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+.detailLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+}
+
+.detailValue {
+  font-size: 16px;
+  font-weight: 400;
+  color: black;
+}
+
+/* ── File Section ────────────────────────────────────────────────────── */
+
+.fileSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fileCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #fafbfc;
+  max-width: 500px;
+}
+
+.fileName {
+  font-size: 14px;
+  font-weight: 500;
+  color: black;
+  flex: 1;
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  .header, .detailGrid, .actions {
+    width: 100%;
+    max-width: 900px;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    height: auto;
+    min-height: 100%;
+    padding: 14px;
+  }
+
+  .detailRow2col {
+    grid-template-columns: 1fr;
+  }
+
+  .fileCard, .actions {
+    flex-wrap: wrap;
+  }
+
+  .fileCard {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .fileName {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .downloadBtn, .actions > button {
+    flex: 1 1 180px;
+    justify-content: center;
+  }
+}

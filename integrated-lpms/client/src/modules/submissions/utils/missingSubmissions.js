@@ -1,0 +1,101 @@
+// The Program Head's "Not Yet Submitted" page: the wording, the term choices and the CSV export.
+// Pure (it imports only the CSV cell helper), so it runs under plain node in the tests. The server decides who is missing and
+// how late they are (GET /api/missing-submissions); this only presents it.
+
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+// "2026-11-05" -> "5 Nov 2026". Anything that is not such a day is shown as it came, or a dash.
+export const dayLabel = (value) => {
+  const text = String(value ?? '').slice(0, 10)
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(text)
+  if (!match) return value ? String(value) : '—'
+  return `${Number(match[3])} ${MONTHS[Number(match[2]) - 1] || match[2]} ${match[1]}`
+}
+
+// How a plan stands against its due date, in words.
+export const statusLabel = (row) => {
+  if (row.status === 'no-deadline') return 'No due date'
+  const days = row.daysLeft
+  if (row.status === 'overdue') return `${-days} day${days === -1 ? '' : 's'} overdue`
+  if (days === 0) return 'Due today'
+  if (days === 1) return 'Due tomorrow'
+  return `Due in ${days} days`
+}
+
+// The order the page lists them in: the most overdue first, then the soonest due, then those with no due date.
+export const sortMissing = (rows) => [...rows].sort((a, b) => {
+  const rank = (row) => (row.status === 'no-deadline' ? Number.POSITIVE_INFINITY : row.daysLeft)
+  return rank(a) - rank(b) || String(a.courseCode).localeCompare(String(b.courseCode))
+})
+
+// Who last reminded the instructor, and when: "2 Nov 2026, by the system".
+export const lastReminderLabel = (row) => (row.lastReminderAt ? `${dayLabel(String(row.lastReminderAt).replace(' ', 'T'))}, by ${row.lastReminderBy}` : 'Never')
+
+// When the course was assigned, and how much time the instructor had before the due date. A plan may still
+// be submitted late; this is the record of why it was.
+export const assignedLabel = (row) => (row.assignedDay ? dayLabel(row.assignedDay) : '—')
+
+export const timeToPrepareLabel = (row) => {
+  const days = row.assignedDaysBeforeDue
+  if (days == null) return ''
+  if (days < 0) return 'Assigned after the due date'
+  if (days === 0) return 'Assigned on the due date'
+  return `${days} day${days === 1 ? '' : 's'} to prepare`
+}
+
+// The short forms used inside the table, where room is tight. The year is left out when it is the year of
+// `today` ("30 Oct"), and shown otherwise ("30 Oct 2025").
+export const shortDay = (value, today = '') => {
+  const text = String(value ?? '').slice(0, 10)
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(text)
+  if (!match) return value ? String(value) : '—'
+  const sameYear = match[1] === String(today).slice(0, 4)
+  return `${Number(match[3])} ${MONTHS[Number(match[2]) - 1] || match[2]}${sameYear ? '' : ` ${match[1]}`}`
+}
+
+// "31 Oct · system", "31 Oct · person", or "Never". The server's lastReminderDay is the day in the school's zone.
+export const lastReminderShort = (row, today = '') => (
+  row.lastReminderAt ? `${shortDay(row.lastReminderDay || String(row.lastReminderAt).replace(' ', 'T'), today)} · ${row.lastReminderBy === 'the system' ? 'system' : 'person'}` : 'Never'
+)
+
+// Reminded today by anyone (the system or a person): "Remind now" waits until tomorrow, like the server.
+export const remindedToday = (row, today = '') => Boolean(row.lastReminderAt && today && (row.lastReminderDay || String(row.lastReminderAt).slice(0, 10)) === today)
+
+// The sub-line under a course: where the plan stands, when it was assigned, and the time the instructor had.
+// A returned plan says when it came back instead: the time it had to prepare no longer matters.
+export const courseSubline = (row, today = '') => {
+  if (row.state === 'Returned') return `Returned${row.returnedDay ? ` ${shortDay(row.returnedDay, today)}` : ''}${row.isRevision ? ' · revision' : ''} · assigned ${shortDay(row.assignedDay, today)}`
+  const state = 'Not submitted'
+  const days = row.assignedDaysBeforeDue
+  const prep = days == null ? '' : days < 0 ? ', assigned after the due date' : `, ${days} day${days === 1 ? '' : 's'} to prepare`
+  return `${state}${row.isRevision ? ' · revision' : ''} · assigned ${shortDay(row.assignedDay, today)}${prep}`
+}
+
+// "Bachelor of Science in Information Technology" -> "BSIT": the capitals of the words that are not small joining words.
+export const programCode = (name) => {
+  const code = String(name || '').split(/\s+/).filter(word => word && !['of', 'in', 'and', 'the', 'for'].includes(word.toLowerCase()))
+    .map(word => word[0].toUpperCase()).join('')
+  return code || '—'
+}
+
+// "NORTON, MONICA" -> "Norton, Monica" (names are stored in capitals).
+export const niceName = (name) => String(name || '').toLowerCase().replace(/(^|[\s,.-])([a-z])/g, (all, before, letter) => before + letter.toUpperCase())
+
+export const SEMESTERS = ['1st', '2nd', 'Summer']
+
+// The school years to offer: those in the data, and this one and the next, newest first.
+export const schoolYearOptions = (rows = [], deadlines = [], todayDay = '') => {
+  const years = new Set([...rows.map(r => r.schoolYear), ...deadlines.map(d => d.school_year)].filter(Boolean))
+  const year = Number(String(todayDay).slice(0, 4))
+  if (year) { years.add(`${year - 1}-${year}`); years.add(`${year}-${year + 1}`) }
+  return [...years].sort().reverse()
+}
+
+// The school year that today falls in: it starts in June (2026-06-01 .. 2027-05-31 is 2026-2027).
+export const currentSchoolYear = (todayDay) => {
+  const year = Number(String(todayDay).slice(0, 4))
+  const month = Number(String(todayDay).slice(5, 7))
+  if (!year || !month) return ''
+  return month >= 6 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+}

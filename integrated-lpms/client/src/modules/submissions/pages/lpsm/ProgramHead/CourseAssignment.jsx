@@ -1,0 +1,273 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Upload, Calendar, Search } from 'lucide-react'
+import SkeletonA from '../../../layouts/SkeletonA.jsx'
+import HeaderA from '../../../components/HeaderA.jsx'
+import SideNavigation from '../../../components/SideNavigation.jsx'
+import Select from '../../../components/Select.jsx'
+import TableScrollRegion from '../../../components/TableScrollRegion.jsx'
+import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx'
+import { fetchJson, apiErrorMessage } from '../../../utils/api.js'
+import { alertDialog } from '../../../utils/appDialog.jsx'
+import { toast } from '../../../utils/toast.jsx'
+import { getSession } from '../../../utils/session.js'
+import table from '../../../styles/CoursesTable.module.sass'
+import SortableTh from '../../../components/SortableTh.jsx'
+import { sortRows, nextSort } from '../../../utils/tableSort.js'
+import { programShort } from '../../../utils/offeringLabels.js'
+
+// Course Assignment (Program Head). Before enrollment the Program Head pre-assigns each course to an instructor, so
+// the learning plan, COAEP and syllabus can be written early. At the end of enrollment the registrar's Subject
+// Offerings list (the Dean's .xls) is the official one: import it here, compare, and update the pre-assignment
+// wherever it differs ("ima-match mo lang ... i-update mo si nasa initial assignment mo", interview Part 1).
+
+const SEMESTERS = ['1st', '2nd', 'Summer']
+const STATUS = {
+  match: { label: 'Matches official', color: 'var(--good)' },
+  different: { label: 'Different from official', color: 'var(--danger)' },
+  'official-only': { label: 'Not pre-assigned', color: 'var(--warn)' },
+  'pre-only': { label: 'Not in the official list', color: 'var(--warn)' },
+  'no-faculty': { label: 'No faculty named yet', color: 'var(--ink-muted)' },
+  assigned: { label: 'Assigned', color: 'var(--ink-soft)' },
+  unassigned: { label: 'Not assigned', color: 'var(--ink-muted)' },
+}
+
+// The school year starts in June, so from January to May the current one began last calendar year.
+const today = new Date()
+const currentYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1
+const YEARS = [currentYear + 1, currentYear, currentYear - 1].map(y => `${y}-${y + 1}`)
+
+const cellStyle = (col) => (col.grow ? { flex: '1 1 0', minWidth: 200 } : { flex: `0 0 ${col.width}px`, minWidth: 0 })
+
+// "CASIMERO DANNY BOY: OBa, OBb, OBc", one line per faculty (sections without one grouped under '').
+const officialByFaculty = (sections) => {
+  const groups = new Map()
+  for (const s of sections) {
+    for (const f of (s.faculty.length ? s.faculty : [{ name: '', user: null }])) {
+      if (!groups.has(f.name)) groups.set(f.name, { name: f.name, known: Boolean(f.user), sections: [] })
+      groups.get(f.name).sections.push(s.section || '—')
+    }
+  }
+  return [...groups.values()]
+}
+
+const CourseAssignment = () => {
+  const session = getSession()
+  const [schoolYear, setSchoolYear] = useState(`${currentYear}-${currentYear + 1}`)
+  const [semester, setSemester] = useState('1st')
+  const [data, setData] = useState(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState('')
+  const [sort, setSort] = useState({ sortKey: 'course_no', sortDir: 'asc' })
+  const [query, setQuery] = useState('')
+  const [yearLevel, setYearLevel] = useState('')
+  const [programId, setProgramId] = useState('')
+  const fileRef = useRef(null)
+  const term = `school_year=${schoolYear}&semester=${encodeURIComponent(semester)}`
+
+  const load = useCallback(async () => {
+    setData(null)
+    try {
+      setData(await fetchJson(`/api/course-assignments?${term}`))
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not load the course assignments.'))
+      setData({ rows: [], instructors: [], official: null })
+    }
+  }, [term])
+  useEffect(() => { load() }, [load])
+
+  const run = async (key, action, success) => {
+    setBusy(key)
+    try {
+      const result = await action()
+      toast(typeof success === 'function' ? success(result) : success)
+      await load()
+    } catch (err) {
+      alertDialog(apiErrorMessage(err, 'The change was not saved.'), { title: 'Not saved' })
+    } finally {
+      setBusy('')
+    }
+  }
+
+  // Assign a course that has no assignment this term, or change the instructor of one that has.
+  const setInstructor = (row, userId, name) => run(`row-${row.course_id}-${row.program_id}`, () => (row.pre
+    ? fetchJson(`/api/course-assignments/${row.pre.pc_offering_id}/instructor`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instructor_user_id: Number(userId) }),
+    })
+    : fetchJson('/api/offerings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ course_id: row.course_id, program_id: row.program_id, instructor_user_id: Number(userId), school_year: schoolYear, semester }),
+    })), `${row.course_no} is now assigned to ${name}.`)
+
+  const importFile = (file) => {
+    if (!file) return
+    run('import', () => fetchJson(`/api/course-assignments/official?${term}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file,
+    }), (r) => `Official list imported: ${r.sections} sections of ${r.courses} of your courses.`)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const instructorName = (id) => data?.instructors.find(u => String(u.user_id) === String(id))?.name || ''
+
+  // Same header as the approver lists: uppercase, click to sort. The rows are flex rows (index.css), so every
+  // column gets a fixed basis, and the course name the rest from 0: header and rows line up whatever the text.
+  const COLUMNS = [
+    { key: 'course_no', label: 'CODE', width: 100 },
+    { key: 'course_title', label: 'COURSE NAME', grow: true },
+    { key: 'pre', label: 'PRE-ASSIGNED', width: 220, sortValue: r => instructorName(r.pre?.instructor_user_id) },
+    { key: 'official', label: 'OFFICIAL', width: 200, sortValue: r => officialByFaculty(r.official)[0]?.name || '' },
+    { key: 'status', label: 'STATUS', width: 170, sortValue: r => (STATUS[r.status] || STATUS.unassigned).label },
+  // No official list imported yet: the OFFICIAL column would be a dash on every row, and the note above says why.
+  ].filter(col => col.key !== 'official' || data?.official).map(col => ({ ...col, thStyle: cellStyle(col) }))
+  const cell = (key) => cellStyle(COLUMNS.find(c => c.key === key))
+  // Search (course no., name, pre-assigned or official faculty) and the year level, both on the rows already loaded.
+  const words = query.trim().toLowerCase()
+  const matches = (r) => !words || [r.course_no, r.course_title, instructorName(r.pre?.instructor_user_id), ...officialByFaculty(r.official).map(g => g.name)]
+    .some(v => String(v || '').toLowerCase().includes(words))
+  // One program at a time, as in the Course Assignment module: "BSIT: Course Assignment" over its full name, and a
+  // program picker beside it when this Program Head heads more than one. The first program with courses opens first.
+  const programs = data?.programs || []
+  const withCourses = programs.find(p => (data?.rows || []).some(r => String(r.program_id) === String(p.programId)))
+  const program = programs.find(p => String(p.programId) === programId) || withCourses || programs[0]
+  const titleCode = program ? programShort(program.name) : ''
+  const inProgram = (r) => !program || String(r.program_id) === String(program.programId)
+  const yearLevels = [...new Set((data?.rows || []).filter(inProgram).map(r => r.year_lvl).filter(Boolean))].sort()
+  const rows = sortRows((data?.rows || []).filter(r => inProgram(r) && matches(r) && (!yearLevel || r.year_lvl === yearLevel)), COLUMNS, sort.sortKey, sort.sortDir)
+  const pill = { display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', border: '1px solid #D1D5DB', borderRadius: 'var(--control-radius)', background: '#FFFFFF' }
+
+  const content = (
+    <div className={`${table['courses-table']}`}>
+      {/* Program identity (as in the Course Assignment module): a dark bar, "BSIT: Course Assignment", the program's
+          full name; the action on the right; a hairline under it. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, minWidth: 0 }}>
+          <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: '#18191A', flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 24, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.25, textTransform: 'none' }}>
+              {titleCode ? (<><span style={{ fontWeight: 800 }}>{titleCode}</span><span style={{ fontWeight: 600 }}>: Course Assignment</span></>) : <span style={{ fontWeight: 700 }}>Course Assignment</span>}
+            </h2>
+            {program && <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>{program.name}</div>}
+          </div>
+          {programs.length > 1 && (
+            <Select value={program ? String(program.programId) : ''} onChange={(e) => { setProgramId(e.target.value); setYearLevel('') }} aria-label="Program">
+              {programs.map(p => <option key={p.programId} value={String(p.programId)}>{programShort(p.name)}</option>)}
+            </Select>
+          )}
+        </div>
+        <input ref={fileRef} type="file" aria-label="Subject Offerings file" accept=".xls,.xlsx" hidden onChange={(e) => importFile(e.target.files?.[0])} />
+        <button type="button" className="btn btn-primary" disabled={busy === 'import'} onClick={() => fileRef.current?.click()}>
+          <Upload size={16} /> {busy === 'import' ? 'Importing…' : 'Import official list'}
+        </button>
+      </div>
+      <div style={{ height: 1, background: '#E5E7EB', margin: '14px 0 16px' }} />
+
+      {/* The term, then the search and the year level, above the table. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#18191A' }}><Calendar size={16} aria-hidden="true" /> Current Term:</span>
+        <Select variant="pill" value={`${schoolYear}|${semester}`} aria-label="Term"
+          onChange={(e) => { const [year, sem] = e.target.value.split('|'); setSchoolYear(year); setSemester(sem) }}>
+          {YEARS.flatMap(y => [...SEMESTERS].reverse().map(s => <option key={`${y}|${s}`} value={`${y}|${s}`}>{s === 'Summer' ? 'Summer' : `${s} Semester`} {y}</option>))}
+        </Select>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+        <label style={{ ...pill, flex: '0 1 360px', minWidth: 220 }}>
+          <Search size={16} aria-hidden="true" style={{ color: '#374151', flexShrink: 0 }} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by course no., name, or faculty" aria-label="Search courses"
+            style={{ border: 0, outline: 'none', background: 'transparent', width: '100%', fontSize: 14 }} />
+        </label>
+        {yearLevels.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Select variant="pill" prefix="Year Level:" value={yearLevel} onChange={(e) => setYearLevel(e.target.value)} aria-label="Year level">
+              <option value="">All Year Levels</option>
+              {yearLevels.map(y => <option key={y} value={y}>{y.charAt(0) + y.slice(1).toLowerCase()}</option>)}
+            </Select>
+          </div>
+        )}
+      </div>
+
+      <p style={{ margin: '0 0 12px', color: 'var(--ink-muted)', fontSize: 13 }}>
+        {data?.official
+          ? `Official list (registrar's Subject Offerings): ${data.official.sections} sections, imported ${new Date(data.official.importedAt).toLocaleString()}.`
+          : 'No official list for this term yet. Pre-assign the courses now; import the Subject Offerings (.xls) at the end of enrollment to compare.'}
+      </p>
+      {data?.notReady?.filter(p => !program || String(p.programId) === String(program.programId)).map(p => (
+        <div key={p.programId} role="status" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>
+          {p.name}: complete its Program Documents before assigning courses. Missing: {p.missing.join('; ')}.
+        </div>
+      ))}
+      {error && <div role="alert" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>{error}</div>}
+
+      <TableScrollRegion label="Course assignments" minWidth={900} className={table['table-container']}>
+        {!data ? <Loading label="Loading course assignments…"><TableSkeleton rows={6} cols={[120, '1fr', 220, 260, 160]} /></Loading> : (
+          <table>
+            <thead>
+              <tr>
+                {COLUMNS.map(col => (
+                  <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={(key) => setSort(cur => nextSort(cur, key))} fill />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.filter(inProgram).length === 0 && (
+                <tr><td colSpan={COLUMNS.length} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{data.rows.length ? 'This program has no courses yet.' : 'You do not head a program with courses yet.'}</td></tr>
+              )}
+              {data.rows.filter(inProgram).length > 0 && rows.length === 0 && (
+                <tr><td colSpan={COLUMNS.length} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>No course matches the search or year level.</td></tr>
+              )}
+              {rows.map(row => {
+                const key = `row-${row.course_id}-${row.program_id}`
+                const status = STATUS[row.status] || STATUS.unassigned
+                const preId = row.pre?.instructor_user_id
+                const canUseOfficial = row.suggested && String(row.suggested.user_id) !== String(preId)
+                return (
+                  <tr key={key}>
+                    <td style={cell('course_no')}>{row.course_no}</td>
+                    <td style={cell('course_title')}>{row.course_title}</td>
+                    <td style={cell('pre')}>
+                      <Select block value={preId ? String(preId) : ''} placeholder="Choose instructor…" disabled={busy === key}
+                        aria-label={`Instructor of ${row.course_no}`}
+                        onChange={(e) => e.target.value && e.target.value !== String(preId) && setInstructor(row, e.target.value, instructorName(e.target.value))}>
+                        {data.instructors.map(u => <option key={u.user_id} value={String(u.user_id)}>{u.name}</option>)}
+                      </Select>
+                    </td>
+                    {data.official && <td style={cell('official')}>
+                      {row.official.length === 0 ? <span style={{ color: 'var(--ink-faint)' }}>—</span> : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 13 }}>
+                          {officialByFaculty(row.official).map(g => (
+                            <div key={g.name}>
+                              <span style={{ color: g.name ? 'var(--ink)' : 'var(--ink-faint)' }}>{g.name || 'No faculty yet'}</span>
+                              {g.name && !g.known && <span style={{ color: 'var(--warn)' }}> (no account)</span>}
+                              <span style={{ color: 'var(--ink-muted)' }}>: {g.sections.join(', ')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>}
+                    <td style={{ ...cell('status'), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
+                      <div style={{ color: status.color, fontWeight: 500 }}>{status.label}</div>
+                      {canUseOfficial && (
+                        <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: 6 }} disabled={busy === key}
+                          onClick={() => setInstructor(row, row.suggested.user_id, row.suggested.name)}>
+                          Use {row.suggested.name}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </TableScrollRegion>
+    </div>
+  )
+
+  return (
+    <SkeletonA
+      header={<HeaderA role={session?.roleLabel || 'Program Head'} name={session?.name || ''} />}
+      nav={<SideNavigation mode="program-head" />}
+      content={content}
+    />
+  )
+}
+
+export default CourseAssignment

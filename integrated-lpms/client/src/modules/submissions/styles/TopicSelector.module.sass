@@ -1,0 +1,556 @@
+.container
+  width: 100%
+  font-family: 'Manrope', sans-serif
+
+.label
+  font-weight: 600
+  font-size: 14px
+  margin-bottom: 8px
+  display: block
+  color: #2D3748
+
+.mainWrapper
+  border: 1px solid #DCE2F0
+  border-radius: var(--radius-lg)
+  background: #fff
+  height: 100%
+  flex-grow: 1
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  position: relative
+  &.error
+    border-color: #ff5252
+
+.stickyHeader
+  background: #F8FAFC
+  border-bottom: 1px solid #DCE2F0
+  padding: 12px
+  position: sticky
+  top: 0
+  z-index: 10
+
+.headerRow
+  display: flex
+  gap: 10px
+  align-items: stretch
+
+.searchBar
+  flex: 1
+  display: flex
+  align-items: center
+  gap: 10px
+  background: #fff
+  border: 1px solid var(--line)
+  padding: 8px 12px
+  border-radius: 6px
+  input
+    border: none
+    outline: none
+    flex: 1
+    font-size: 14px
+
+.continueTopicWrapper
+  position: relative
+  display: flex
+  align-items: stretch
+
+.continueTopicBtn
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 6px
+  background: #ffffff
+  color: #334155
+  border: 1px solid var(--control-border)
+  padding: 8px 14px
+  border-radius: var(--control-radius)
+  font-size: 13px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.2s ease
+  &:hover
+    background: #F1F5F9
+    border-color: #94A3B8
+    color: #0F172A
+
+.continueActive
+  background: #EFF6FF
+  border-color: #3182CE
+  color: #1E40AF
+
+.continueChevron
+  color: #64748B
+  transition: transform 0.2s ease
+  &.up
+    transform: rotate(180deg)
+
+.continueDropdown
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  width: 340px
+  background: #ffffff
+  border: 1px solid #DCE2F0
+  border-radius: var(--radius-lg)
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.14)
+  z-index: 120
+  overflow: hidden
+
+.continueDropdownHeader
+  padding: 10px 14px
+  background: #F8FAFC
+  border-bottom: 1px solid var(--line)
+  font-size: 11.5px
+  font-weight: 700
+  color: #475569
+  text-transform: uppercase
+  letter-spacing: 0.03em
+
+.continueOptionsList
+  max-height: 220px
+  overflow-y: auto
+
+.continueOptionItem
+  padding: 10px 14px
+  display: flex
+  align-items: flex-start
+  gap: 10px
+  cursor: pointer
+  border-bottom: 1px solid #F1F5F9
+  transition: background 0.15s ease
+  &:last-child
+    border-bottom: none
+  &:hover
+    background: #F8FAFC
+  &.selectedContinueOpt
+    background: #EFF6FF
+
+.continueOptText
+  display: flex
+  flex-direction: column
+  gap: 2px
+  min-width: 0
+  flex: 1
+
+.continueOptTitle
+  font-size: 13px
+  font-weight: 600
+  color: #1E293B
+  word-break: break-word
+
+.continueOptMeta
+  font-size: 11px
+  color: #64748B
+
+.mainAddBtn
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 6px
+  background: #3182CE
+  color: white
+  border: none
+  padding: 8px 16px
+  border-radius: var(--control-radius)
+  font-size: 13px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  transition: background 0.2s
+  &:hover
+    background: #2B6CB0
+
+.aiSuggestBtn
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 7px
+  background: linear-gradient(135deg, #2563EB 0%, #4861F1 12.5%, #625FF5 25%, #775EF6 37.5%, #8B5CF6 50%, #AA55E7 62.5%, #C44ED2 75%, #DA4AB7 87.5%, #EC4899 100%)
+  background-size: 200% 200%
+  color: white
+  border: none
+  padding: 8px 16px
+  border-radius: var(--control-radius)
+  font-size: 13px
+  font-weight: 700
+  letter-spacing: 0.3px
+  cursor: pointer
+  white-space: nowrap
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.35)
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1)
+  animation: magicalGlow 6s ease infinite alternate
+  &:hover
+    transform: translateY(-1px)
+    box-shadow: 0 4px 18px rgba(139, 92, 246, 0.55), 0 0 12px rgba(236, 72, 153, 0.35)
+    filter: brightness(1.06)
+  &:active
+    transform: translateY(0)
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4)
+
+@keyframes magicalGlow
+  0%
+    background-position: 0% 50%
+  100%
+    background-position: 100% 50%
+
+.geminiSparkleIcon
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  color: #FFF
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9))
+  animation: sparkleTwinkle 2.5s ease-in-out infinite alternate
+
+@keyframes sparkleTwinkle
+  0%
+    transform: scale(0.9) rotate(-6deg)
+  100%
+    transform: scale(1.15) rotate(14deg)
+
+.aiBtnText
+  font-weight: 700
+  letter-spacing: 0.25px
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2)
+
+.addManualBtnInline
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 4px
+  background: #3182CE
+  color: white
+  border: none
+  padding: 5px 12px
+  border-radius: 4px
+  font-size: 12px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  transition: background 0.2s
+  &:hover
+    background: #2B6CB0
+
+.btnIcon
+  margin-bottom: 0px // Flex vertically centers it nicely
+
+.chevron
+  color: #718096
+  cursor: pointer
+  transition: transform 0.2s
+  &.up
+    transform: rotate(180deg)
+
+.pickerDropdown
+  position: absolute
+  top: 100%
+  left: 12px
+  right: 12px
+  background: white
+  z-index: 100
+  border: 1px solid #DCE2F0
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1)
+  border-radius: 0 0 8px 8px
+
+.optionsList
+  max-height: 240px
+  overflow-y: auto
+
+.optionItem
+  padding: 12px 15px
+  display: flex
+  align-items: center
+  gap: 12px
+  cursor: pointer
+  border-bottom: 1px solid #EDF2F7
+  font-size: 14px
+  &:hover
+    background: #F7FAFC
+  &.selectedOpt
+    background: #EBF8FF
+    animation: selectionPulsePicker 0.6s ease-out forwards
+  .subCount
+    margin-left: auto
+    font-size: 11px
+    color: #A0AEC0
+
+// --- SCROLLING AREA ---
+
+.scrollContainer
+  flex: 1
+  overflow-y: auto
+  background: #fdfdfd
+  display: flex
+  flex-direction: column
+
+.configArea
+  padding: 15px
+  display: grid
+  grid-template-columns: repeat(1, 1fr)
+  gap: 15px
+
+@media (min-width: 768px)
+  .configArea
+    grid-template-columns: repeat(2, 1fr)
+
+.topicCard
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  background: white
+  overflow: hidden
+  transition: all 0.3s ease
+  display: flex
+  flex-direction: column
+  height: 315px
+
+.continuedTopicCard
+  border-color: #93C5FD
+  .topicHeaderCard
+    background: #EFF6FF
+    border-bottom-color: #BFDBFE
+
+// AI-Imported Topic Card: Gradient border matching the AI Suggest button (#2563EB -> #8B5CF6 -> #EC4899)
+.aiSuggestedTopicCard
+  border: 2px solid transparent !important
+  background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #2563EB 0%, #4861F1 12.5%, #625FF5 25%, #775EF6 37.5%, #8B5CF6 50%, #AA55E7 62.5%, #C44ED2 75%, #DA4AB7 87.5%, #EC4899 100%) border-box !important
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.16)
+  .topicHeaderCard
+    background: linear-gradient(135deg, #EFF6FF 0%, #F2F6FF 12.5%, #F4F5FF 25%, #F7F5FF 37.5%, #FAF5FF 50%, #FBF4FD 62.5%, #FCF3FC 75%, #FCF3FA 87.5%, #FDF2F8 100%)
+    border-bottom: 1px solid #DDD6FE
+
+.newEntry
+  animation: slideInHighlight 0.6s ease-out
+
+@keyframes slideInHighlight
+  0%
+    transform: translateY(-10px)
+    background: #EBF8FF
+  100%
+    transform: translateY(0)
+    background: white
+
+.topicHeaderCard
+  padding: 10px 15px
+  height: 47px
+  box-sizing: border-box
+  background: #F8FAFC
+  border-bottom: 1px solid var(--line)
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 10px
+
+.topicTitleGroup
+  display: flex
+  align-items: center
+  gap: 10px
+  flex: 1
+  min-width: 0
+
+.inputWrapper
+  display: flex
+  align-items: center
+  gap: 6px
+  flex: 1
+  min-width: 0
+
+.topicTitleInput
+  font-weight: 700
+  font-size: 14px
+  border: none
+  background: transparent
+  color: #1A202C
+  width: 100%
+  outline: none
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.lockedTitleInput
+  color: #1E3A8A
+  cursor: default
+
+.editIcon
+  color: #CBD5E0
+  flex-shrink: 0
+
+.lockIcon
+  color: #3182CE
+  flex-shrink: 0
+
+.continuedBadge
+  font-size: 10px
+  font-weight: 700
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  background: #DBEAFE
+  color: #1E40AF
+  padding: 2px 7px
+  border-radius: 999px
+  flex-shrink: 0
+
+.removeTopicBtn
+  background: #2D3748 !important
+  border: none
+  border-radius: var(--control-radius)
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  flex-shrink: 0
+  padding: 6px 12px
+  &:hover
+    background: #E53E3E
+
+// --- SUBTOPIC STYLING ---
+
+.subtopicsContainer
+  padding: 10px 15px 12px 15px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  flex: 1
+  overflow-y: auto
+  box-sizing: border-box
+
+.subtopicRow
+  display: flex
+  align-items: center
+  gap: 10px
+  background: #fff
+  border: 1px solid #EDF2F7
+  padding: 5px 10px
+  border-radius: 6px
+  height: 38px
+  box-sizing: border-box
+  flex-shrink: 0
+  input
+    flex: 1
+    border: none
+    font-size: 12px
+    color: #4A5568
+    outline: none
+    background: transparent
+
+.bullet
+  color: #CBD5E0
+  font-weight: bold
+
+.actions
+  display: flex
+  gap: 5px
+  button
+    background: #F7FAFC
+    border: 1px solid var(--line)
+    padding: 4px
+    border-radius: 4px
+    color: #718096
+    cursor: pointer
+    display: flex
+    align-items: center
+    justify-content: center
+    &:hover
+      background: #EDF2F7
+      color: #3182CE
+    &.delete:hover
+      color: #E53E3E
+      border-color: #FEB2B2
+
+.addSubBtn
+  margin-top: 4px
+  background: none
+  border: 1px dashed #CBD5E0
+  color: #718096
+  padding: 6px
+  border-radius: var(--control-radius)
+  font-size: 12px
+  cursor: pointer
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 5px
+  width: 100%
+  flex-shrink: 0
+  &:hover
+    background: #F7FAFC
+    border-color: #A0AEC0
+    color: #4A5568
+
+.errorText
+  color: #ff5252
+  font-size: 12px
+  margin-top: 6px
+  font-weight: 500
+
+.noResults
+  padding: 24px
+  text-align: center
+  font-size: 13px
+  color: #A0AEC0
+
+@keyframes selectionPulsePicker
+  0%
+    background-color: #90CDF4
+  100%
+    background-color: #EBF8FF
+
+// --- PLACEHOLDER / GHOST CARDS ---
+
+.placeholderCard
+  border: 2px dashed var(--line)
+  border-radius: var(--radius-lg)
+  background: transparent
+  height: 315px
+  display: flex
+  flex-direction: column
+  opacity: 0.6
+  animation: fadeIn 0.4s ease-in-out
+
+.placeholderHeader
+  height: 47px
+  box-sizing: border-box
+  border-bottom: 2px dashed var(--line)
+  background: #F8FAFC
+  border-radius: 8px 8px 0 0
+
+.placeholderBody
+  padding: 12px 15px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  flex: 1
+
+.placeholderLine
+  height: 38px
+  background: #EDF2F7
+  border-radius: 6px
+
+@keyframes fadeIn
+  from
+    opacity: 0
+  to
+    opacity: 0.6
+
+.topicControls
+  padding: 10px 15px 0 15px
+  background: white
+
+.addSubBtnSticky
+  background: #F8FAFC
+  border: 1px dashed #CBD5E0
+  color: #4A5568
+  padding: 6px
+  border-radius: var(--control-radius)
+  font-size: 12px
+  cursor: pointer
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 5px
+  width: 100%
+  transition: all 0.2s
+  &:hover
+    background: #EDF2F7
+    border-color: #3182CE
+    color: #3182CE

@@ -1,0 +1,415 @@
+.courses-table
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  min-height: 200px
+  gap: 10px
+  padding: 20px 30px
+  background: white
+
+.header
+  display: flex
+  width: 100%
+  flex-direction: row
+  flex-wrap: wrap
+  align-items: center
+  justify-content: space-between
+  gap: 15px
+  margin-bottom: 20px
+
+.headerLeft
+  display: flex
+  align-items: center
+  gap: 15px
+  flex-wrap: wrap
+
+  h2
+    white-space: normal
+    margin: 0
+    font-size: 20px
+    font-weight: 700
+    color: #333
+
+.headerRight
+  display: flex
+  align-items: center
+  gap: 15px
+  flex-wrap: wrap
+
+.filterA
+  display: flex
+  padding: 6px 10px
+  gap: 20px
+  background: #FFF
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.15)
+  border-radius: 6px
+
+.filter-container
+  display: flex
+  align-items: center
+  gap: 16px
+  font-family: 'Inter', sans-serif
+
+  p
+    margin: 0
+    color: #666
+    font-size: 14px
+
+  .segmented-control
+    display: flex
+    background-color: #f1f5f9
+    padding: 3px
+    border-radius: 8px
+    gap: 3px
+
+    .control-item
+      border: none
+      outline: none
+      padding: 5px 12px
+      cursor: pointer
+      background: transparent
+      color: #64748b
+      font-weight: 500
+      border-radius: 6px
+      transition: all 0.2s ease
+      font-size: 13px
+      display: inline-flex
+      align-items: center
+      gap: 6px
+
+      &:hover
+        color: #334155
+        background: rgba(0, 0, 0, 0.03)
+
+      &.active
+        background-color: #ffffff
+        color: #0f172a
+        box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.08)
+        font-weight: 600
+
+      .itemBadge
+        font-size: 11px
+        padding: 1px 6px
+        border-radius: 10px
+        background: #f1f5f9
+        color: #64748b
+
+.itemBadge
+  font-size: 11px
+  padding: 1px 6px
+  border-radius: 10px
+  background: #f1f5f9
+  color: #64748b
+
+.tableControlsOuter
+  display: flex
+  justify-content: space-between
+  align-items: center
+  width: 100%
+  margin-bottom: 10px
+
+.searchContainer
+  display: flex
+  flex-grow: 1
+  align-items: center
+  margin-right: 20px
+  border: 1px solid #A4A9AF
+  border-radius: 20px
+  height: 40px
+  padding: 0 15px
+  background: white
+
+.searchContainer input
+  border: none
+  outline: none
+  width: 100%
+  height: 100%
+  font-size: 14px
+  margin-left: 10px
+  color: #1f2937
+
+.searchContainer input::placeholder
+  color: #9ca3af
+
+.layoutToggles
+  display: flex
+  align-items: center
+  background: #f0f0f0
+  padding: 4px
+  border-radius: 6px
+  gap: 4px
+
+.toggleBtn
+  background: transparent
+  border: none
+  padding: 6px
+  border-radius: 4px
+  cursor: pointer
+  color: #888
+  display: flex
+  align-items: center
+  justify-content: center
+  transition: all 0.2s
+
+  &:hover
+    color: #444
+    background: rgba(0,0,0,0.05)
+
+  &.active
+    background: #fff
+    color: #333
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1)
+
+
+.header .header-select
+  font-size: 14px
+  outline: none
+  border: 0
+  color: #DC2626
+  background: transparent
+
+.courses-table select option
+  font-size: 12px
+
+.table-container::-webkit-scrollbar,
+.gridContainer::-webkit-scrollbar
+  display: none
+
+.table-container
+  width: 100%
+  max-width: 100%
+  display: flex
+  overflow: auto
+
+.status
+  justify-content: center
+  align-items: center
+  border-width: 0 5px 2px 5px
+  border-color: white
+  border-style: solid
+
+.fill
+  flex-grow: 1
+  padding-right: 25px
+  display: flex
+  justify-content: end
+  align-items: center
+  gap: 5px
+  font-weight: 400 !important
+
+.sub-column th
+  font-weight: 300
+  font-size: 14px
+
+.info
+  background: white
+  border: none
+  display: flex
+  padding: 4px
+  border-radius: 4px
+  color: #888
+  cursor: pointer
+  transition: all 0.2s
+
+  &:hover
+    color: #333
+    background: rgba(0,0,0,0.04)
+
+// List Action Containers
+.listActionContainer
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: 4px
+  padding: 2px 0
+
+.listActionTopRow
+  display: flex
+  align-items: center
+  gap: 8px
+
+.listExportBtn
+  display: flex
+  justify-content: center
+  align-items: center
+  padding: 4px 8px
+  height: fit-content
+  width: fit-content
+  color: inherit !important
+  background: transparent
+  border: none
+  gap: 5px
+  cursor: pointer
+  border-radius: 6px
+  transition: background 0.2s ease, opacity 0.2s ease
+  outline: none
+  font-size: 15px
+
+  &:hover
+    background: rgba(0,0,0,0.04)
+    opacity: 0.8
+
+// Grid layout styles
+.gridContainer
+  display: grid
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))
+  gap: 20px
+  width: 100%
+  align-content: start
+  overflow-y: auto
+  padding-bottom: 20px
+  margin-top: 10px
+
+.gridCard
+  display: flex
+  flex-direction: column
+  background: #fff
+  border-radius: 8px
+  border: 1px solid #ebebeb
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04)
+  transition: box-shadow 0.2s, transform 0.2s
+  overflow: hidden
+
+  &:hover
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08)
+    transform: translateY(-2px)
+
+.cardMain
+  padding: 16px
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.cardHeader
+  display: flex
+  justify-content: space-between
+  align-items: flex-start
+
+.cardCode
+  font-size: 13px
+  font-weight: 500
+  color: #DC2626
+  background: rgba(220, 38, 38, 0.08)
+  padding: 4px 10px
+  border-radius: 20px
+
+.cardDate
+  font-size: 13px
+  color: #888
+  font-weight: 300
+
+.cardTitle
+  font-size: 15px
+  font-weight: 400
+  color: #222
+  line-height: 1.4
+
+.cardFooter
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-top: auto
+
+.cardActionsGroup
+  display: flex
+  align-items: center
+  gap: 8px
+
+.gridActionBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  background: #f8f9fa
+  border: 1px solid #e9ecef
+  padding: 6px 14px
+  border-radius: 20px
+  font-size: 13px
+  font-weight: 400
+  color: #444 !important
+  transition: all 0.2s
+  cursor: pointer
+  outline: none
+
+  &:hover
+    background: #e9ecef
+    color: #000 !important
+
+.gridExportBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  background: #f8f9fa
+  border: 1px solid #e9ecef
+  padding: 6px 14px
+  border-radius: 20px
+  font-size: 13px
+  font-weight: 400
+  color: #444 !important
+  transition: all 0.2s
+  cursor: pointer
+  outline: none
+
+  &:hover
+    background: #e9ecef
+    color: #000 !important
+
+.toggleDetailsBtn
+  background: transparent
+  border: none
+  color: #888
+  padding: 6px
+  cursor: pointer
+  display: flex
+  align-items: center
+  justify-content: center
+  border-radius: 50%
+  transition: all 0.2s
+
+  &:hover
+    background: #f1f3f5
+    color: #333
+
+.cardDetails
+  background: #fafafa
+  border-top: 1px solid #f0f0f0
+  padding: 16px
+  font-size: 13px
+
+.detailsContent
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.detailRow
+  display: flex
+  justify-content: space-between
+  color: #555
+  padding-bottom: 8px
+  border-bottom: 1px dashed #eaeaea
+
+.detailRowApprover
+  display: flex
+  flex-direction: column
+  gap: 6px
+  padding-bottom: 8px
+  border-bottom: 1px dashed #eaeaea
+
+  &:last-child
+    border-bottom: none
+    padding-bottom: 0
+
+.approverTitle
+  font-weight: 400
+  color: #333
+
+.approverDates
+  display: flex
+  flex-direction: column
+  gap: 3px
+  color: #666
+  font-size: 12px
+
+.pendingText
+  color: #f59e0b
+  font-style: italic

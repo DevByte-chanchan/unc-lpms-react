@@ -1,0 +1,33 @@
+{
+  "name": "unc-lpms-integrated-client",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --port 5173"
+  },
+  "dependencies": {
+    "dictionary-en": "^4.0.0",
+    "harper.js": "^3.2.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.72.0",
+    "nspell": "^2.1.5",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-feather": "^2.0.10",
+    "react-router-dom": "^7.9.6",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.3",
+    "sass": "^1.93.2",
+    "vite": "^7.1.7"
+  }
+}

@@ -1,0 +1,187 @@
+import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
+import { BookOpen } from 'lucide-react';
+import { unresolvedCountsByReference } from '../utils/referenceComments.js';
+import EmptyState from './EmptyState.jsx';
+import TableScrollRegion from './TableScrollRegion.jsx';
+import { sanitizeUrl } from '../utils/sanitize.js';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
+import { getCatalogSettings, refreshCatalogSettings } from '../utils/referenceCatalog.js';
+import { reviewReferences, reviewSummary } from '../utils/referenceReview.js';
+
+const REFERENCE_VIEWS = [
+    { value: 'Textbook', label: 'TEXTBOOKS', prefix: 'TB', identifier: 'ISBN', empty: 'No textbooks attached to this plan' },
+    { value: 'Open Educational Resources', label: 'OPEN EDUCATIONAL RESOURCES', prefix: 'OE', identifier: 'LINK', empty: 'No open educational resources attached to this plan' },
+    { value: 'Online Resources', label: 'ONLINE RESOURCES', prefix: 'OR', identifier: 'LINK', empty: 'No online resources attached to this plan' },
+];
+
+const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, styles, stylesB, fetchJson }) => {
+    const [viewType, setViewType] = useState('Textbook');
+    const [referenceData, setReferenceData] = useState(null);
+    const [isReferencesLoading, setIsReferencesLoading] = useState(false);
+    // The catch below logged to the console and stopped there, so the screen
+    // said "No references attached to this plan" whether the plan had none or
+    // the server had never answered. Those need different words, and the
+    // second one needs to name the reason.
+    const [referencesError, setReferencesError] = useState('');
+    const [referenceCommentCounts, setReferenceCommentCounts] = useState({});
+    // The Director's rules (how recent a title must be), kept in step with the server.
+    const [settings, setSettings] = useState(getCatalogSettings);
+    useEffect(() => { let on = true; refreshCatalogSettings(fetchJson).then(latest => { if (on) setSettings(latest); }); return () => { on = false; }; }, [fetchJson]);
+
+    // 1. Fetch live syllabus materials configuration datasets
+    useEffect(() => {
+        if (!offeringID || selectedSection !== 'References Summary') return;
+        let mounted = true;
+
+        async function fetchReferenceSummaryData() {
+            try {
+                setIsReferencesLoading(true);
+                const data = await fetchJson(`/api/courses/${offeringKey(offeringID, revisionNum)}/references`);
+
+                if (!mounted) return;
+                setReferenceData(data);
+                setReferencesError('');
+            } catch (err) {
+                console.error("Error fetching reference summary data:", err);
+                if (mounted) setReferencesError(describeCourseLoadError(err));
+            } finally {
+                if (mounted) setIsReferencesLoading(false);
+            }
+        }
+
+        fetchReferenceSummaryData();
+        return () => { mounted = false; };
+    }, [offeringID, revisionNum, selectedSection, fetchJson]);
+
+    // 2. Fetch workflow review feedback comment numbers for each material entry
+    //
+    // The comment endpoint filters on ilo_id, so it is queried per ILO — passing
+    // it a reference_id returned the comments of the ILO with the same number
+    // and badged the wrong rows. Which reference a comment is about is its
+    // target_id, and one comment yields one row per target, so the count is over
+    // distinct comment_ids.
+    useEffect(() => {
+        if (status === 'approved' || selectedSection !== 'References Summary' || !referenceData) return;
+        if (!offeringID) return;
+        let mounted = true;
+
+        async function gatherReferenceCommentCounts() {
+            try {
+                // The plan's comments in one call, which every reviewer of the plan may read. (The ILO list this
+                // used to go through is not open to the Director of Libraries, so their badges never loaded.)
+                const rows = await fetchJson(`/api/comments/course/${offeringKey(offeringID, revisionNum)}`);
+                if (!mounted) return;
+                const referenceRows = (Array.isArray(rows) ? rows : []).filter(row => row.comment_for === 'references');
+                setReferenceCommentCounts(unresolvedCountsByReference(referenceRows));
+            } catch (error) {
+                console.error("Error tracking runtime item feedback counts:", error);
+            }
+        }
+
+        gatherReferenceCommentCounts();
+        return () => { mounted = false; };
+    }, [referenceData, status, selectedSection, fetchJson, offeringID, revisionNum]);
+
+    // Data parsing structure assistant matching structural schemas
+    const getDataByType = (type) => {
+        const payload = referenceData || {};
+        if (Array.isArray(payload[type])) return payload[type];
+        if (payload.data && Array.isArray(payload.data[type])) return payload.data[type];
+
+        const fallbackArray = payload.references || payload.data?.references;
+        if (Array.isArray(fallbackArray)) {
+            return fallbackArray.filter(ref => ref.type?.toLowerCase() === type.toLowerCase());
+        }
+        return [];
+    };
+
+    const activeView = REFERENCE_VIEWS.find(view => view.value === viewType) || REFERENCE_VIEWS[0];
+    // Review by exception: titles with an issue come first and say why; a plan with none says so.
+    const planRows = reviewReferences(Array.isArray(referenceData?.references) ? referenceData.references : [], { settings });
+    const summary = reviewSummary(planRows);
+    const reviewed = reviewReferences(getDataByType(activeView.value), { settings });
+    const activeReferences = reviewed.map(row => row.ref);
+    const isTextbook = activeView.value === 'Textbook';
+
+    if (isReferencesLoading && !referenceData) {
+        return (
+            <div className={stylesB.refContainer}>
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '0.95rem' }}>
+                    Loading References Summary Matrix...
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={stylesB.refContainer}>
+            <div className={stylesB.refHeaderBar}>
+                <select
+                  aria-label="Reference category"
+                  value={viewType}
+                  onChange={(event) => setViewType(event.target.value)}
+                  className={stylesB.refSelect}
+                >
+                    {REFERENCE_VIEWS.map(view => (
+                        <option key={view.value} value={view.value}>{view.label}</option>
+                    ))}
+                </select>
+            </div>
+
+            {referenceData && summary.tone !== 'none' && (
+                <div role="status" className={`${stylesB.refNotice} ${summary.tone === 'clean' ? stylesB.refNoticeClean : ''}`}>
+                    {summary.text}
+                </div>
+            )}
+
+            {referencesError && (
+                <div className={stylesB.refErrorBanner} role="alert">
+                    <strong>Could not load the references.</strong>
+                    <span>{referencesError}</span>
+                </div>
+            )}
+
+            {(!referencesError || referenceData) && <TableScrollRegion label={`${activeView.label} table`} minWidth={640} className={stylesB.refScrollWrapper}>
+                <table className={stylesB.refTable}>
+                    <thead>
+                        <tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>{activeView.identifier}</th><th>YEAR</th><th>ISSUES</th></tr>
+                    </thead>
+                    <tbody>
+                        {activeReferences.length === 0 ? (
+                            <EmptyState
+                                colSpan={6}
+                                icon={<BookOpen size={22} strokeWidth={1.6} />}
+                                title={activeView.empty}
+                                hint={`References in ${activeView.label.toLowerCase()} will appear here after they are attached to a course outcome.`}
+                            />
+                        ) : reviewed.map(({ ref, issues }, index) => {
+                            const unresolvedCount = referenceCommentCounts[ref.id] || 0;
+                            return (
+                                <tr key={ref.id || `${activeView.prefix}${index + 1}`} data-target-kind="References" data-target={ref.title}>
+                                    <td>{activeView.prefix}{index + 1}</td>
+                                    <td>
+                                        <div className={stylesB.refTitleCell}>
+                                            <span>{ref.title}</span>
+                                            {unresolvedCount > 0 && (
+                                                <span className={styles['comment-badge']}>{unresolvedCount}</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td>{ref.authors}</td>
+                                    <td>{isTextbook
+                                        ? (ref.isbn || '-')
+                                        : (sanitizeUrl(ref.link) ? <a href={sanitizeUrl(ref.link)} target="_blank" rel="noreferrer">Open Resource</a> : '-')}</td>
+                                    <td>{ref.year || '-'}</td>
+                                    <td>{issues.length === 0 ? <span style={{ color: '#6B7280' }}>None</span> : issues.map(issue => <div key={issue} style={{ color: 'var(--warn)' }}>{issue}</div>)}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </TableScrollRegion>}
+        </div>
+    );
+};
+
+export default ReferenceSummary;

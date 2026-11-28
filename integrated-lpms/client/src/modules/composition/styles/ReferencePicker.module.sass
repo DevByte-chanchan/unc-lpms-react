@@ -1,0 +1,439 @@
+.container
+  width: 100%
+  font-family: 'Manrope', sans-serif
+  display: flex
+  flex-direction: column
+  flex: 1
+  min-height: 0
+
+.label
+  font-weight: 600
+  font-size: 14px
+  margin-bottom: 8px
+  display: block
+
+.pickerWrapper
+  border: 1px solid #DCE2F0
+  border-radius: 8px
+  background: #fff
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  flex: 1
+  min-height: 0
+  &.error
+    border-color: #ff5252
+
+.header
+  background: #F8FAFC
+  border-bottom: 1px solid #DCE2F0
+  padding: 9px 12px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  height: auto
+  box-sizing: border-box
+
+.headerTopRow
+  width: 100%
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 10px
+  min-height: 30px
+  padding-bottom: 8px
+  border-bottom: 1px solid #E2E8F0
+
+.headerBottomRow
+  width: 100%
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  flex-wrap: wrap
+
+.headerTitleGroup
+  display: flex
+  align-items: center
+  gap: 6px
+  min-width: 0
+  flex: 0 1 auto
+
+.headerTitleIcon
+  color: #3182CE
+  flex-shrink: 0
+
+.headerTitleText
+  font-size: 13px
+  font-weight: 700
+  color: #1E293B
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.filterTabs
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  flex-wrap: wrap
+  padding: 2px
+  gap: 3px
+  min-width: 0
+  background: #EDF2F7
+  border: 1px solid #E2E8F0
+  border-radius: 7px
+
+.tab
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 5px
+  height: 28px
+  padding: 0 9px
+  font-size: 12px
+  font-weight: 600
+  border: 1px solid transparent
+  border-radius: 5px
+  background: transparent
+  color: #475569
+  cursor: pointer
+  transition: all 0.18s ease
+  white-space: nowrap
+  outline: none
+  &:hover
+    background: rgba(255, 255, 255, 0.75)
+    color: #1E293B
+  &.activeTab
+    background: #1E293B
+    color: #FFFFFF
+    border-color: #0F172A
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16)
+
+.tabCountBadge
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  min-width: 17px
+  height: 17px
+  padding: 0 4px
+  border-radius: 999px
+  font-size: 10.5px
+  font-weight: 700
+  line-height: 1
+  background: #CBD5E1
+  color: #1E293B
+
+.activeTab .tabCountBadge
+  background: rgba(255, 255, 255, 0.22)
+  color: #FFFFFF
+
+.mainAddBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 5px
+  height: 34px
+  box-sizing: border-box
+  background: #3182CE
+  color: white
+  border: none
+  padding: 0 11px
+  border-radius: 6px
+  font-size: 12.5px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  transition: background 0.2s
+  flex-shrink: 0
+  &:hover
+    background: #2B6CB0
+  &:disabled
+    opacity: 0.6
+    cursor: not-allowed
+
+.list
+  flex: 1
+  overflow-y: auto
+  overflow-x: hidden
+  background: #fdfdfd
+  padding: 12px
+  display: flex
+  flex-direction: column
+  gap: 12px
+  box-sizing: border-box
+
+.row
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  flex-wrap: wrap
+  padding: 12px 14px
+  gap: 8px 12px
+  min-height: 82px
+  background: #ffffff
+  border: 1px solid #E2E8F0
+  border-radius: 8px
+  flex-shrink: 0
+  cursor: pointer
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease
+  box-sizing: border-box
+  &:hover
+    background: #F8FAFC
+    border-color: #CBD5E1
+  &.selectedRow
+    background: #EBF8FF
+    border-color: #93C5FD
+    animation: selectionPulse 0.6s ease-out forwards
+
+.textbookRow
+  flex-wrap: nowrap
+  .rowMain
+    flex: 1 1 0%
+
+.rowMain
+  display: flex
+  align-items: flex-start
+  gap: 10px
+  flex: 1 1 180px
+  min-width: 0
+
+.rowCheckbox
+  margin-top: 3px
+  flex-shrink: 0
+  cursor: pointer
+
+.icon
+  color: #718096
+  margin-top: 2px
+  flex-shrink: 0
+
+.details
+  flex: 1
+  min-width: 0
+  word-break: break-word
+  overflow-wrap: anywhere
+  .title
+    font-weight: 600
+    font-size: 13.5px
+    color: #1A202C
+    line-height: 1.35
+    word-break: break-word
+  .textbookTitle
+    max-width: min(100%, 46ch)
+  .meta
+    font-size: 11.5px
+    color: #718096
+    margin-top: 3px
+    line-height: 1.4
+    word-break: break-word
+
+.rowActions
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  justify-content: flex-end
+  gap: 6px
+  margin-left: auto
+  flex-shrink: 0
+
+.textbookTagSlot
+  width: 90px
+  min-width: 90px
+  margin-left: 0
+  align-items: flex-start
+  justify-content: flex-end
+  flex-wrap: nowrap
+  flex-shrink: 0
+
+.link
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  font-size: 11.5px
+  font-weight: 600
+  color: #3182CE
+  text-decoration: none
+  padding: 2px 6px
+  border-radius: 4px
+  background: #EFF6FF
+  border: 1px solid #BFDBFE
+  white-space: nowrap
+  &:hover
+    background: #DBEAFE
+    color: #1D4ED8
+
+.typeTag
+  font-size: 10px
+  text-transform: uppercase
+  background: #E2E8F0
+  padding: 2px 6px
+  border-radius: 4px
+  color: #4A5568
+  font-weight: 700
+  width: 80px
+  display: flex
+  justify-content: center
+
+.deprecatedTag
+  font-size: 10px
+  text-transform: uppercase
+  background: #FEE2E2
+  border: 1px solid #FCA5A5
+  padding: 2px 7px
+  border-radius: 4px
+  color: #B91C1C
+  font-weight: 700
+  letter-spacing: 0.02em
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  white-space: nowrap
+
+.editBtn
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  background: transparent
+  border: 1px solid #CBD5E1
+  border-radius: 5px
+  padding: 3px 8px
+  font-size: 11.5px
+  font-weight: 600
+  color: #475569
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.15s ease
+  &:hover
+    background: #F1F5F9
+    color: #1E293B
+    border-color: #94A3B8
+
+// --- EMPTY-STATE PROMPT CARD & DYNAMIC GHOST PLACEHOLDER CARDS ---
+
+.emptyPromptCard
+  border: 2px dashed #CBD5E1
+  border-radius: 8px
+  background: #F8FAFC
+  height: 176px
+  flex-shrink: 0
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  text-align: center
+  padding: 20px 18px
+  box-sizing: border-box
+  gap: 8px
+  transition: border-color 0.2s ease, background 0.2s ease
+
+.emptyPromptIcon
+  width: 40px
+  height: 40px
+  border-radius: 50%
+  background: #EFF6FF
+  border: 1px solid #DBEAFE
+  color: #3B82F6
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+
+.emptyPromptTitle
+  font-size: 13.5px
+  font-weight: 700
+  color: #334155
+  line-height: 1.35
+
+.emptyPromptText
+  font-size: 12px
+  color: #64748B
+  line-height: 1.5
+  max-width: 280px
+
+.placeholderCard
+  border: 2px dashed #E2E8F0
+  border-radius: 8px
+  background: transparent
+  height: 82px
+  padding: 12px 14px
+  box-sizing: border-box
+  flex-shrink: 0
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  opacity: 0.6
+  animation: fadeIn 0.4s ease-in-out
+
+.placeholderLeft
+  display: flex
+  align-items: flex-start
+  gap: 10px
+  flex: 1
+  min-width: 0
+
+.placeholderCheckbox
+  width: 14px
+  height: 14px
+  margin-top: 3px
+  border-radius: 3px
+  background: #EDF2F7
+  flex-shrink: 0
+
+.placeholderIcon
+  width: 16px
+  height: 16px
+  margin-top: 2px
+  border-radius: 4px
+  background: #EDF2F7
+  flex-shrink: 0
+
+.placeholderLines
+  display: flex
+  flex-direction: column
+  gap: 8px
+  flex: 1
+  min-width: 0
+
+.placeholderTitleLine
+  height: 13px
+  width: 68%
+  max-width: 240px
+  border-radius: 5px
+  background: #EDF2F7
+
+.placeholderMetaLine
+  height: 10px
+  width: 44%
+  max-width: 160px
+  border-radius: 5px
+  background: #F1F5F9
+
+.placeholderBadge
+  width: 72px
+  height: 18px
+  border-radius: 4px
+  background: #F1F5F9
+  flex-shrink: 0
+  align-self: flex-start
+
+.errorText
+  color: #ff5252
+  font-size: 12px
+  margin-top: 4px
+  display: block
+
+.container a
+  font-size: 14px
+
+@keyframes selectionPulse
+  0%
+    background-color: #90CDF4
+  100%
+    background-color: #EBF8FF
+
+@keyframes fadeIn
+  from
+    opacity: 0
+  to
+    opacity: 0.6

@@ -1,0 +1,237 @@
+import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
+import { Inbox, LayoutGrid as Grid, TriangleAlert as AlertTriangle } from "lucide-react";
+import EmptyState from './EmptyState.jsx';
+import Spinner from './Spinner.jsx';
+import TableScrollRegion from './TableScrollRegion.jsx';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
+import { fetchJson as defaultFetchJson } from '../utils/api';
+import { toast } from '../utils/toast.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
+
+const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
+    const [cpaData, setCpaData] = useState({
+        course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: []
+    });
+    
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+    
+    const [cpaLoading, setCpaLoading] = useState(false);
+    const [cpaError, setCpaError] = useState(null);
+    const apiFetch = fetchJson || defaultFetchJson;
+
+    useEffect(() => {
+        if (!offeringID) return;
+        let mounted = true;
+
+        async function fetchCPA() {
+            setCpaLoading(true);
+            setCpaError(null);
+            try {
+                const data = await apiFetch(`/api/course-outcome-alignment/${offeringKey(offeringID, revisionNum)}`);
+
+                if (!mounted) return;
+                setCpaData({
+                    course: data.course ?? { code: '', title: '' },
+                    programOutcomes: data.programOutcomes ?? [],
+                    courseOutcomes: data.courseOutcomes ?? []
+                });
+            } catch (err) {
+                console.error(err);
+                if (!mounted) return;
+                setCpaError(describeCourseLoadError(err));
+            } finally {
+                if (mounted) setCpaLoading(false);
+            }
+        }
+
+        fetchCPA();
+        return () => { mounted = false; };
+    }, [offeringID, revisionNum, apiFetch]);
+
+    const handleEditToggle = () => {
+        if (isEditing) {
+            // Saving can be undone by editing again, so no "Are you sure?" first; a toast confirms it.
+            handleSaveConfirm();
+        } else {
+            setEditData(JSON.parse(JSON.stringify(cpaData.courseOutcomes)));
+            setIsEditing(true);
+        }
+    };
+
+    const handleMappingChange = (coIndex, poIndex, value) => {
+        setEditData(prev => {
+            const upd = [...prev];
+            upd[coIndex].poMappings[poIndex] = value;
+            return upd;
+        });
+    };
+
+    const handleSaveConfirm = async () => {
+        setIsSaving(true);
+        try {
+            await apiFetch(`/api/course-outcome-alignment/${offeringKey(offeringID, revisionNum)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    courseOutcomes: editData,
+                    programOutcomes: cpaData.programOutcomes
+                })
+            });
+            setCpaData(prev => ({ ...prev, courseOutcomes: editData }));
+            setIsEditing(false);
+            toast('Outcome alignment saved.');
+        } catch (e) {
+            console.error('Failed to save alignments', e);
+            alertDialog('The outcome alignment was not saved. Try again.', { title: 'Not saved' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // The same three states every panel in this module now has: waiting,
+    // failed, and legitimately empty. They were a line of grey text, a line of
+    // red text, and — for empty — an alignment table with no rows in it, which
+    // is the one that reads as a broken page rather than an empty one.
+    if (cpaLoading) {
+        return <Spinner label="Loading alignment matrix…" minHeight={280} />;
+    }
+
+    if (cpaError) {
+        return (
+            <EmptyState
+                icon={<AlertTriangle size={22} strokeWidth={1.6} />}
+                title="Could not load the alignment matrix"
+                hint={cpaError}
+            />
+        );
+    }
+
+    const hasOutcomes = !!(cpaData?.courseOutcomes?.length || cpaData?.programOutcomes?.length);
+    if (!hasOutcomes) {
+        return (
+            <EmptyState
+                icon={<Grid size={22} strokeWidth={1.6} />}
+                title="No outcome alignment recorded"
+                hint="Appears once the instructor fills in the course outcomes."
+            />
+        );
+    }
+
+    const renderCell = (co, coIndex, poIndex) => {
+        const value = isEditing ? editData[coIndex].poMappings[poIndex] : (co.poMappings && co.poMappings[poIndex] ? co.poMappings[poIndex] : '');
+        
+        if (isEditing) {
+            return (
+                <select 
+                    value={value} 
+                    onChange={(e) => handleMappingChange(coIndex, poIndex, e.target.value)}
+                    className="matrix-edit-select"
+                >
+                    <option value=""></option>
+                    <option value="I">I</option>
+                    <option value="E">E</option>
+                    <option value="D">D</option>
+                </select>
+            );
+        }
+        return value;
+    };
+
+    return (
+        <React.Fragment>
+            <div className={stylesB['cpa-container']} style={{ padding: '0' }}>
+                
+                <div className="matrix-flex-header" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", width: "100%", marginBottom: "15px" }}>
+                    <div className={stylesB.legend} style={{ margin: 0, padding: 0, background: 'transparent' }}>
+                        <span className={stylesB.legendTitle}>Legend:</span>
+                        <div className={stylesB.legendItems}>
+                            <span><strong>I</strong>  Introductory</span>
+                            <span><strong>E</strong>  Enabling</span>
+                            <span><strong>D</strong>  Demonstrative</span>
+                        </div>
+                    </div>
+                    
+                    {!isReadOnly && (
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        {isEditing && (
+                            <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); }}>
+                                Cancel
+                            </button>
+                        )}
+                        <button 
+                            type="button"
+                            className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
+                            onClick={handleEditToggle}
+                            disabled={isSaving || (isEditing && JSON.stringify(editData) === JSON.stringify(cpaData.courseOutcomes))}
+                        >
+                            {isEditing ? (
+                                <>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                    Save Alignments
+                                </>
+                            ) : (
+                                <>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    Edit Alignments
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
+                </div>
+
+                <TableScrollRegion
+                    label="Course and program outcome alignment"
+                    minWidth={1000}
+                    className={stylesB.tableScrollWrapper}
+                >
+                    <table className={stylesB.alignmentTable}>
+                        <thead>
+                        <tr>
+                            <th className={stylesB.firstColHeader}>
+                                After completion of the course, the student should be able to:
+                            </th>
+                            {cpaData.programOutcomes && cpaData.programOutcomes.length > 0
+                                ? cpaData.programOutcomes.map(po => <th key={po.key} className={stylesB.poHeader}>{po.key}</th>)
+                                : ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'].map(po => <th key={po} className={stylesB.poHeader}>{po}</th>)
+                            }
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        {cpaData.courseOutcomes && cpaData.courseOutcomes.length > 0 ? (
+                            cpaData.courseOutcomes.map((co, coIndex) => (
+                                <tr key={co.id}>
+                                    <td className={stylesB.descCell}>
+                                        {co.description}
+                                    </td>
+                                    {(cpaData.programOutcomes.length > 0 ? cpaData.programOutcomes : Array(9).fill({key: 'PO?'})).map((po, poIndex) => (
+                                        <td key={poIndex} className={stylesB.mappingCell} data-label={po.key}>
+                                            {renderCell(co, coIndex, poIndex)}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={(cpaData.programOutcomes.length || 9) + 1}>
+                                    <div style={{ textAlign: 'center', padding: '30px' }}>
+                                        <Inbox size={22} strokeWidth={1.6} style={{ display: 'block', margin: '0 auto 10px' }} />
+                                        <span>No course outcomes / alignments found for this course.</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                        </tbody>
+                    </table>
+                </TableScrollRegion>
+            </div>
+
+        </React.Fragment>
+    );
+};
+
+export default OutcomeAlignment;

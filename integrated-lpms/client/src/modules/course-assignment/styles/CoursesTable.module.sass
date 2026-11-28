@@ -1,0 +1,103 @@
+
+.courses-table
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  min-height: 200px
+  gap: 10px
+  padding: 20px 30px
+  background: white
+
+.header
+  display: flex
+  width: 100%
+  flex-direction: row
+  height: 40px
+  align-items: center
+  gap: 15px
+  margin-bottom: 20px
+
+.filterA
+  display: flex
+  padding: 6px 10px
+  gap: 20px
+  background: #FFF
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25)
+
+
+
+.header .header-select
+  font-size: 14px
+  outline: none
+  border: 0
+  color: #DC2626
+  background: transparent
+
+.courses-table select option
+  font-size: 12px
+
+.table-container::-webkit-scrollbar
+  display: none
+
+.table-container
+  width: 100%
+  max-width: 100%
+  display: flex
+  overflow: auto
+
+.status
+  justify-content: center
+  align-items: center
+  //background: #ccccda
+  border-width: 0 5px 2px 5px
+  border-color: white
+  border-style: solid
+
+.fill
+  flex-grow: 1
+  padding-right: 25px
+  display: flex
+  justify-content: end
+  align-items: center
+  gap: 5px
+  min-width: 200px
+  font-weight: 500 !important
+
+// Scoped alignment fix for the Course Assignment table (flex-based table —
+// see global th/td rules in index.css). ONE consistent cell style for both
+// <thead> and <tbody>, and the data columns hold their width attribute exactly
+// (flex: 0 0 auto) so header cells can't shrink out of line with body cells.
+// The COURSE OFFERING column flexes to absorb the slack (set inline), and the
+// trailing actions column is a small fixed width pinned right after STATUS.
+// All scoped to .alignFixed so the shared .fill / table rules are untouched.
+.alignFixed
+  th, td
+    padding: 12px 20px
+    text-align: left
+    align-items: center
+  th:not(.fill), td:not(.fill)
+    flex: 0 0 auto
+  // Actions column: small fixed width, right-aligned — overrides the shared
+  // .fill flex-grow for THIS table. A left margin gives a clear gutter between
+  // STATUS and the Edit action.
+  th.fill, td.fill
+    flex: 0 0 96px
+    min-width: 96px
+    margin-left: 16px
+    padding-right: 16px
+  // Subtle row hover.
+  tbody tr:hover
+    background: #F8FAFC
+
+
+.sub-column th
+  font-weight: 300
+  font-size: 14px
+
+.lighten
+  //background: #e0e0f1
+
+
+
+

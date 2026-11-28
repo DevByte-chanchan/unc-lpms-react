@@ -1,0 +1,1115 @@
+.container
+  width: 100%
+  height: 100%
+  min-width: 0
+  min-height: 0
+  display: flex
+  flex-direction: column
+  gap: 6px
+  overflow: hidden
+
+.navi
+  width: 100%
+  background: white
+  display: flex
+  padding: 10px 10px 10px 10px
+  gap: 8px
+  height: max-content
+  align-items: center
+  position: relative
+  z-index: 20
+  align-items: stretch // Enforce same height across children
+  z-index: 2
+
+.return
+  height: 40px
+  max-width: 120px
+  padding: 0 18px
+  border-radius: var(--control-radius)
+  border: none
+  display: flex
+  background: #EDF2F7
+  color: #2D3748
+  align-items: center
+  justify-content: center
+  font-size: 13.5px
+  font-weight: 600
+  gap: 7px
+  cursor: pointer
+  flex-shrink: 0
+  overflow: hidden
+  white-space: nowrap
+  text-decoration: none
+  transition: background 0.18s ease, color 0.18s ease
+
+  &:hover
+    background: #E2E8F0
+    color: #2D3748
+
+.section-select
+  border-radius: var(--control-radius)
+  background: #F2F3F4
+  flex-grow: 1
+  padding-right: 20px
+  height: 40px // Enforcing consistent height
+
+.navi select
+  border: 0
+  border-radius: var(--control-radius)
+  width: 100%
+  height: 100%
+  outline: none
+  padding-left: 10px
+  background: transparent
+  font-size: 14px
+  font-weight: 500
+
+.navi select option
+  background: #F2F3F4
+  font-size: 14px
+
+
+.dynamic-sections
+  width: 100%
+  flex-grow: 1
+  min-width: 0
+  min-height: 0
+  background: white
+  flex-direction: column
+  position: relative
+  overflow-y: auto
+  padding: 20px 30px // Parent padding applied uniformly for all sections in the main view!
+  overflow: auto // Ensure scrolling of large inner content
+
+// NEW: Loading Overlay
+.loadingContainer
+  width: 100%
+  height: 100%
+  display: flex
+  justify-content: center
+  align-items: center
+  min-height: 300px
+
+// NEW: The Spinning Circle
+.container section
+  width: 100%
+  height: 100%
+  display: flex
+  overflow: auto
+
+
+.draft, .submit, .more
+  padding: 0 14px
+  border-radius: var(--control-radius)
+  font-size: 14px
+  font-weight: 500
+  background: #dbdfe3
+  cursor: pointer
+  display: flex
+  align-items: center
+  gap: 5px
+  height: 40px
+  color: black
+
+.submit
+  color: white
+  background: #19282C
+
+.draft,
+.submit,
+.more
+  transition: transform 0.3s ease, filter 0.3s ease
+
+.draft:hover,
+.submit:hover,
+.more:hover
+  transform: none // Remove scale effect
+  filter: brightness(0.9) // Adds subtle hover effect instead of scaling up
+
+.more
+  position: relative
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  border-radius: 6px // Match other borders
+
+
+  &.active
+    .dropdownMenu
+      display: flex
+
+  .moreIcon
+    padding: 0
+    display: flex
+
+  .dropdownMenu
+    display: none
+    position: absolute
+    top: 100%
+    right: 0
+    margin-top: 4px
+    background-color: #f3f5f6
+    border: 1px solid var(--line)
+    border-radius: var(--radius-lg)
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)
+    z-index: 1000
+    min-width: 200px
+    padding: 8px
+    gap: 4px
+    flex-direction: column
+
+    button
+      outline: none
+      background: none
+      border: none
+      display: flex
+      align-items: center
+      gap: 10px
+      text-align: left
+      padding: 12px 14px
+      border-radius: var(--control-radius)
+      font-size: 14px
+      font-weight: 500
+      color: #334155
+      cursor: pointer
+      width: 100%
+      white-space: nowrap
+      transition: background-color 0.15s ease, color 0.15s ease
+
+      svg
+        flex-shrink: 0
+
+      &:hover
+        background-color: #e8ecef
+        color: #0f172a
+
+      &:disabled
+        opacity: 0.55
+        cursor: default
+
+      &.danger
+        color: #ef4444
+
+        &:hover
+          background-color: #fef2f2
+
+
+.fill
+  flex-grow: 1
+  padding-right: 25px
+  display: flex
+  justify-content: end
+  align-items: center
+  gap: 5px
+  cursor: pointer
+  font-weight: 400
+
+
+.ilo-container
+  display: flex
+  width: 100%
+  height: 100%
+  flex-direction: column
+  overflow: visible // Reverted from auto since parent handles scroll
+  padding: 0 // Removed padding so it leverages parent's uniform padding
+
+.emptyStateContainer
+  display: flex
+  flex-direction: row
+  align-items: center
+  justify-content: center
+  padding: 10px 0
+  color: #8B999D
+  gap: 12px
+
+  span
+    font-size: 14px
+    font-weight: 500
+
+.emptyRow
+  height: fit-content
+  background: #fff
+
+.emptyRow td
+  border-bottom: none
+
+.bottomBorder
+  background: black
+  opacity: 30%
+  height: 2px
+  width: 200px
+  margin: 2px 0
+
+// Additional Styles for Returned Comments Micro-Badges
+.link-text-wrapper
+  display: inline-flex
+  align-items: center
+  height: 100%
+  gap: 6px
+
+.schedSetter
+  display: flex
+  justify-content: flex-end
+  background: none !important
+  border: none
+  padding: 0 !important
+  cursor: pointer
+  font-family: inherit
+  font-size: 14px
+
+.comment-badge
+  display: flex
+  align-items: center
+  justify-content: center
+  background-color: #f63d50
+  color: #ffffff
+  font-size: 11px
+  font-weight: 600
+  font-family: 'Inter', sans-serif
+  margin-left: 6px
+  height: 18px
+  width: 18px
+  border-radius: var(--radius-pill)
+  line-height: 1
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1)
+
+.coCell
+  background-color: #fff
+  text-align: left
+  vertical-align: middle !important
+  font-weight: 400
+
+.dataCellCenter
+  text-align: center
+
+.fixedWidth
+  width: 25px
+// Search bar & Header updates
+.iloHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  padding: 0 0 15px 0 // Removed side padding so it leverages parent's uniform padding
+  background: transparent // Keep clean background matching parent
+  margin-bottom: 0
+
+.iloSearchContainer
+  display: flex
+  flex-grow: 1
+  align-items: center
+  margin-right: 0
+  border: 1px solid #A4A9AF
+  border-radius: var(--control-radius)
+  height: 40px
+  padding: 0 15px
+  background: white
+
+.iloSearchContainer input
+  border: none
+  outline: none
+  width: 100%
+  height: 100%
+  font-size: 14px
+  margin-left: 10px
+  color: #1f2937
+
+.iloSearchContainer input::placeholder
+  color: #9ca3af
+
+.layoutToggles
+  display: flex
+  gap: 5px
+  background: #EDEFF2
+  padding: 4px
+  border-radius: 6px
+
+.toggleBtn
+  background: transparent
+  border: none
+  padding: 6px 10px
+  border-radius: 4px
+  cursor: pointer
+  color: #6c757d
+  display: flex
+  align-items: center
+  justify-content: center
+  transition: all 0.2s ease
+  outline: none !important
+
+  &:hover
+    color: #343a40
+    background: rgba(0, 0, 0, 0.05)
+
+  &.active
+    background: #ffffff
+    color: #19282C
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1)
+
+// ───── Academic Syllabus Planner (Course Coverage / ILO Roadmap) ─────
+.roadmapContainer
+  position: relative
+  display: flex
+  flex-direction: column
+  gap: 20px
+  width: 100%
+  padding-left: 38px
+  padding-top: 4px
+  padding-bottom: 8px
+
+  &::before
+    content: ''
+    position: absolute
+    left: 13px
+    top: 22px
+    bottom: 22px
+    width: 2px
+    background: #E2E8F0
+    z-index: 1
+
+.roadmapStep
+  position: relative
+  width: 100%
+
+.roadmapStepMilestone
+  margin: 4px 0
+
+.stepNode
+  position: absolute
+  left: -38px
+  top: 14px
+  width: 28px
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 2
+
+.stepNodeExam
+  position: absolute
+  left: -38px
+  top: 50%
+  transform: translateY(-50%)
+  width: 28px
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 2
+
+// Timeline Markers
+.nodeStart
+  width: 20px
+  height: 20px
+  border-radius: 50%
+  background: #FFFFFF
+  border: 2px solid #0F172A
+  display: flex
+  align-items: center
+  justify-content: center
+  box-shadow: 0 0 0 3px #F1F5F9
+
+.nodeStartDot
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  background: #0F172A
+
+.nodeCO
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  padding: 2px 6px
+  min-width: 28px
+  height: 22px
+  border-radius: var(--radius-pill)
+  background: #FFFFFF
+  border: 1.5px solid var(--control-border)
+  color: #0F172A
+  font-size: 10.5px
+  font-weight: 700
+  letter-spacing: 0.02em
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06)
+
+.nodeExam
+  width: 22px
+  height: 22px
+  border-radius: 6px
+  background: #EEF2FF
+  border: 1.5px solid #C7D2FE
+  color: #4F46E5
+  display: flex
+  align-items: center
+  justify-content: center
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.1)
+
+// 1. Course Orientation Kickoff Card
+.orientationKickoffCard
+  background: #FFFFFF
+  border: 1px solid var(--line)
+  border-left: 4px solid #4F46E5
+  border-radius: var(--radius-lg)
+  padding: 16px 20px
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03)
+  transition: border-color 0.2s ease, box-shadow 0.2s ease
+
+  &:hover
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.05)
+    border-color: var(--control-border)
+    border-left-color: #4F46E5
+
+.kickoffMain
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 20px
+
+  @media (max-width: 768px)
+    flex-direction: column
+    align-items: flex-start
+    gap: 14px
+
+.kickoffHeader
+  display: flex
+  flex-direction: column
+  gap: 6px
+  flex: 1
+  min-width: 0
+
+.kickoffTitleRow
+  display: flex
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.kickoffTitle
+  font-size: 15px
+  font-weight: 700
+  color: #0F172A
+  letter-spacing: -0.01em
+
+.kickoffDesc
+  font-size: 13.5px
+  color: #475569
+  line-height: 1.5
+  margin: 0
+
+.kickoffAction
+  flex-shrink: 0
+  display: flex
+  align-items: center
+
+// Shared Week/Hour Badge
+.weekHourBadge
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 3px 10px
+  border-radius: var(--radius-pill)
+  background: #F8FAFC
+  border: 1px solid var(--line)
+  color: #475569
+  font-size: 12px
+  font-weight: 600
+
+.badgeClockIcon
+  color: #64748B
+  flex-shrink: 0
+
+// 2. Structured 3-Zone Course Outcome Card (CO1–CO4)
+.coCard
+  background: #FFFFFF
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03)
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  transition: border-color 0.2s ease, box-shadow 0.2s ease
+
+  &:hover
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05)
+    border-color: var(--control-border)
+
+// Zone 1 — Header Strip
+.coZoneHeader
+  background: rgba(248, 250, 252, 0.85)
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85)
+  padding: 12px 20px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  flex-wrap: wrap
+
+.coTitleGroup
+  display: flex
+  align-items: center
+  gap: 10px
+
+.coTitle
+  font-size: 15px
+  font-weight: 700
+  color: #0F172A
+  letter-spacing: -0.01em
+
+// Zone 2 — Outcome Reference Body
+.coZoneBody
+  padding: 18px 20px
+  display: flex
+  flex-direction: column
+  gap: 12px
+  background: #FFFFFF
+
+.coDescription
+  font-size: 13.5px
+  color: #334155
+  line-height: 1.6
+  margin: 0
+
+.iloSectionHeader
+  display: flex
+  align-items: center
+  gap: 8px
+  margin-top: 4px
+  margin-bottom: 2px
+
+.iloSectionLabel
+  font-size: 11px
+  font-weight: 700
+  color: #64748B
+  letter-spacing: 0.05em
+  text-transform: uppercase
+
+// Inner Read-Only ILO Reference Cards
+.iloGridRow
+  display: flex
+  flex-direction: row
+  flex-wrap: wrap
+  gap: 14px
+  width: 100%
+
+  @media (max-width: 900px)
+    flex-direction: column
+
+.iloRefCard
+  flex: 1
+  min-width: 220px
+  background: rgba(248, 250, 252, 0.9)
+  border: 1px solid rgba(226, 232, 240, 0.75)
+  border-radius: var(--radius-lg)
+  padding: 14px 16px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  box-shadow: none
+
+.iloRefHeader
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 6px
+
+// The IED level and the "Edit ILO" link beside the ILO badge.
+.iloGridBox_Meta
+  font-size: 11px
+  font-weight: 500
+  color: var(--ink-soft)
+  background: var(--surface-sunken)
+  padding: 2px 10px
+  border-radius: 999px
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  text-decoration: none
+
+.iloBadge
+  display: inline-flex
+  align-items: center
+  background: #FFFFFF
+  border: 1px solid var(--line)
+  color: #334155
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 8px
+  border-radius: var(--radius-pill)
+  letter-spacing: 0.02em
+
+.iloRefDesc
+  font-size: 13px
+  color: #334155
+  line-height: 1.55
+  margin: 0
+
+// Zone 3 — Action Footer Bar
+.coZoneFooter
+  background: rgba(248, 250, 252, 0.55)
+  border-top: 1px solid rgba(226, 232, 240, 0.85)
+  padding: 12px 20px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 14px
+  flex-wrap: wrap
+
+.coFooterPrompt
+  font-size: 12.5px
+  font-weight: 500
+  color: #64748B
+
+// 3. Exam Milestone Dividers
+.milestoneDividerRow
+  display: flex
+  align-items: center
+  width: 100%
+  gap: 16px
+  padding: 6px 0
+
+.milestoneHairline
+  flex: 1
+  height: 1px
+  background: #E2E8F0
+
+.milestonePill
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  padding: 5px 16px
+  border-radius: var(--radius-pill)
+  background: rgba(238, 242, 255, 0.85)
+  border: 1px solid rgba(199, 210, 254, 0.8)
+  color: #1E1B4B
+  font-size: 12.5px
+  font-weight: 600
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03)
+  flex-shrink: 0
+
+.milestoneFlagIcon
+  color: #4F46E5
+  flex-shrink: 0
+
+.milestoneTitle
+  font-weight: 700
+  color: #1E1B4B
+
+.milestoneSep
+  color: #A5B4FC
+  font-weight: 300
+  margin: 0 2px
+
+.milestoneMetaText
+  color: #4338CA
+  font-size: 12px
+  font-weight: 500
+
+// 4. Map Weekly Content Buttons
+.mapContentsBtnPrimary
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 6px 16px
+  border-radius: var(--control-radius)
+  background: #dee7fc
+  border: 1px solid #cad6f3
+  color: #191f26 !important
+  font-size: 12.5px
+  font-weight: 500
+  text-decoration: none
+  cursor: pointer
+  transition: all 0.2s ease
+  flex-shrink: 0
+
+  &:hover
+    background: #c9d7fa
+    border-color: #bdcef6
+    //color: #FFFFFF !important
+    transform: translateY(-1px)
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12)
+
+.mapContentsBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  background: #F1F5F9
+  border: 1px solid var(--line)
+  padding: 6px 16px
+  border-radius: var(--control-radius)
+  font-size: 12.5px
+  font-weight: 500
+  color: #334155 !important
+  text-decoration: none
+  cursor: pointer
+  transition: all 0.2s ease
+
+  &:hover
+    background: #E2E8F0
+    border-color: var(--control-border)
+    color: #0F172A !important
+
+// Backwards-compatible aliases
+.gridContainer
+  display: flex
+  flex-direction: column
+  padding: 0
+  gap: 16px
+  width: 100%
+  background: transparent
+
+.coBlock
+  display: flex
+  flex-direction: column
+  background: white
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  padding: 20px
+  gap: 16px
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03)
+
+@media (max-width: 640px)
+  .roadmapContainer
+    padding-left: 28px
+
+    &::before
+      left: 10px
+
+  .stepNode,
+  .stepNodeExam
+    left: -28px
+    width: 22px
+
+  .nodeStart
+    width: 16px
+    height: 16px
+
+  .nodeCO
+    font-size: 9.5px
+    min-width: 24px
+    height: 18px
+    padding: 1px 4px
+
+  .nodeExam
+    width: 18px
+    height: 18px
+
+// Rest of original overlay logic
+.scheduleOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100vw
+  height: 100dvh
+  background: rgba(0, 0, 0, 0.7)
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 9999
+
+.scheduleModal
+  background: #ffffff
+  border: 1px solid #d1d5db
+  width: 340px
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+  display: flex
+  flex-direction: column
+  font-family: inherit
+  border-radius: 4px
+
+.modalHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  padding: 12px 16px
+  border-bottom: 1px solid var(--line)
+  background: #f9fafb
+
+.modalTitle
+  margin: 0
+  font-size: 14px
+  font-weight: 500 /* Not too bold, not too light */
+  color: #111827
+  letter-spacing: 0.3px
+
+.closeBtn
+  background: transparent
+  border: none
+  font-size: 18px
+  cursor: pointer
+  color: #6b7280
+  line-height: 1
+  padding: 0
+  &:hover
+    color: #111827
+
+.formBody
+  padding: 16px 24px
+  display: flex
+  flex-direction: column
+  gap: 16px
+
+.inputGroup
+  display: grid
+  grid-template-columns: 60px 1fr
+  align-items: center
+  gap: 12px
+
+  label
+    font-size: 13px
+    color: #4b5563
+    font-weight: 500
+    text-align: right
+
+  /* The wrapper forces the select to respect internal spacing */
+  .selectWrapper
+    position: relative
+    width: 100%
+
+    select
+      width: 100%
+      padding: 6px 30px 6px 10px // Added right padding for the icon space
+      font-size: 13px
+      color: #111827
+      border: 1px solid #d1d5db
+      border-radius: 4px
+      background: #ffffff
+      outline: none
+      appearance: none // This removes the default browser arrow
+      cursor: pointer
+      &:focus
+        border-color: #3b82f6
+
+    /* Custom arrow icon inside the wrapper */
+    &::after
+      content: "\25bc"
+      font-size: 8px
+      color: #6b7280
+      position: absolute
+      right: 10px // This gives you perfect control over the gap
+      top: 50%
+      transform: translateY(-50%)
+      pointer-events: none
+      display: none // App.css now provides the shared inset chevron.
+
+.actionRow
+  display: flex
+  justify-content: flex-end
+  gap: 8px
+  margin-top: 10px
+
+
+  button
+    padding: 6px 16px
+    font-size: 13px
+    font-weight: 500
+    border-radius: 4px /* Edgy */
+    cursor: pointer
+
+.cancelBtn
+  background: transparent
+  border: 1px solid #d1d5db
+  color: #4b5563
+  &:hover
+    background: #f3f4f6
+    color: #111827
+
+.saveBtn
+  background: #111827
+  border: 1px solid #111827
+  color: #ffffff
+
+// --- Submission Modal UI ---
+
+.submitOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100vw
+  height: 100dvh
+  background: rgba(0, 0, 0, 0.7)
+  background: rgba(0, 0, 0, 0.3)
+  backdrop-filter: blur(2px)
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 10000
+  animation: fadeIn 0.2s ease
+
+@keyframes fadeIn
+  from
+    opacity: 0
+  to
+    opacity: 1
+
+.submitModal
+  background: #ffffff
+  border: 1px solid var(--line)
+  width: 380px
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1)
+  display: flex
+  flex-direction: column
+  border-radius: 4px
+  overflow: hidden
+  font-family: inherit
+
+.submitModalHeader
+  padding: 16px 20px
+  font-size: 15px
+  font-weight: 600
+  color: #111827
+  border-bottom: 1px solid #f3f4f6
+  background: #fafafa
+
+.submitModalBody
+  padding: 20px
+  font-size: 13.5px
+  color: #4b5563
+  line-height: 1.5
+
+.submitModalActions
+  padding: 14px 20px
+  display: flex
+  justify-content: flex-end
+  gap: 10px
+  background: #ffffff
+  border-top: 1px solid #f3f4f6
+
+.submitModalActionsFull
+  padding: 12px 20px 20px 20px
+  display: flex
+  width: 100%
+
+.btnCancelPlain
+  background: transparent
+  border: 1px solid #d1d5db
+  padding: 8px 16px
+  font-size: 13px
+  font-weight: 500
+  color: #4b5563
+  border-radius: 4px
+  cursor: pointer
+  transition: background 0.15s ease
+  &:hover
+    background: #f3f4f6
+    color: #111827
+
+.btnConfirmDark
+  background: #111827
+  border: 1px solid #111827
+  padding: 8px 16px
+  font-size: 13px
+  font-weight: 500
+  color: #ffffff
+  border-radius: 4px
+  cursor: pointer
+  transition: opacity 0.15s ease
+  &:hover
+    opacity: 0.85
+
+.btnUndoBlock
+  width: 100%
+  background: transparent
+  border: 1px solid #ef4444
+  color: #ef4444
+  padding: 10px
+  font-size: 13px
+  font-weight: 500
+  border-radius: 4px
+  cursor: pointer
+  transition: all 0.2s ease
+  &:hover
+    background: #fef2f2
+
+.waitingBody
+  padding: 24px 20px 10px 20px
+  display: flex
+  flex-direction: column
+  gap: 14px
+  align-items: center
+
+.waitingBodyCenter
+  padding: 40px 20px
+  display: flex
+  flex-direction: column
+  gap: 16px
+  align-items: center
+  justify-content: center
+
+.waitingText
+  font-size: 14px
+  color: #111827
+  strong
+    font-weight: 600
+
+.waitingTextSmall
+  font-size: 13.5px
+  color: #4b5563
+  font-weight: 500
+
+.progressContainer
+  width: 100%
+  height: 4px
+  background: #e5e7eb
+  border-radius: 2px
+  overflow: hidden
+  position: relative
+
+.progressBar
+  height: 100%
+  background: #111827
+  width: 100%
+  transform-origin: left
+  animation: shrinkBar linear forwards
+
+@keyframes shrinkBar
+  from
+    transform: scaleX(1)
+  to
+    transform: scaleX(0)
+
+.spinnerDark
+  width: 32px
+  height: 32px
+  border: 3px solid rgba(17, 24, 39, 0.1)
+  border-left-color: #111827
+  border-radius: 50%
+  animation: spin 0.8s linear infinite
+
+.successIcon
+  width: 36px
+  height: 36px
+  background: #10b981
+  color: white
+  border-radius: 50%
+  display: flex
+  align-items: center
+  justify-content: center
+  font-size: 20px
+  font-weight: bold
+
+@media (max-width: 1024px)
+  .navi
+    flex-wrap: wrap
+
+  .section-select
+    width: 100%
+    flex-basis: 100%
+    order: 1
+
+@media (max-width: 720px)
+  .dynamic-sections
+    padding: 14px 12px
+
+  section
+    min-width: 0
+
+// The plan's sections and the reviewers' comments side by side (CommentsSidebar.jsx folds to a rail);
+// stacked on a narrow screen, the comments under the plan.
+.plan-with-comments
+  flex: 1 1 auto
+  min-width: 0
+  min-height: 0
+  display: flex
+  overflow: hidden
+
+@media (max-width: 1024px)
+  .plan-with-comments
+    flex-direction: column
+    overflow: auto
+

@@ -1,0 +1,56 @@
+.region
+  width: 100%
+  max-width: 100%
+  flex: 1
+  min-width: 0
+  min-height: 0
+  // Consumer style hooks are attached to this same element. Some legacy
+  // hooks still say overflow-x: hidden, so the shared table contract must win.
+  overflow-x: auto !important
+  overflow-y: auto
+  overscroll-behavior-inline: contain
+  scrollbar-gutter: auto
+  -webkit-overflow-scrolling: touch
+
+
+
+
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
+
+.canvas
+  display: flex
+  flex-direction: column
+  width: 100%
+  min-height: 100%
+
+// Let the table measure itself against this region instead of against the
+// browser viewport. The direct-child scope keeps this contract away from
+// nested data tables inside forms and modals.
+.canvas > :global(table)
+  width: 100%
+  min-height: 100%
+
+.canvas > :global(table) > :global(tbody)
+  flex: 1 1 auto
+  min-height: 0
+
+// Masked edge: while columns are hidden to the right, that edge fades out, hinting there is more to scroll to.
+// Driven by the scroll position itself (no script on scroll), only where the browser supports scroll timelines;
+// with nothing to scroll the timeline is inactive and --edge-fade stays 0 (no fade). Left edge left alone: several
+// tables pin their first column there.
+@supports (animation-timeline: scroll())
+  .region:not([data-scrolls-y='true'])
+    mask-image: linear-gradient(to left, transparent, #000 var(--edge-fade))
+    animation: edgeFade linear both
+    animation-timeline: scroll(self inline)
+
+@keyframes edgeFade
+  from
+    --edge-fade: 28px
+  92%
+    --edge-fade: 28px
+  to
+    --edge-fade: 0px

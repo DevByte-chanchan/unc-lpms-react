@@ -1,0 +1,113 @@
+.container
+  display: flex
+  padding: 0 0 0 20px
+  flex-direction: column
+  align-items: flex-start
+  width: 100%
+  height: max-content
+
+.label
+  color: #000
+  text-align: left
+  font-family: Manrope, sans-serif
+  font-size: 16px
+  font-weight: 500
+  line-height: normal
+
+.dropdown
+  font-size: 16px
+  display: flex
+  align-items: center
+  align-self: stretch
+  border-radius: 3px
+  border: 1px solid #DCE2F0
+  transition: border-color 0.2s ease-in-out
+  box-sizing: border-box
+  background: #FFFFFF
+  width: 100%
+
+  &.error
+    border: 1px solid #FF5252 !important
+    background-color: #FFF4F4
+
+// Box layout to house input stream alongside the chevron toggle
+.inputWrapper
+  display: flex
+  align-items: center
+  justify-content: space-between
+  width: 100%
+  height: 100%
+  position: relative
+
+// Text Input structural wrapper matching your old select padding limits exactly
+.typeableInput
+  width: 100%
+  height: 100%
+  padding: 8px 15px
+  outline: none
+  border: 0
+  font-size: 14px
+  font-family: Manrope, sans-serif
+  background: transparent
+  box-sizing: border-box
+
+// Consistent arrow indicator positioning
+.chevronIcon
+  color: #5D6D7E
+  margin-right: 15px
+  cursor: pointer
+  transition: transform 0.2s ease
+  user-select: none
+  flex-shrink: 0
+
+.chevronOpen
+  transform: rotate(180deg)
+
+// Absolute overlay options popover module
+.optionsMenu
+  position: absolute
+  top: 105%
+  left: -1px // Aligns perfectly across left outer border line boundaries
+  width: calc(100% + 2px) // Prevents pixel mismatch lines on outer border walls
+  max-height: 220px
+  overflow-y: auto
+  background: #FFFFFF
+  border: 1px solid #DCE2F0
+  border-radius: 3px
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12)
+  z-index: 99999 !important
+
+.menuOptionItem
+  padding: 10px 15px
+  font-family: Manrope, sans-serif
+  font-size: 14px
+  color: #333333
+  cursor: pointer
+  user-select: none
+  transition: background-color 0.15s ease
+
+  &:hover
+    background-color: #F4F6F9
+
+.selectedOption
+  background-color: #ECF0F1
+  font-weight: 500
+
+.noOptions
+  padding: 12px 15px
+  font-family: Manrope, sans-serif
+  font-size: 14px
+  color: #757575
+  text-align: center
+
+.disabled-style
+  background: #F8F9F9
+  pointer-events: none
+  cursor: not-allowed
+
+.errorMessage
+  color: #FF5252
+  font-size: 12px
+  font-weight: 500
+  margin-top: 5px
+  font-family: Manrope, sans-serif

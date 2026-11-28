@@ -1,0 +1,1463 @@
+import Select from './Select.jsx'
+import { alertDialog, confirmDialog } from '../utils/appDialog.jsx'
+import { toast } from '../utils/toast.jsx'
+import React, { useEffect, useState, useRef } from 'react'
+import { offeringKey } from '../utils/offeringKey.js'
+import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, EllipsisVertical as MoreVertical, Check, Clock, FileText, UserPlus, Lock, TriangleAlert as AlertTriangle, X, PenLine as PenTool, CircleCheck as CheckCircle } from 'lucide-react'
+import EmptyState from './EmptyState.jsx'
+import CommentsSidebar from './CommentsSidebar.jsx'
+import { useCommentFocus, useCommentFromLink, useWeekCommentsLink, sectionOfComment } from '../utils/useCommentFocus.js'
+import Spinner from './Spinner.jsx'
+import TableScrollRegion from './TableScrollRegion.jsx'
+import styles from '../styles/ApprovalSyllabusSections.module.sass'
+import subStyles from '../styles/SyllabusSections.module.sass'
+import stylesB from '../styles/SyllabusPreview.module.sass'
+import stylesC from '../styles/SyllabusSections.module.sass'
+import dialogStyles from '../styles/DueDateDialog.module.sass'
+import ApprovalCommentBox from './ApprovalCommentBox.jsx'
+import { useServerWorkflow } from '../utils/useServerWorkflow.js'
+import { fetchFormInfo } from '../utils/formSettings.js'
+import { fetchProgramAlignment } from '../utils/programAlignment.js'
+import { fetchFrontPages, countPdfPages } from '../utils/frontPages.js'
+import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
+import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/suggestions.js'
+import { loadLibrary, serverId } from '../utils/referenceStore.js'
+import { normalizeRoleKey } from '../utils/approvalHelpers.js'
+import { getSession } from '../utils/session'
+import ApprovalChainStatus from './ApprovalChainStatus.jsx'
+import SendBackDialog from './SendBackDialog.jsx'
+import PlanChangesDialog from './PlanChangesDialog.jsx'
+import {
+  validateReturn,
+  canActOnStage,
+  canAcceptOnStage,
+  exportEligibility,
+  encodeCommentType,
+} from '../utils/reviewGate.js'
+import { fetchJson, apiErrorMessage } from "../utils/api.js"
+import { describeCourseLoadError } from '../utils/courseLoadError.js'
+import { canReviewLoadedCourse } from '../utils/reviewAssignments.js'
+import { toPanelComments, isDuplicateComment, LEGACY_STORAGE_KEY } from "../utils/serverComments.js"
+import { withWeekRows, parseCommentPlace } from "../utils/weeklyCoverage.js"
+
+import Revisions from './Revisions.jsx'
+import PDFViewerModal from './PDFViewerModal'
+import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js"
+import unclogo from '../assets/unclogo.png'
+import CourseCoverage from './CourseCoverage'
+import ReferenceSummary from './ReferenceSummary'
+import PlanChecks from './PlanChecks.jsx'
+import VersionHistory from './VersionHistory.jsx'
+import EarlierConsultantNotes from './EarlierConsultantNotes'
+import OutcomeAlignment from './OutcomeAlignment'
+import CriteriaForGrading from './CriteriaForGrading'
+import { sectionsForRole, canSeeWholePlan } from '../utils/sectionAccess.js'
+import ConsultantDialog from './ConsultantDialog.jsx'
+import ConsultantReview from './ConsultantReview.jsx'
+import FutureSuggestions from './FutureSuggestions.jsx'
+
+
+
+const sectionLabels = {
+  'Course Details': 'Course Details',
+  'Course and Program Outcome Alignment': 'Course and Program Outcome Alignment',
+  'Course Coverage': 'Course Coverage',
+  'References Summary': 'References',
+  'Criteria for Grading': 'Criteria for Grading',
+}
+const defaultSections = Object.keys(sectionLabels)
+// The Industry Consultant has no workflow role: they read and comment, but never accept or return.
+const ACTOR_ROLE_MAP = {
+  instructor: 'INSTRUCTOR',
+  'director-of-libraries': 'LIBRARY_DIRECTOR',
+  'program-head': 'PROGRAM_HEAD',
+  dean: 'DEAN',
+}
+
+// The role a comment is attributed to. The consultant comments but is not part of the approval chain,
+// so they stay out of ACTOR_ROLE_MAP (which gates workflow actions).
+const COMMENT_ROLE_MAP = { ...ACTOR_ROLE_MAP, 'industry-consultant': 'INDUSTRY_CONSULTANT' }
+
+
+const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null, pcId = null, revNum = null }) => {
+  const [searchParams] = useSearchParams()
+  const [selectedSection, setSelectedSection] = useState(defaultSections[0])
+  const statusParam = searchParams.get('status')
+  const effectiveFromUrl = (statusParam || status || '').toLowerCase()
+  // A plan's stage and who may act come from the server workflow log, never from local storage.
+  const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
+  const { workflow: serverWorkflow, plan: workflowPlan, error: workflowError, reload: reloadWorkflow } = useServerWorkflow(validPcId, courseCode)
+  const workflowState = workflowProp || serverWorkflow
+  // Exportable once the Director of Libraries and the Program Head have accepted, even before the Dean.
+  const exportInfo = exportEligibility(workflowState)
+  const fallbackStage = workflowState.currentStage === 'draft' ? '' : (workflowState.currentStage || '')
+  const effectiveStatus = effectiveFromUrl || fallbackStage || 'submitted'
+  const params = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // derive role
+  let storedUser = null
+  try { storedUser = JSON.parse(localStorage.getItem('user') || 'null') } catch { storedUser = null }
+
+  const rawRoleSource = (currentRole && currentRole.toString()) || params?.approver || storedUser?.role || storedUser?.roles?.[0] || 'approver'
+  const roleSource = String(rawRoleSource).toLowerCase()
+
+  const roleKey = roleSource.includes('program')
+    ? 'program-head'
+    : roleSource.includes('dean')
+      ? 'dean'
+      : roleSource.includes('industry')
+        ? 'industry-consultant'
+        : (roleSource.includes('library') || roleSource.includes('libraries'))
+          ? 'director-of-libraries'
+          : roleSource.includes('instructor')
+            ? 'instructor'
+            : roleSource.includes('oic') || roleSource.includes('ovpaa') || roleSource.includes('vpaa')
+              ? 'vpaa'
+              : roleSource.includes('approver')
+                ? 'approver'
+                : 'approver'
+
+  // Only the sections this role covers; the server refuses the rest (config/sectionAccess.js).
+  const visibleSections = React.useMemo(() => sectionsForRole(roleKey, defaultSections), [roleKey])
+  const wholePlanAccess = canSeeWholePlan(roleKey)
+
+
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef(null)
+  const [isRevisionsOpen, setIsRevisionsOpen] = useState(false)
+  const [isConsultantOpen, setIsConsultantOpen] = useState(false)
+  // The comments panel (its switch and long-comment folding) is CommentsSidebar.jsx.
+
+  const [showCommentModal, setShowCommentModal] = useState(false)
+  const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
+  // The Program Head sending a Dean return back to the Dean (with a reason).
+  const [sendBackOpen, setSendBackOpen] = useState(false)
+  const closeSendBack = React.useCallback(() => setSendBackOpen(false), [])
+  // Approve confirmation flow (matches the instructor's submit modal):
+  // IDLE → CONFIRM → WAITING (undo countdown) → DONE
+  const [approvePhase, setApprovePhase] = useState('IDLE')
+  const [approveTimeLeft, setApproveTimeLeft] = useState(5)
+  const approveTimerRef = useRef(null)
+  // After a return and resubmission: what the instructor changed (server/utils/planChanges.js).
+  const [planChanges, setPlanChanges] = useState(null)
+  const [planChangesOpen, setPlanChangesOpen] = useState(false)
+
+  const [globalComments, setGlobalComments] = useState([])
+  const [suggestions, setSuggestions] = useState([])
+  const [refreshKey, setRefreshKey] = useState(0)
+  // The panel is 380px wide. Open by default it would swallow a phone screen
+  // whole, so on a narrow viewport it starts collapsed and the approver opens
+  // it deliberately.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= 1024
+  )
+  const [previewFile, setPreviewFile] = useState(null)
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  // Shared export routine so the Export action can live both as a standalone
+  // button and inside the "more" dropdown stack (next to Revisions).
+  // The accreditation review record: every comment, workflow action and the final approvers.
+  // Why a review action is not available right now: the plan is with the instructor, or it is not this role's turn.
+  const notYourTurnMessage = (verb) => {
+    if (workflowState.currentStage === 'with_program_head') {
+      return roleKey === 'dean'
+        ? 'You returned this plan. It is with the Program Head, who forwards it to the instructor or sends it back to you.'
+        : 'The Dean returned this plan to the Program Head, who forwards it to the instructor or sends it back to the Dean.'
+    }
+    if (workflowState.currentStage === 'returned') return `This plan was returned to the instructor. You can ${verb} again once it is resubmitted.`
+    if (workflowState.currentStage === 'draft') return 'The instructor has not submitted this plan yet.'
+    return `${verb.charAt(0).toUpperCase()}${verb.slice(1)} is not available until the workflow reaches your review stage.`
+  }
+
+  const runReviewRecord = async () => {
+    setExportingPdf(true)
+    try {
+      setPreviewFile(await buildReviewRecordFile({ pcId: validPcId, code: codeToUse }))
+    } catch (err) {
+      alertDialog(`The review record could not be made. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Review record failed' })
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  const runExport = async () => {
+    setExportingPdf(true)
+    try {
+      const logoUrl = new URL(unclogo, window.location.origin).href
+      const formInfo = await fetchFormInfo()
+      const programAlignment = await fetchProgramAlignment(validPcId)
+      // The program's uploaded front pages replace the three generated ones (utils/frontPages.js).
+      const frontPdf = await fetchFrontPages(programAlignment?.program?.id)
+      const frontPdfPages = frontPdf ? await countPdfPages(frontPdf) : 0
+      // E-signature images, only for the steps each person performed (server-checked); none is never an error.
+      const signatureImages = (await fetchJson(`/api/assignments/offering/${validPcId}/signatures`).catch(() => null))?.signatures || {}
+      const html = buildSyllabusHtml(syllabus, codeToUse, { ...workflowState, signatureImages }, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean, frontPdfPages })
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      setPreviewFile({
+        file_url: url,
+        file_name: `Syllabus_${codeToUse}${exportInfo.pendingDean ? '_PENDING_DEAN_APPROVAL' : ''}.html`,
+        instructor_name: syllabus?.instructor || '—',
+        course_id: codeToUse,
+        course_name: syllabus?.name || '',
+        submission_date: syllabus?.update || '',
+        period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+        front_pdf: frontPdf,
+        front_pages: frontPdfPages,
+      })
+    } catch (err) {
+      console.warn('Export generation failed:', err)
+      alertDialog(`The learning plan could not be exported. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Export failed' })
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  const [cpaData, setCpaData] = useState({ course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: [] })
+  const [cpaLoading, setCpaLoading] = useState(false)
+  const [, setCpaError] = useState(null)
+  const [courseDetails, setCourseDetails] = useState(null)
+  const [courseDetailsLoading, setCourseDetailsLoading] = useState(true)
+  // WHY it is empty, not just THAT it is. The catch below used to discard the
+  // error, so "nothing has been entered yet" and "the server never answered"
+  // produced the same screen — and the second one is not the user's problem to
+  // guess at.
+  const [courseDetailsError, setCourseDetailsError] = useState('')
+  const [coverageData, setCoverageData] = useState(null)
+  const [, setCoverageLoading] = useState(false)
+  const [criteriaData, setCriteriaData] = useState(null)
+  const [, setCriteriaLoading] = useState(false)
+  const [refData, setRefData] = useState(null)
+  const [, setRefLoading] = useState(false)
+
+  // refs to sections for auto-scroll (coverage + references still inline)
+  const courseDetailsRef = useRef(null)
+  const alignmentRef = useRef(null)
+  const criteriaRef = useRef(null)
+  const coverageRef = useRef(null)
+  const referencesRef = useRef(null)
+  const containerRef = useRef(null)
+
+  const { code: routeCode } = useParams();
+  const codeToUse = routeCode || courseCode
+  const validRevNum = revNum && !Number.isNaN(Number(revNum)) && String(Number(revNum)) === String(revNum) ? revNum : null
+  const reviewRecordAvailable = canReviewLoadedCourse({
+    pcId: validPcId,
+    revNum: validRevNum,
+    code: codeToUse,
+    // A role whose sections leave out Course Details (the Director of Libraries) never loads it; the workflow
+    // endpoint names the same plan, so check against that instead.
+    details: visibleSections.includes('Course Details') ? courseDetails : workflowPlan,
+    error: visibleSections.includes('Course Details') ? courseDetailsError : workflowError,
+  })
+
+  // A SPINNER MUST HAVE SOMETHING TO WAIT FOR.
+  //
+  // This used to start with `!codeToUse ||` — so a screen opened without a
+  // course code showed the spinner FOREVER. Nothing was in flight; nothing
+  // would ever arrive to end it. That is the spinning circle over an empty
+  // panel: not a slow server, a wait for something that was never requested.
+  //
+  // Now it is true only while a request is genuinely outstanding. A role that does not cover the
+  // course details never requests them, so it never waits for them.
+  const initialLoading = !!(validPcId && visibleSections.includes('Course Details') && courseDetailsLoading && courseDetails === null)
+
+  const handleSectionChange = (e) => {
+    setSelectedSection(e.target.value)
+  }
+
+  const toggleMenu = (event) => {
+    event.stopPropagation()
+    setIsOpen(prev => !prev)
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('click', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isOpen])
+
+  // The comments come from the server only, for this exact plan (pcId): the server decides who may see which,
+  // and names their authors. Nothing is kept in this browser, so the next person signed in here sees only their own.
+  useEffect(() => {
+    try { localStorage.removeItem(LEGACY_STORAGE_KEY) } catch { /* storage unavailable: nothing to clear */ }
+  }, [])
+
+  useEffect(() => {
+    if (!codeToUse) { setGlobalComments([]); return undefined }
+    let mounted = true
+    const qs = validPcId ? `?pcId=${validPcId}` : ''
+    fetchJson(`/api/comments/by-course/${encodeURIComponent(codeToUse)}${qs}`)
+      .then(rows => { if (mounted) setGlobalComments(toPanelComments(rows, codeToUse)) })
+      .catch(err => {
+        if (!mounted) return
+        setGlobalComments([])
+        if (import.meta.env.DEV) console.warn('Comments could not be loaded:', err?.message)
+      })
+    return () => { mounted = false }
+  }, [validPcId, codeToUse, refreshKey])
+
+  // load suggestions
+  useEffect(() => {
+    setSuggestions(getSuggestions(codeToUse))
+  }, [codeToUse, refreshKey])
+
+  // CPA data loading (Course & Program Outcome Alignment)
+  useEffect(() => {
+    if (!validPcId || !visibleSections.includes('Course and Program Outcome Alignment')) return;
+    let mounted = true;
+    async function fetchCPA() {
+      setCpaLoading(true);
+      setCpaError(null);
+      try {
+        const data = await fetchJson(`/api/course-outcome-alignment/${offeringKey(validPcId, validRevNum)}`);
+        if (!mounted) return;
+        setCpaData({
+          course: data.course ?? { code: '', title: '' },
+          programOutcomes: data.programOutcomes ?? [],
+          courseOutcomes: data.courseOutcomes ?? []
+        });
+      } catch (err) {
+        if (!mounted) return;
+        setCpaError(apiErrorMessage(err, 'This could not be loaded. Try again.'));
+      } finally {
+        if (mounted) setCpaLoading(false);
+      }
+    }
+    fetchCPA();
+    return () => { mounted = false; };
+  }, [validPcId, validRevNum, visibleSections]);
+
+  // API load: Course Details
+  useEffect(() => {
+    if (!validPcId || !visibleSections.includes('Course Details')) return;
+    let mounted = true;
+    async function fetchCourseDetails() {
+      setCourseDetailsLoading(true);
+      try {
+        const data = await fetchJson(`/api/course-details/${offeringKey(validPcId, validRevNum)}`);
+        if (mounted) { setCourseDetails(data); setCourseDetailsError(''); }
+      } catch (err) {
+        if (mounted) {
+          setCourseDetails(null);
+          setCourseDetailsError(describeCourseLoadError(err));
+        }
+      } finally {
+        if (mounted) setCourseDetailsLoading(false);
+      }
+    }
+    fetchCourseDetails();
+    return () => { mounted = false; };
+  }, [validPcId, validRevNum, visibleSections]);
+
+  // API load: Course Coverage (ilos + topics + assessments)
+  useEffect(() => {
+    if (!validPcId || !visibleSections.includes('Course Coverage')) return;
+    let mounted = true;
+    async function fetchCoverage() {
+      setCoverageLoading(true);
+      try {
+        const data = await fetchJson(`/api/course-coverage/${offeringKey(validPcId, validRevNum)}`);
+        if (mounted) setCoverageData(data);
+      } catch {
+        if (mounted) setCoverageData(null);
+      } finally {
+        if (mounted) setCoverageLoading(false);
+      }
+    }
+    fetchCoverage();
+    return () => { mounted = false; };
+  }, [validPcId, validRevNum, visibleSections]);
+
+  // API load: Criteria for Grading
+  useEffect(() => {
+    if (!validPcId || !visibleSections.includes('Criteria for Grading')) return;
+    let mounted = true;
+    async function fetchCriteria() {
+      setCriteriaLoading(true);
+      try {
+        const data = await fetchJson(`/api/course-criteria/${offeringKey(validPcId, validRevNum)}`);
+        if (mounted) setCriteriaData(data);
+      } catch {
+        if (mounted) setCriteriaData(null);
+      } finally {
+        if (mounted) setCriteriaLoading(false);
+      }
+    }
+    fetchCriteria();
+    return () => { mounted = false; };
+  }, [validPcId, validRevNum, visibleSections]);
+
+  // API load: References
+  useEffect(() => {
+    if (!validPcId || !visibleSections.includes('References Summary')) return;
+    let mounted = true;
+    async function fetchRefs() {
+      setRefLoading(true);
+      try {
+        const data = await fetchJson(`/api/courses/${offeringKey(validPcId, validRevNum)}/references`);
+        if (mounted) setRefData(data);
+      } catch {
+        if (mounted) setRefData(null);
+      } finally {
+        if (mounted) setRefLoading(false);
+      }
+    }
+    fetchRefs();
+    return () => { mounted = false; };
+  }, [validPcId, validRevNum, visibleSections]);
+
+  // resolve data: API first, fall back to empty
+  const resolvedCourse = courseDetails
+  const coverage = React.useMemo(
+    // The weekly planner's coverage, with one row per week as `ilos` (the rows the comment form and export read).
+    () => withWeekRows(coverageData) || { ilos: [], topics: [], assessments: [] },
+    [coverageData]
+  )
+  const criteria = React.useMemo(
+    () => criteriaData || { gradingSystem: [] },
+    [criteriaData]
+  )
+  const resolvedRefs = (() => {
+    if (refData) {
+      if (Array.isArray(refData)) return refData
+      if (refData.data) {
+        if (Array.isArray(refData.data)) return refData.data
+        const merged = [...(refData.data.Textbook || []), ...(refData.data['Open Educational Resources'] || []), ...(refData.data['Online Resources'] || [])]
+        if (merged.length) return merged
+        return refData.data.references || []
+      }
+      if (refData.Textbook || refData['Open Educational Resources'] || refData['Online Resources']) {
+        return [...(refData.Textbook || []), ...(refData['Open Educational Resources'] || []), ...(refData['Online Resources'] || [])]
+      }
+      return refData.references || []
+    }
+    return []
+  })()
+
+  // safe access to syllabus references
+  const allReferences = resolvedRefs
+
+  // build a composite syllabus object for buildSyllabusHtml (PDF export)
+  const syllabus = React.useMemo(() => {
+    return {
+      ...resolvedCourse,
+      instructor: resolvedCourse?.instructor || '',
+      courseOutcomes: cpaData?.courseOutcomes || [],
+      ilos: coverage?.ilos || [],
+      topics: coverage?.topics || [],
+      assessments: coverage?.assessments || [],
+      gradingSystem: criteria?.gradingSystem || [],
+      references: resolvedRefs,
+      code: codeToUse,
+      course_no: resolvedCourse?.code || '',
+      course_title: resolvedCourse?.name || '',
+    }
+  }, [resolvedCourse, coverage, criteria, resolvedRefs, codeToUse, cpaData])
+
+  // The reference library, from the server: used to name the references a Director comment points at.
+  const [libraryRefs, setLibraryRefs] = useState([])
+  useEffect(() => {
+    let live = true
+    loadLibrary().then(refs => { if (live) setLibraryRefs(refs) }).catch(() => { if (live) setLibraryRefs([]) })
+    return () => { live = false }
+  }, [])
+
+  const defaultBack = (() => {
+    const fromTab = location.state?.fromTab
+    const fromStatus = location.state?.fromStatus || searchParams.get('fromStatus')
+    const explicitFrom = location.state?.from
+
+    if (explicitFrom && explicitFrom !== '/') return explicitFrom
+
+    if (roleKey === 'instructor') {
+      if (fromTab === 'approved') return '/?tab=approved'
+      if (fromTab === 'assigned') return '/?tab=assigned'
+      if (fromStatus) return `/?status=${fromStatus}`
+      return '/'
+    }
+    const base = (() => {
+      if (roleKey === 'vpaa') return '/role/vpaa?page=Approved%20Plans'
+      if (roleKey === 'dean') return '/role/dean?page=Syllabus'
+      if (roleKey === 'director-of-libraries') return '/role/director-of-libraries/approval-course-table?page=Syllabus'
+      if (roleKey === 'industry-consultant') return '/role/industry-consultant/approval-course-table?page=Syllabus'
+      if (roleKey === 'program-head') return '/role/program-head/approval-course-table?page=Syllabus'
+      return `/role/${roleKey}/approval-course-table`
+    })()
+    return fromStatus ? `${base}&status=${fromStatus}` : base
+  })()
+  const backPath = defaultBack
+
+
+  // The server decides who sees which comment (utils/commentVisibility.js): each approver their own, the Dean all
+  // of them, the Program Head also the Dean's. The panel shows exactly what it was sent.
+  const visibleComments = React.useMemo(() => {
+    if (roleKey === 'instructor') {
+      return globalComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
+    }
+    return globalComments
+  }, [globalComments, roleKey])
+
+  const previousComments = React.useMemo(() => {
+    return globalComments
+      .filter(c => normalizeRoleKey(c.role) === roleKey)
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  }, [globalComments, roleKey])
+
+  // Library records are keyed "srv-48", a plan's references by the bare number 48: compare them as numbers.
+  const libraryRefById = (id) => libraryRefs.find(r => serverId(r.id) === serverId(id))
+  // The plan's references as the server returns them (the library's copy differs only in how it names types).
+  const displayRefs = allReferences
+
+  // scroll to selected section when it changes (respect externalSelectedSection when embedded)
+  useEffect(() => {
+    const active = externalSelectedSection || selectedSection
+    const mapping = {
+      'Course Coverage': coverageRef,
+      'References': referencesRef,
+    }
+
+    const targetRef = mapping[active]
+    if (!targetRef || !targetRef.current) return
+
+    const container = containerRef.current
+    const el = targetRef.current
+
+    if (container && container.scrollTo) {
+      const containerTop = container.getBoundingClientRect().top
+      const elTop = el.getBoundingClientRect().top
+      const offset = elTop - containerTop + container.scrollTop - 8
+      container.scrollTo({ top: offset, behavior: 'smooth' })
+    } else {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [selectedSection, externalSelectedSection])
+
+  // "Show in plan": open the comment's section, scroll to the item it names and flash it (utils/useCommentFocus.js);
+  // a notification about a comment opens it the same way (?comment=<id>).
+  const showCommentInPlan = useCommentFocus({ selectedSection, openSection: setSelectedSection })
+  const openCommentsPanel = React.useCallback(() => setSidebarCollapsed(false), [])
+  useCommentFromLink({ comments: visibleComments, openPanel: openCommentsPanel, showCommentInPlan })
+  useWeekCommentsLink({ comments: visibleComments, openPanel: openCommentsPanel })
+
+  const openComment = () => setShowCommentModal(true)
+  const closeComment = () => setShowCommentModal(false)
+
+  // A finished step or a heads-up is a toast; a failure is a window (utils/toast.jsx says which is which).
+  const showToastMsg = (msg, type = 'success') => (type === 'error' ? alertDialog(msg, { title: 'Something went wrong' }) : toast(msg, type))
+
+  // Module 2 integration: persist workflow actions (submit / return / approve)
+  // to the server so course-table statuses reflect real state across sessions.
+  // The server's workflow log is the single source of truth for a plan's status,
+  // so callers update their local view only after this resolves. Rejects when the
+  // server refuses the action (e.g. the plan is not at this reviewer's stage).
+  const recordWorkflowAction = React.useCallback((actionType, note) => {
+    const actor = ACTOR_ROLE_MAP[roleKey]
+    if (!actor || !codeToUse) return Promise.reject(new Error('This role cannot record a workflow action for this course.'))
+    return fetchJson('/api/assignments/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actor_role: actor, action_type: actionType, pcId: validPcId, code: codeToUse, ...(note ? { note } : {}) })
+    })
+  }, [codeToUse, roleKey, validPcId])
+
+  const handleApprove = React.useCallback(() => {
+    if (!reviewRecordAvailable) return
+    // The server records the approval (and who signed it: "pwede ba naka-attach na digital
+    // signature?" [53:41]); the screen then re-reads the log instead of keeping its own copy.
+    recordWorkflowAction('ACCEPTED').then(() => {
+      reloadWorkflow()
+      setRefreshKey(k => k + 1)
+      toast('Approved. The plan moves on to the next approver.')
+    }).catch(e => alertDialog(apiErrorMessage(e, 'Could not record your approval.'), { title: 'Approval not saved' }))
+  }, [recordWorkflowAction, reloadWorkflow, reviewRecordAvailable])
+
+  // Approve countdown: gives the approver a window to undo before it takes effect
+  useEffect(() => {
+    if (approvePhase === 'WAITING' && approveTimeLeft > 0) {
+      approveTimerRef.current = setTimeout(() => setApproveTimeLeft(t => t - 1), 1000)
+    } else if (approvePhase === 'WAITING' && approveTimeLeft === 0) {
+      if (reviewRecordAvailable) {
+        handleApprove()
+        setApprovePhase('DONE')
+        setTimeout(() => setApprovePhase('IDLE'), 1500)
+      } else {
+        setApprovePhase('IDLE')
+      }
+    }
+    return () => clearTimeout(approveTimerRef.current)
+  }, [approvePhase, approveTimeLeft, handleApprove, reviewRecordAvailable])
+
+  const cancelApprove = () => { setApprovePhase('IDLE'); setApproveTimeLeft(5) }
+
+  // Submitting hands the plan to the reviewers, so the app's confirm window asks first.
+  const handleSubmitForReview = async () => {
+    const isReturned = (workflowState.currentStage || 'submitted') === 'returned'
+    const ok = await confirmDialog(isReturned
+      ? `Your revision of ${codeToUse} goes back to the Director of Libraries and the Program Head for review.`
+      : `${codeToUse} goes to the Director of Libraries and the Program Head, who review it at the same time.`,
+      { title: isReturned ? 'Submit the revision?' : 'Submit for review?', confirmLabel: isReturned ? 'Submit revision' : 'Submit' })
+    if (!ok) return
+    recordWorkflowAction('SUBMITTED').then(() => {
+      reloadWorkflow()
+      setRefreshKey(k => k + 1)
+      showToastMsg('Learning plan submitted for review.')
+      navigate(backPath)
+    }).catch(e => {
+      alertDialog(apiErrorMessage(e, 'Could not submit the learning plan.'), { title: 'Not submitted' })
+    })
+  }
+
+  // Whether this role may act on the plan at its current stage. One rule for the
+  // whole chain — Director of Libraries and Program Head in parallel, then the
+  // Dean (final); the Industry Consultant and VPAA are view-only — so this component is reused per role
+  // without any role acting out of turn. `canActOnStage` in reviewGate.js owns
+  // it; this component only asks.
+  const isRoleActive = () => canActOnStage(roleKey, workflowState)
+
+  const hasRoleApproved = () => {
+    const wf = workflowState
+    if (roleKey === 'director-of-libraries') return wf.parallelReview?.library_director?.status === 'done'
+    if (roleKey === 'program-head') return wf.programHead?.status === 'done'
+    if (roleKey === 'dean') return wf.dean?.status === 'done'
+    return false
+  }
+
+  // What the comment box does for this reviewer right now: a required reviewer's comments return the plan
+  // (handleSubmitComment), unless it is already returned; the consultant's are suggestions only.
+  // After their own approval a reviewer may still add comments, but no longer return the plan (the server refuses it).
+  const commentMode = roleKey === 'industry-consultant' ? 'suggest' : (['returned', 'with_program_head'].includes(workflowState.currentStage) || hasRoleApproved()) ? 'comment' : 'return'
+  // A Dean return waiting on this Program Head: they forward it to the instructor or send it back to the Dean.
+  const deanReturnWithMe = roleKey === 'program-head' && workflowState.currentStage === 'with_program_head'
+  useEffect(() => {
+    setPlanChanges(null)
+    if (!validPcId || ['draft', 'returned', 'approved', ''].includes(workflowState.currentStage || '')) return undefined
+    let live = true
+    fetchJson(`/api/plan-changes/${validPcId}`).then(data => { if (live && data?.since) setPlanChanges(data) }).catch(() => {})
+    return () => { live = false }
+  }, [validPcId, workflowState.currentStage])
+  const yourChanged = planChanges ? planChanges.changes.filter(c => c.yours).length : 0
+  const forwardToInstructor = () => recordWorkflowAction('FORWARDED')
+    .then(() => { reloadWorkflow(); setRefreshKey(k => k + 1); showToastMsg('Forwarded to the instructor, with the Dean’s comments.') })
+    .catch(e => showToastMsg(apiErrorMessage(e, 'The plan could not be forwarded.'), 'error'))
+  const sendBackToDean = (note) => recordWorkflowAction('COUNTERED', note)
+    .then(() => { reloadWorkflow(); setRefreshKey(k => k + 1); showToastMsg('Sent back to the Dean.'); return true })
+    .catch(e => apiErrorMessage(e, 'The plan could not be sent back.'))
+  // An approved plan takes no new comments (the server refuses them); changes go into a new revision.
+  const planClosed = workflowState.currentStage === 'approved'
+  // The Industry Consultant suggests on Dean-approved plans only (the basis for the next revision); the reviewers
+  // comment only before the approval. The server holds the same rule (commentController.createCourseComment).
+  const canComment = roleKey === 'industry-consultant' ? planClosed : !planClosed && (isRoleActive() || hasRoleApproved())
+  const commentButtonLabel = commentMode === 'return' ? 'Return with comments' : commentMode === 'suggest' ? 'Suggest' : 'Add comment'
+
+  // The consultant's "reviewed" sign-off on an approved plan (server: courseConsultantController.signOff). It records
+  // the review only and never changes the approval. Everyone who opens the plan sees who signed it.
+  const [signoffs, setSignoffs] = useState([])
+  useEffect(() => {
+    if (!validPcId || !planClosed) { setSignoffs([]); return undefined }
+    let live = true
+    fetchJson(`/api/course-consultants/signoffs/${validPcId}`).then(rows => { if (live) setSignoffs(Array.isArray(rows) ? rows : []) }).catch(() => {})
+    return () => { live = false }
+  }, [validPcId, planClosed])
+  const mySignoff = signoffs.find(s => s.mine)
+  // "Suggest & Sign" (the consultant's window, components/ConsultantReview.jsx) and the Program Head's read-only list.
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  const closeReview = React.useCallback(() => setReviewOpen(false), [])
+  const closeSuggestions = React.useCallback(() => setSuggestionsOpen(false), [])
+  const signedLine = signoffs.length > 0 && (
+    <div role="note" className="info-line">
+      <CheckCircle size={16} color="var(--good-solid)" aria-hidden="true" />
+      Industry Consultant review signed by {signoffs.map(s => `${s.name} (${new Date(s.signedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })})`).join(', ')}
+    </div>
+  )
+
+  // Said on the page, not only in a toast after a click: why this approver cannot act on the plan yet.
+  const isApprover = ['director-of-libraries', 'program-head', 'dean'].includes(roleKey)
+  // A returned plan blocks Approve for everyone (canAcceptOnStage), even an approver whose turn it otherwise is,
+  // so the reason is shown then too, not only when it is someone else's turn.
+  const blockedStage = workflowState.currentStage === 'returned'
+  const waitingNotice = (isApprover && effectiveStatus !== 'approved' && reviewRecordAvailable && (!isRoleActive() || blockedStage) && !hasRoleApproved())
+    ? (roleKey === 'dean' && !['returned', 'draft', 'with_program_head'].includes(workflowState.currentStage)
+      ? 'Your review opens once the Director of Libraries and the Program Head have approved this plan.'
+      // The strip above already says "Returned by … — with the instructor"; the notice adds only what to expect next.
+      : workflowState.currentStage === 'returned' ? 'You can review it again once the instructor resubmits it.'
+      : notYourTurnMessage('review'))
+    : null
+
+  // COURSE & PROGRAM ALIGNMENT data — use API/fetched data
+  const courseOutcomes = cpaData.courseOutcomes.length > 0
+    ? cpaData.courseOutcomes
+    : (cpaLoading
+        ? []
+        : [{ id: '—', description: 'No course outcomes loaded.', poMappings: [] }]
+      )
+  const realILOs = React.useMemo(() => {
+    if (!coverage?.ilos || coverage.ilos.length === 0) return []
+    return coverage.ilos.map(ilo => ilo.id).filter(Boolean)
+  }, [coverage])
+
+  const realCoToIlos = React.useMemo(() => {
+    const map = {}
+    if (!coverage?.ilos || cpaData.courseOutcomes.length === 0) return map
+    // Key by the same 1-based position used for the CO dropdown's option value
+    // and the persisted co_index, not by the ILO id's embedded CO prefix.
+    cpaData.courseOutcomes.forEach((co, idx) => {
+      const coLabel = `CO${idx + 1}`
+      const matches = coverage.ilos.map(ilo => ilo.id).filter(id => id && id.split('-')[0] === coLabel)
+      if (matches.length) map[coLabel] = matches
+    })
+    return map
+  }, [coverage, cpaData.courseOutcomes])
+
+  // The ILO ids from Course Coverage ("CO1-ILO1") count the orientation ILO, but the plan does not number it: it
+  // shows the orientation ILO unnumbered and the next one as ILO1. Label every ILO the way the plan does, so a
+  // reviewer picks (and later reads) the same ILO the instructor sees. The id stays the value sent to the server.
+  const iloLabels = React.useMemo(() => {
+    const labels = {}
+    const seen = {}
+    for (const ilo of coverage?.ilos || []) {
+      if (!ilo?.id) continue
+      // A weekly-planner row names itself ('CO2 · Week 5').
+      if (ilo.label) { labels[ilo.id] = ilo.label; continue }
+      const co = String(ilo.id).split('-')[0]
+      if (ilo.isOrientation) { labels[ilo.id] = `${co} · Orientation`; continue }
+      seen[co] = (seen[co] || 0) + 1
+      labels[ilo.id] = `${co}-ILO${seen[co]}`
+    }
+    return labels
+  }, [coverage])
+
+  // Saves the comments on the server, then (for a required reviewer) returns the plan. Resolves to true when it all
+  // went through, false when it did not: the dialog then stays open with the draft, and the plan is NOT returned,
+  // because a return the instructor cannot read the reason for is worse than no return.
+  const handleSubmitComment = async (payload) => {
+    // Returning to sender is a disapproval, and a disapproval has to say why
+    // [1:23:33] [1:23:40]. Suggested references on their own are not a reason.
+    const gate = validateReturn(payload)
+    if (!gate.ok) {
+      return gate.error
+    }
+    const code = codeToUse
+    if (!code) {
+      return 'This course could not be identified, so the comment was not saved.'
+    }
+
+    const written = (payload.comments || []).filter(c => c.text?.trim())
+    // Comments already on the plan word for word are skipped, not refused: after a send that saved some and failed
+    // on one, sending again saves only the rest. Refused only when every one is already there.
+    const incoming = written.filter(inc => !isDuplicateComment(globalComments, inc))
+    if (written.length > 0 && incoming.length === 0) {
+      return 'Duplicate comment: identical content already exists for this target.'
+    }
+
+    // What to send: one request per comment.
+    const forMap = { 'Topic': 'topics', 'References': 'references', 'TLA': 'tlas' }
+    const commenterRole = COMMENT_ROLE_MAP[roleKey] || roleKey.toUpperCase()
+    const bodies = []
+    if (roleKey === 'director-of-libraries') {
+      // The Director comments on a reference (the server finds its ILO); suggested library titles ride along on
+      // the first comment, or make a comment of their own when there is no text.
+      const suggested = payload.suggestedReferences || []
+      const suggestionLine = suggested.length > 0
+        ? `Suggested reference${suggested.length > 1 ? 's' : ''}: ` + suggested.map(r => `${r.title}${r.authors ? ' — ' + r.authors : ''}`).join('; ')
+        : ''
+      incoming.forEach((c, index) => {
+        const title = libraryRefById(c.commentedRefId)?.title
+        const text = c.text.trim()
+        bodies.push({
+          message: index === 0 && suggestionLine ? `${text}
+
+${suggestionLine}` : text,
+          comment_for: 'references',
+          target_titles: title ? [title] : []
+        })
+      })
+      if (incoming.length === 0 && suggestionLine) bodies.push({ message: suggestionLine, comment_for: 'references', target_titles: [] })
+    } else {
+      for (const c of incoming) {
+        // The place is a week of the course outcome ('CO2-W3'; 'CO1-O' is the orientation, in week 1).
+        const coIndex = c.courseOutcome ? parseInt(String(c.courseOutcome).replace(/\D/g, ''), 10) : null
+        const place = parseCommentPlace(c.ilo)
+        if (!coIndex || !place || place.coIndex !== coIndex) {
+          return 'Pick a course outcome and a week for every comment.'
+        }
+        bodies.push({
+          // The type rides along in the message — the server stores one string, and the instructor's forms parse
+          // the tag back into a labelled, actionable suggestion [48:30].
+          message: encodeCommentType(c.commentType, c.text),
+          co_index: coIndex,
+          ...(place.weekIndex ? { week_index: place.weekIndex } : { ilo_index: place.iloIndex }),
+          comment_for: forMap[c.coverageType] || null,
+          target_titles: Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])
+        })
+      }
+    }
+
+    // One at a time, stopping at the first failure, so it is clear what was saved.
+    let saved = 0
+    try {
+      for (const body of bodies) {
+        await fetchJson('/api/comments/by-course', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, pcId: validPcId, commenter_role: commenterRole, ...body })
+        })
+        saved += 1
+      }
+    } catch (e) {
+      setRefreshKey(k => k + 1)
+      const reason = apiErrorMessage(e, 'The comment could not be saved.')
+      return saved > 0
+        ? `${saved} of ${bodies.length} comments were saved; the rest were not: ${reason} The plan was not returned.`
+        : `${reason}${commentMode === 'return' ? ' The plan was not returned.' : ''}`
+    }
+
+    // Suggested references are also kept for the instructor's suggestion list.
+    if (payload.suggestedReferences && payload.suggestedReferences.length > 0) {
+      const reviewer = getSession()?.name || 'Reviewer'
+      payload.suggestedReferences.forEach(ref => addSuggestion(codeToUse, ref, reviewer))
+    }
+
+    setSidebarCollapsed(false)
+    setRefreshKey(k => k + 1)
+
+    // Only a required reviewer's comments return the plan; the consultant's are documentation.
+    if (commentMode === 'return') {
+      try {
+        await recordWorkflowAction('RETURNED')
+        reloadWorkflow()
+      } catch (e) {
+        return apiErrorMessage(e, 'Your comments were saved, but the plan could not be returned.')
+      }
+    }
+    return true
+  }
+
+  const handleAcceptSuggestion = (id) => {
+    acceptSuggestion(id);
+    setRefreshKey(k => k + 1);
+    showToastMsg('Reference added to the learning plan.');
+  }
+
+  const handleRejectSuggestion = (id) => {
+    rejectSuggestion(id);
+    setRefreshKey(k => k + 1);
+    showToastMsg('Suggestion rejected.');
+  }
+
+  useEffect(() => {
+    if (!visibleSections.includes(selectedSection)) setSelectedSection(visibleSections[0])
+  }, [selectedSection, visibleSections])
+
+  const activeSelectedSection = (externalSelectedSection || selectedSection) === 'References' ? 'References Summary' : (externalSelectedSection || selectedSection)
+
+  // Approving used to be a confirm modal AND a countdown — two confirmations
+  // for one decision [17:15] [50:56]. The countdown alone is enough: it is
+  // still undoable, and it costs one click instead of two.
+  const startApprove = () => { setApprovePhase('WAITING'); setApproveTimeLeft(5) }
+
+  // getRoleColor, getComponentTags, isRecent imported from approvalHelpers
+
+  const markCommentResolved = (commentId) => {
+    const updated = (globalComments || []).map(c => c.id === commentId ? { ...c, resolved: true, status: 'resolved', resolvedAt: new Date().toISOString() } : c)
+    setGlobalComments(updated)
+    // Server-synced comment: persist the resolution to the database too, so the
+    // approver sees the check from any session (and the next sync doesn't revert it).
+    const idStr = String(commentId)
+    if (idStr.startsWith('server-')) {
+      const serverId = Number(idStr.replace('server-', ''))
+      if (!Number.isNaN(serverId)) {
+        fetchJson('/api/comments/update-resolution', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates: [{ comment_id: serverId, resolved_status: true }] })
+        }).catch(e => { if (import.meta.env.DEV) console.warn('Failed to sync resolution to server:', e?.message) })
+      }
+    }
+  }
+
+  // Export / review-record menu. Revisions only for an approved plan; Export once the Director of
+  // Libraries and the Program Head have accepted (marked pending until the Dean does); the review
+  // record (every comment, action and approver) is always available and is a separate document.
+  const exportMenu = (approved) => (<>
+    <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}
+      onKeyDown={(e) => { if (e.key === 'Escape' && isOpen) { e.stopPropagation(); setIsOpen(false); dropdownRef.current?.querySelector('button')?.focus() } }}>
+      <button type="button" className={styles.moreIcon} aria-label="More actions" aria-haspopup="menu" aria-expanded={isOpen}>
+        <MoreVertical strokeWidth={2} size={16} />
+      </button>
+      <div className={styles.dropdownMenu} role="menu">
+        {approved && wholePlanAccess && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
+            <Clock strokeWidth={2} size={14} /> Revisions
+          </button>
+        )}
+        {/* A consultant reviews Dean-approved plans only, so they are assigned from an approved plan. */}
+        {roleKey === 'industry-consultant' && approved && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setReviewOpen(true); }}>
+            <MessageSquare strokeWidth={2} size={14} /> Suggestions
+          </button>
+        )}
+        {roleKey === 'program-head' && approved && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setSuggestionsOpen(true); }}>
+            <MessageSquare strokeWidth={2} size={14} /> Consultant suggestions
+          </button>
+        )}
+        {roleKey === 'program-head' && approved && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsConsultantOpen(true); }}>
+            <UserPlus strokeWidth={2} size={14} /> Industry consultant
+          </button>
+        )}
+        <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runReviewRecord(); }}>
+          <Download strokeWidth={2} size={14} /> Review record
+        </button>
+        {(approved || exportInfo.allowed) && wholePlanAccess && (
+          <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
+            <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : (exportInfo.pendingDean ? 'Export (pending Dean approval)' : 'Export')}
+          </button>
+        )}
+      </div>
+    </div>
+  </>)
+
+  // The section a comment is about, for its "Show in plan" link.
+
+  // No offering, or the log could not be read: say so in a window instead of showing the plan as a draft. The only way
+  // out is back to the course list.
+  if (workflowError && !workflowProp) {
+    const noAccess = /do not have access/i.test(workflowError)
+    return (
+      <div className={styles.container}>
+        <div role="presentation" className={dialogStyles.backdrop} />
+        <div role="alertdialog" aria-modal="true" aria-labelledby="plan-unavailable-title" className={dialogStyles.window}
+          onKeyDown={(event) => { if (event.key === 'Escape') navigate(backPath) }}>
+          <div className="app-window-header">
+            <h2 id="plan-unavailable-title" className="app-window-title">{noAccess ? 'No access to this learning plan' : 'Learning plan unavailable'}</h2>
+            <button type="button" className="app-icon-close" aria-label="Close and go back to the course list" onClick={() => navigate(backPath)}>
+              <X size={16} strokeWidth={2} color="currentColor" />
+            </button>
+          </div>
+          <div className={dialogStyles.body}>
+            <div className={dialogStyles.notice}>
+              <span className={`${dialogStyles.noticeIcon} ${noAccess ? '' : dialogStyles.noticeIconWarn}`} aria-hidden="true">
+                {noAccess ? <Lock size={16} /> : <AlertTriangle size={16} />}
+              </span>
+              <div>
+                {codeToUse && <div className={dialogStyles.noticeCourse}>{codeToUse}{resolvedCourse?.name ? ` · ${resolvedCourse.name}` : ''}</div>}
+                <div className={dialogStyles.noticeText}>{noAccess
+                  ? 'You are no longer assigned to review this course, or this link is out of date. Your current learning plans are in your course list.'
+                  : workflowError}</div>
+              </div>
+            </div>
+          </div>
+          <div className={dialogStyles.actions}>
+            <button type="button" className="btn btn-primary" autoFocus onClick={() => navigate(backPath)}>Back to course list</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.container}>
+      {!embedded && (
+        <div className={styles.navi}>
+          <Link to={backPath} className={'actionLink'} aria-label="Back to assigned course offerings">
+            <div className={styles.return}>
+              <ChevronLeft size={18} />
+            </div>
+          </Link>
+
+          <div className={styles.reviewIdentity} title={resolvedCourse?.name || codeToUse || ''}>
+            <strong>{codeToUse || 'Course'}</strong>
+            {resolvedCourse?.name && <span>{resolvedCourse.name}</span>}
+          </div>
+
+          <div className={styles['section-select']}>
+            <Select value={selectedSection} onChange={handleSectionChange} aria-label="Learning plan section" block>
+              {visibleSections.map((s) => <option key={s} value={s}>{sectionLabels[s]}</option>)}
+            </Select>
+          </div>
+
+          {/* approval controls — direct children of .navi like instructor */}
+          {(() => {
+            if (effectiveStatus !== 'approved' && roleKey === 'instructor') {
+              const stage = workflowState.currentStage || 'submitted'
+              const isReturned = stage === 'returned'
+              // Industry Consultant comments are documentation: they never block a resubmission.
+              const hasUnresolved = globalComments.some(c => c.recipientRole === 'instructor' && !c.resolved && c.role !== 'Industry Consultant')
+              return (
+                <div className={styles.submit} onClick={() => {
+                  if (!isRoleActive()) {
+                    showToastMsg('Previous approvers have not completed their review yet.', 'warning')
+                    return
+                  }
+                  if (isReturned && hasUnresolved) {
+                    showToastMsg('Please address all reviewer comments first before submitting your revision.', 'warning')
+                    return
+                  }
+                  handleSubmitForReview()
+                }}>
+                  {isReturned ? 'Submit Revision' : 'Submit for Review'}
+                </div>
+              )
+            }
+            if (deanReturnWithMe) {
+              return (<>
+                <button type="button" className="btn btn-secondary" onClick={() => { setReadOnlyCommentModal(false); openComment() }}>
+                  <MessageSquare size={16} /> Add comment
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setSendBackOpen(true)}>Send back to the Dean</button>
+                <button type="button" className="btn btn-primary" onClick={forwardToInstructor}>Forward to instructor</button>
+              </>)
+            }
+            if (roleKey === 'industry-consultant') {
+              // The consultant has one action, Suggest & Sign: they never return or approve. Their suggestions stay out
+              // of the comment panel; the ⋮ menu reopens them (Suggestions) for editing.
+              const blocked = !reviewRecordAvailable || !canComment
+              return (<>
+                {/* Once signed it reopens their own review: a plain button with a plain name ("Signed · Suggestions" read as a
+                    status, not an action). The signed state itself is on the approval strip. */}
+                <button type="button" className={`btn ${mySignoff ? 'btn-secondary' : 'btn-primary'} ${blocked ? styles['disabled-btn'] : ''}`} aria-disabled={blocked} onClick={() => {
+                  if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
+                  if (blocked) { showToastMsg('Suggest & Sign opens once the Dean approves this learning plan.', 'warning'); return }
+                  setReviewOpen(true)
+                }}><PenTool size={16} /> {mySignoff ? 'View my review' : 'Suggest & Sign'}</button>
+                {effectiveStatus === 'approved' && exportMenu(true)}
+              </>)
+            }
+            if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
+              return (<>
+                {/* The plan is with its instructor (not submitted, or returned): the Program Head can remind them. */}
+                <button type="button" className={`btn btn-secondary ${(!reviewRecordAvailable || !canComment) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !canComment} onClick={() => {
+                  if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
+                  if (planClosed) { showToastMsg('This plan is already approved, so it no longer takes comments.', 'warning'); return }
+                  // Approvers can always ADD comments while the plan is in review —
+                  // including in the returned stage or after their own approval.
+                  if (canComment) { setReadOnlyCommentModal(false); openComment() }
+                  else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  else showToastMsg(notYourTurnMessage('comment'), 'warning')
+                }}><MessageSquare size={16} /> {commentButtonLabel}</button>
+                {roleKey !== 'industry-consultant' && (<button type="button" className={`btn btn-primary ${(!reviewRecordAvailable || !canAcceptOnStage(roleKey, workflowState) || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !canAcceptOnStage(roleKey, workflowState) || hasRoleApproved()} onClick={() => {
+                  if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning'); return }
+                  if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
+                  else if (canAcceptOnStage(roleKey, workflowState)) startApprove()
+                  else if (workflowState.currentStage === 'returned') showToastMsg('This plan was returned to the instructor. You can approve it after the instructor resubmits it.', 'warning')
+                  else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  else showToastMsg(notYourTurnMessage('approve'), 'warning')
+                }}><Check size={16} /> Approve</button>)}
+              </>)
+            }
+            if (effectiveStatus === 'approved' && roleKey === 'vpaa') {
+              return (<>
+                <div className={styles.submit} style={{ marginLeft: 'auto' }} onClick={async () => {
+                  setExportingPdf(true)
+                  try {
+                    const logoUrl = new URL(unclogo, window.location.origin).href
+                    const formInfo = await fetchFormInfo()
+                    const programAlignment = await fetchProgramAlignment(validPcId)
+                    const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, programAlignment })
+                    const blob = new Blob([html], { type: 'text/html' })
+                    const url = URL.createObjectURL(blob)
+                    setPreviewFile({
+                      file_url: url,
+                      file_name: `Syllabus_${codeToUse}.html`,
+                      instructor_name: syllabus?.instructor || '—',
+                      course_id: codeToUse,
+                      course_name: syllabus?.name || '',
+                      submission_date: syllabus?.update || '',
+                      period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+                    })
+                  } catch (err) {
+                    console.warn('Export generation failed:', err)
+                    alertDialog(`The learning plan could not be exported. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Export failed' })
+                  } finally {
+                    setExportingPdf(false)
+                  }
+                }}>
+                  <Download size={16} /> Export
+                </div>
+              </>)
+            }
+            if (effectiveStatus === 'approved') return exportMenu(true)
+            return null
+          })()}
+          {effectiveStatus !== 'approved' && roleKey !== 'vpaa' && exportMenu(false)}
+        </div>
+      )}
+
+      {/* One consolidated view of the chain — who has approved, who has not,
+          and the Dean's date approved [53:22]. It stays compact at the top of
+          the screen so the step in front of the approver keeps the space; the
+          full version, with the live chip, is on the Decision step. */}
+      {/* The VPAA sees it too: an approved plan should say who approved it and when, not only who signed the consultant review. */}
+      {!embedded && (
+        <div className={styles['chain-strip']}>
+          <ApprovalChainStatus
+            workflow={workflowState}
+            signoffs={signoffs}
+            activeRole={roleKey}
+            onActivate={() => {
+              if (!reviewRecordAvailable) {
+                showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning')
+              } else if (hasRoleApproved()) {
+                showToastMsg('You have already approved this learning plan.', 'warning')
+              } else if (canAcceptOnStage(roleKey, workflowState)) {
+                startApprove()
+              } else {
+                showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+              }
+            }}
+          />
+          {waitingNotice && <p className={styles.waitingNotice} role="status"><Clock size={14} /> {waitingNotice}</p>}
+          {deanReturnWithMe && <p className={styles.waitingNotice} role="status"><Clock size={14} /> Returned by the Dean. Forward it to the instructor or send it back.</p>}
+          {planChanges && (
+            <p className={styles.waitingNotice} role="status">
+              <FileText size={14} /> Resubmitted after the return: {planChanges.changes.length} change{planChanges.changes.length === 1 ? '' : 's'}{yourChanged ? `, ${yourChanged} on your comments` : ''}.
+              <button type="button" className="app-link-button" onClick={() => setPlanChangesOpen(true)}>See what changed</button>
+            </p>
+          )}
+          {roleKey === 'dean' && workflowState.counterNote && workflowState.currentStage !== 'approved' && (
+            <p className={styles.waitingNotice} role="status"><Clock size={14} /> Sent back by the Program Head: &ldquo;{workflowState.counterNote}&rdquo;</p>
+          )}
+        </div>
+      )}
+
+      <div className={styles['review-workspace']}>
+        <div className={styles['plan-pane']}>
+          <div className={styles['dynamic-sections']} ref={containerRef}>
+            {initialLoading ? (
+              <Spinner label="Loading learning plan…" minHeight={320} />
+            ) : (
+            <>
+            {roleKey === 'program-head' && <PlanChecks pcId={validPcId} />}
+            {roleKey !== 'instructor' && <VersionHistory pcId={validPcId} />}
+            {signedLine}
+            {reviewOpen && <ConsultantReview pcId={validPcId} signedAt={mySignoff?.signedAt}
+              onSigned={(row) => { setSignoffs(list => [...list, row]); showToastMsg('Signed as reviewed. Your signature is on the exported plan.') }} onClose={closeReview} />}
+            {suggestionsOpen && <FutureSuggestions pcId={validPcId} onClose={closeSuggestions} />}
+            {(roleKey === 'program-head' || roleKey === 'industry-consultant') && <EarlierConsultantNotes pcId={validPcId} />}
+            {/* A table of blank rows is the worst of both worlds — it looks
+                like the screen loaded but lost the data. Say plainly that
+                there is nothing recorded instead. */}
+            {activeSelectedSection === 'Course Details' && !resolvedCourse?.code && !resolvedCourse?.name && (
+              <section>
+                <EmptyState
+                  icon={<FileText size={22} strokeWidth={1.6} />}
+                  title={courseDetailsError ? 'Could not load the course details' : 'No course details recorded'}
+                  hint={courseDetailsError
+                    ? courseDetailsError
+                    : (validPcId)
+                      ? `Nothing has been entered for ${codeToUse || 'this course'} yet.`
+                      : `This plan was opened without a revision reference, so there is nothing to load. Reach it from the approvals table rather than by typing the address.`}
+                />
+              </section>
+            )}
+
+            {activeSelectedSection === 'Course Details' && (resolvedCourse?.code || resolvedCourse?.name) && (
+              <section ref={courseDetailsRef}>
+                <TableScrollRegion label="Course details" minWidth={480} className={stylesB.courseDetailsContainer}>
+                  <table className={stylesB.documentTable}>
+                    <tbody>
+                    <tr>
+                      <th className={stylesB.labelCell}>Course No.</th>
+                      <td className={stylesB.valueCell}>{resolvedCourse?.code || ''}</td>
+                      <th className={stylesB.descHeader}>Course Description</th>
+                    </tr>
+                    <tr>
+                      <th className={stylesB.labelCell}>Course Title</th>
+                      <td className={stylesB.valueCell}><strong>{resolvedCourse?.name || ''}</strong></td>
+                      <td rowSpan="9" className={stylesB.descCell}>{resolvedCourse?.description || ''}</td>
+                    </tr>
+                    <tr><th className={stylesB.labelCell}>Credit</th><td className={stylesB.valueCell}>{resolvedCourse?.credits || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Contact Hours/Week</th><td className={stylesB.valueCell}>{resolvedCourse?.contact || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Pre-requisites</th><td className={stylesB.valueCell}>{resolvedCourse?.prerequisites || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Classification/Field</th><td className={stylesB.valueCell}>{resolvedCourse?.class || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>CMO</th><td className={stylesB.valueCell}>{resolvedCourse?.cmo || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Syllabus Revision No.</th><td className={stylesB.valueCell}>{resolvedCourse?.revision ?? 0}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Year Level</th><td className={stylesB.valueCell}>{resolvedCourse?.year || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Term</th><td className={stylesB.valueCell}>{resolvedCourse?.sem || ''}</td></tr>
+                    </tbody>
+                  </table>
+                </TableScrollRegion>
+              </section>
+            )}
+
+            {activeSelectedSection === 'Course and Program Outcome Alignment' && (
+              <section ref={alignmentRef}>
+                <OutcomeAlignment
+                  // reviewers read it; only the plan's instructor edits (the server refuses anyone else)
+                  isReadOnly
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
+              </section>
+            )}
+
+            {/* Course Coverage */}
+            {activeSelectedSection === 'Course Coverage' && (
+              <section ref={coverageRef}>
+                <CourseCoverage
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  status={effectiveStatus}
+                  selectedSection={activeSelectedSection}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
+              </section>
+            )}
+
+            {/* References */}
+            {activeSelectedSection === 'References Summary' && (
+              <section ref={referencesRef}>
+                <ReferenceSummary
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  status={effectiveStatus}
+                  selectedSection={activeSelectedSection}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
+              </section>
+            )}
+
+            {/* Criteria for Grading */}
+            {activeSelectedSection === 'Criteria for Grading' && (
+              <section ref={criteriaRef}>
+                <CriteriaForGrading
+                  // reviewers read it; only the plan's instructor edits (the server refuses anyone else)
+                  isReadOnly
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  status={effectiveStatus}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
+              </section>
+            )}
+
+
+            {/* Reference suggestions for instructor */}
+            {roleKey === 'instructor' && activeSelectedSection === 'References Summary' && suggestions.filter(s => s.status === 'pending').length > 0 && (
+              <div style={{ marginTop: 24, padding: '16px', background: 'var(--warn-soft)', border: '1px solid #fde68a', borderRadius: 8 }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 600, color: 'var(--warn)' }}>
+                  Suggested References from Director of Libraries
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {suggestions.filter(s => s.status === 'pending').map(s => (
+                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'white', borderRadius: 6, border: '1px solid #fde68a' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: '#1f2937' }}>{s.reference.title}</div>
+                        <div style={{ fontSize: 13, color: '#6b7280' }}>{s.reference.authors} &middot; {s.reference.year || 'N/A'} &middot; Suggested by {s.suggestedBy} on {new Date(s.suggestedAt).toLocaleDateString()}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
+                        <button onClick={() => handleAcceptSuggestion(s.id)} className="btn btn-primary btn-sm">Accept</button>
+                        <button onClick={() => handleRejectSuggestion(s.id)} className="btn btn-danger btn-sm">Reject</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            </>)}
+          </div>
+          {/* Reading-order navigation. The dropdown above is the
+              jump-anywhere control; the dots show where you are in the plan and
+              are shortcuts in their own right; Back / Next walk it in order —
+              "meron ka nalang nung parang Next" [17:23]. All three write the
+              same `selectedSection`, so they cannot disagree about where you
+              are. A button that could never do anything here is not rendered
+              at all, rather than sitting permanently greyed out. */}
+          {/* One section (the Director of Libraries sees References only) has nowhere to go: no lone dot. */}
+          {!embedded && visibleSections.length > 1 && (() => {
+            const idx = visibleSections.indexOf(activeSelectedSection)
+            const prev = idx > 0 ? visibleSections[idx - 1] : null
+            const next = idx >= 0 && idx < visibleSections.length - 1 ? visibleSections[idx + 1] : null
+            return (
+              <div className={styles['section-nav']}>
+                {prev ? (
+                  <button
+                    type="button"
+                    title={`Back to ${sectionLabels[prev]}`}
+                    onClick={() => setSelectedSection(prev)}
+                    className={`${styles['section-nav-btn']} ${styles['nav-prev']}`}
+                  >
+                    <span aria-hidden="true">&#8592;</span>
+                    <span className={styles['nav-full']}>{sectionLabels[prev]}</span>
+                    <span className={styles['nav-short']}>Back</span>
+                  </button>
+                ) : <span />}
+
+                <div className={styles['nav-dots']} role="tablist" aria-label="Sections">
+                  {visibleSections.map((sec, i) => {
+                    const current = sec === activeSelectedSection
+                    return (
+                      <button
+                        key={sec}
+                        type="button"
+                        role="tab"
+                        aria-selected={current}
+                        aria-label={`${sectionLabels[sec]} (section ${i + 1} of ${visibleSections.length})`}
+                        title={sectionLabels[sec]}
+                        onClick={() => setSelectedSection(sec)}
+                        className={`${styles['nav-dot']} ${current ? styles['nav-dot-active'] : ''}`}
+                      >
+                        <span />
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {next ? (
+                  <button
+                    type="button"
+                    title={`Continue to ${sectionLabels[next]}`}
+                    onClick={() => setSelectedSection(next)}
+                    className={`${styles['section-nav-btn']} ${styles['nav-next']}`}
+                  >
+                    <span className={styles['nav-full']}>{`Next: ${sectionLabels[next]}`}</span>
+                    <span className={styles['nav-short']}>Next</span>
+                    <span aria-hidden="true">&#8594;</span>
+                  </button>
+                ) : <span />}
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* The comments panel used to be shown only on Course Coverage, but
+            Add Comment is available on every section and the comment box can
+            target references and TLAs too — so a comment raised anywhere else
+            was saved and then never shown. It belongs on every section. */}
+        {/* The consultant has no comment panel: their suggestions are in Suggest & Sign (and ⋮ > Suggestions). */}
+        {!embedded && roleKey !== 'vpaa' && roleKey !== 'industry-consultant' && (
+          <CommentsSidebar
+            panelId="approval-comments-panel"
+            comments={visibleComments}
+            iloLabels={iloLabels}
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(value => !value)}
+            emptyHint={roleKey === 'instructor'
+              ? 'Comments from your reviewers will appear here once they have looked at this section.'
+              : waitingNotice
+                ? 'Comments open when the plan reaches your review.'
+                : roleKey === 'industry-consultant'
+                  ? 'Use Add suggestion above to suggest a topic, a TLA or an AI tool.'
+                  : roleKey === 'director-of-libraries'
+                    ? `Use ${commentButtonLabel} above to comment on a reference or suggest one from the library.`
+                    : `Use ${commentButtonLabel} above to raise a revision, suggest a topic, a TLA or an AI tool.`}
+            canResolve={(comment) => ({ 'instructor': 'instructor', 'program-head': 'program_head' }[roleKey]) === comment.recipientRole}
+            onResolve={markCommentResolved}
+            canShowInPlan={(comment) => Boolean(sectionOfComment(comment) && visibleSections.includes(sectionOfComment(comment)))}
+            onShowInPlan={showCommentInPlan}
+          />
+        )}
+      </div>
+
+      {/* Approval comment box (preserved) */}
+      <SendBackDialog open={sendBackOpen} onClose={closeSendBack} onSend={sendBackToDean} courseCode={codeToUse} />
+      <ApprovalCommentBox
+        show={showCommentModal}
+        onClose={closeComment}
+        onSubmit={handleSubmitComment}
+        courseOutcomes={courseOutcomes}
+        ilos={realILOs}
+        approverRole={currentRole}
+        coverageEntries={coverage?.ilos || []}
+        syllabusTopics={coverage?.topics || []}
+        syllabusReferences={displayRefs}
+        readOnly={readOnlyCommentModal}
+        previousComments={previousComments}
+        coToIlosProp={Object.keys(realCoToIlos).length ? realCoToIlos : undefined}
+        iloLabels={iloLabels}
+        mode={commentMode}
+      />
+
+      {/* ── APPROVE CONFIRMATION (matches instructor submit modal, with undo countdown) ── */}
+      {approvePhase !== 'IDLE' && (
+        <div className={subStyles.submitOverlay}>
+          {/* No separate "are you sure?" step — the countdown below IS the
+              confirmation, and it can be cancelled for the whole 5 seconds.
+              Two confirmations for one decision was the click count the panel
+              objected to [17:15] [50:56]. */}
+          {approvePhase === 'WAITING' && (
+            <div className={subStyles.submitModal}>
+              <div className={subStyles.waitingBody}>
+                <div className={subStyles.waitingText}>
+                  Approving <strong>{codeToUse}</strong> in <strong>{approveTimeLeft}</strong> seconds...
+                </div>
+                <div className={subStyles.progressContainer}>
+                  <div className={subStyles.progressBar} style={{ animationDuration: '5s' }}></div>
+                </div>
+              </div>
+              <div className={subStyles.submitModalActionsFull}>
+                <button className="btn btn-secondary" onClick={cancelApprove}>Cancel Approval</button>
+              </div>
+            </div>
+          )}
+
+          {approvePhase === 'DONE' && (
+            <div className={subStyles.submitModal}>
+              <div className={subStyles.waitingBodyCenter}>
+                <div className={subStyles.successIcon}>✓</div>
+                <div className={subStyles.waitingTextSmall}>{roleKey === 'dean' ? 'Learning Plan Approved!' : 'Your approval is recorded.'}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <PlanChangesDialog open={planChangesOpen} onClose={() => setPlanChangesOpen(false)} data={planChanges} courseCode={codeToUse} />
+
+      <ConsultantDialog open={isConsultantOpen} onClose={() => setIsConsultantOpen(false)} courseCode={codeToUse} />
+
+      {/* ── REVISIONS OVERLAY ──────────────────────────────────────────────── */}
+      {isRevisionsOpen && (
+        <Revisions
+          onClose={() => setIsRevisionsOpen(false)}
+          pcId={validPcId}
+          revNum={validRevNum}
+        />
+      )}
+
+      {/* ── PDF VIEWER MODAL ───────────────────────────────────────────── */}
+      {previewFile && (
+        <PDFViewerModal
+          file={previewFile}
+          kind="Learning Plan"
+          onClose={() => setPreviewFile(null)}
+          onExport={(f) => {
+            const a = document.createElement('a')
+            a.href = f.file_url
+            a.download = f.file_name
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+          }}
+        />
+      )}
+
+
+    </div>
+  )
+}
+
+export default ApprovalSyllabusSections

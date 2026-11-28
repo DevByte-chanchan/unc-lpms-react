@@ -1,24 +1,22 @@
-# Logs
-logs
+﻿# Dependencies & build outputs
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+
+# Environment & secrets
+.env
+.env.*.local
+*.local
+
+# Logs & editor files
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+.idea/
+.vscode/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+
+# Ignore standalone root composition folder if present locally (root-anchored!)
+/composition/

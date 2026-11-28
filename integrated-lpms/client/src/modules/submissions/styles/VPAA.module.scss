@@ -1,0 +1,48 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 200px;
+  gap: 10px;
+  background: white;
+  font-family: 'Poppins', sans-serif;
+  overflow-y: auto;
+}
+
+.courseList {
+  min-width: 0;
+}
+
+.courseHeader, .courseFilters {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .courseHeader {
+    flex-wrap: wrap;
+  }
+
+  .courseHeader h2, .courseFilters {
+    flex: 1 0 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .courseList {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .courseFilters {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .courseFilters > select {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+}

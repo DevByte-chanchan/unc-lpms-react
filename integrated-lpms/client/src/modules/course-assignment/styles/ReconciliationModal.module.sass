@@ -1,0 +1,130 @@
+// Reconciliation modal: shown after a Department upload to let the
+// user decide what to do with the rows that exist in the database
+// but aren't in the freshly uploaded Excel.
+
+// No .overlay any more. This modal opens the instant Preview & Confirm closes,
+// and its own dim layer used to fade in ON TOP of that dialog's — two backdrops
+// briefly stacked, which is the dark flash we set out to remove. It now holds the
+// app's single shared backdrop instead (DialogShell → services/dialogBackdrop.js).
+//
+// Positioning is DialogShell's too: centring here with translate(-50%, -50%)
+// would be overwritten by the panel's scale animation and throw the dialog into
+// the corner mid-fade. This class is now only the modal's size and skin.
+.modal
+  width: 560px
+  max-width: 94vw
+  max-height: 84vh
+  overflow-y: auto
+  padding: 28px
+  background: #FFFFFF
+  border-radius: 12px
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18)
+  display: flex
+  flex-direction: column
+  gap: 16px
+
+.title
+  font-size: 20px
+  font-weight: 600
+  color: #18191A
+  margin: 0
+
+.subtitle
+  font-size: 13px
+  color: #6B7280
+  margin: 0
+
+.row
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 10px 12px
+  border: 1px solid #E5E7EB
+  border-radius: 8px
+  background: #FAFAFA
+
+.rowText
+  display: flex
+  flex-direction: column
+  gap: 2px
+
+.rowName
+  font-size: 14px
+  font-weight: 600
+  color: #18191A
+
+.rowMeta
+  font-size: 12px
+  color: #6B7280
+
+// CSS-only toggle switch
+.switch
+  position: relative
+  display: inline-block
+  width: 42px
+  height: 22px
+  flex-shrink: 0
+
+  input
+    opacity: 0
+    width: 0
+    height: 0
+
+  .slider
+    position: absolute
+    cursor: pointer
+    top: 0
+    left: 0
+    right: 0
+    bottom: 0
+    background: #D1D5DB
+    border-radius: 9999px
+    transition: 0.18s
+
+    &::before
+      position: absolute
+      content: ''
+      width: 16px
+      height: 16px
+      left: 3px
+      bottom: 3px
+      background: #FFFFFF
+      border-radius: 50%
+      transition: 0.18s
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2)
+
+  input:checked + .slider
+    background: #EAB308
+
+  input:checked + .slider::before
+    transform: translateX(20px)
+
+.actions
+  display: flex
+  gap: 12px
+  margin-top: 8px
+
+.btnPrimary,
+.btnOutline
+  flex: 1
+  height: 42px
+  border-radius: 8px
+  font-weight: 600
+  cursor: pointer
+  font-size: 14px
+
+.btnPrimary
+  background: #EAB308
+  color: #18191A
+  border: none
+
+  &:hover
+    background: #CA8A04
+
+.btnOutline
+  background: #FFFFFF
+  color: #18191A
+  border: 1px solid #18191A
+
+  &:hover
+    background: #F3F4F6

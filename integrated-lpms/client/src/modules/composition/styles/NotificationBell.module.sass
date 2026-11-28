@@ -1,0 +1,333 @@
+.wrapper
+  position: relative
+  display: inline-flex
+  align-items: center
+
+.bellButton
+  position: relative
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 50%
+  width: 40px
+  height: 40px
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  color: #475569
+  transition: all 0.2s ease
+  outline: none
+  padding: 0
+
+  &:hover
+    background: #F8FAFC
+    color: #1E293B
+    border-color: #CBD5E1
+
+  &.active
+    background: #EFF6FF
+    color: #2563EB
+    border-color: #93C5FD
+
+.badge
+  position: absolute
+  top: -2px
+  right: -2px
+  background: #EF4444
+  color: #FFFFFF
+  font-size: 11px
+  font-weight: 700
+  height: 18px
+  min-width: 18px
+  padding: 0 4px
+  border-radius: 9px
+  display: flex
+  align-items: center
+  justify-content: center
+  border: 2px solid #FFFFFF
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15)
+  box-sizing: border-box
+
+.panel
+  position: absolute
+  top: calc(100% + 12px)
+  right: 0
+  width: 420px
+  max-width: 90vw
+  max-height: 560px
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 12px
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05)
+  z-index: 1500
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.panelHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 14px 18px
+  border-bottom: 1px solid #F1F5F9
+  background: #FAFAFA
+
+.headerTitleGroup
+  display: flex
+  align-items: center
+  gap: 8px
+
+.title
+  font-size: 15px
+  font-weight: 600
+  color: #1E293B
+
+.unreadChip
+  background: #FEE2E2
+  color: #DC2626
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 7px
+  border-radius: 10px
+
+.allReadChip
+  background: #ECFDF5
+  color: #059669
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 7px
+  border-radius: 10px
+
+.markAllBtn
+  background: none
+  border: none
+  color: #2563EB
+  font-size: 12px
+  font-weight: 500
+  cursor: pointer
+  padding: 4px 6px
+  border-radius: 4px
+  transition: background 0.15s ease
+
+  &:hover
+    background: #EFF6FF
+    text-decoration: underline
+
+.tabsRow
+  display: flex
+  gap: 8px
+  padding: 8px 18px
+  background: #FFFFFF
+  border-bottom: 1px solid #F1F5F9
+
+.tabButton
+  background: none
+  border: none
+  padding: 4px 12px
+  font-size: 12px
+  font-weight: 500
+  color: #64748B
+  border-radius: 14px
+  cursor: pointer
+  transition: all 0.15s ease
+
+  &:hover
+    background: #F1F5F9
+    color: #1E293B
+
+  &.activeTab
+    background: #1E293B
+    color: #FFFFFF
+
+.listContainer
+  flex: 1
+  overflow-y: auto
+  max-height: 420px
+  display: flex
+  flex-direction: column
+
+.emptyState
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  padding: 40px 20px
+  color: #94A3B8
+  text-align: center
+  gap: 8px
+
+.emptyTitle
+  font-size: 14px
+  font-weight: 600
+  color: #334155
+
+.emptySubtitle
+  font-size: 12px
+  color: #64748B
+  max-width: 280px
+  line-height: 1.4
+
+.notificationItem
+  display: flex
+  flex-direction: column
+  padding: 14px 18px
+  border-bottom: 1px solid #F1F5F9
+  cursor: pointer
+  transition: background 0.15s ease
+  position: relative
+  text-align: left
+
+  &:hover
+    background: #F8FAFC
+
+  &.unread
+    background: #F0F7FF
+    border-left: 3px solid #2563EB
+
+    &:hover
+      background: #E5F0FF
+
+.itemTopRow
+  display: flex
+  align-items: center
+  justify-content: space-between
+  margin-bottom: 6px
+
+.itemBadgeGroup
+  display: flex
+  align-items: center
+  gap: 6px
+
+.newBadge
+  background: #2563EB
+  color: #FFFFFF
+  font-size: 10px
+  font-weight: 700
+  padding: 1px 5px
+  border-radius: 3px
+  letter-spacing: 0.04em
+
+.readStatusText
+  font-size: 10px
+  color: #94A3B8
+  font-weight: 500
+  padding: 1px 4px
+
+.itemTopRight
+  display: flex
+  align-items: center
+  gap: 6px
+
+.toggleReadBtn
+  background: none
+  border: 1px solid transparent
+  color: #94A3B8
+  padding: 2px 4px
+  border-radius: 4px
+  cursor: pointer
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  transition: all 0.15s ease
+
+  &:hover
+    background: #E2E8F0
+    color: #334155
+    border-color: #CBD5E1
+
+.typeBadge
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 8px
+  border-radius: 4px
+  text-transform: uppercase
+  letter-spacing: 0.03em
+
+  &.assigned
+    background: #E0E7FF
+    color: #4338CA
+
+  &.returned
+    background: #FEE2E2
+    color: #DC2626
+
+  &.approved
+    background: #DCFCE7
+    color: #15803D
+
+  &.endorsed
+    background: #CCFBF1
+    color: #0F766E
+
+  &.suggested
+    background: #DBEAFE
+    color: #1D4ED8
+
+.unreadDot
+  width: 8px
+  height: 8px
+  background: #2563EB
+  border-radius: 50%
+  flex-shrink: 0
+
+.timeText
+  font-size: 11px
+  color: #94A3B8
+
+.itemTitle
+  font-size: 13px
+  font-weight: 600
+  color: #1E293B
+  margin-bottom: 4px
+  line-height: 1.3
+
+.itemMessage
+  font-size: 12px
+  color: #475569
+  line-height: 1.4
+  margin-bottom: 6px
+
+.commentsBox
+  margin-top: 6px
+  padding: 8px 10px
+  background: #FFF1F2
+  border-left: 3px solid #F43F5E
+  border-radius: 4px
+  font-size: 11px
+
+.commentsHeader
+  font-weight: 600
+  color: #BE123C
+  margin-bottom: 4px
+  display: flex
+  align-items: center
+  gap: 4px
+
+.commentSnippet
+  color: #4C0519
+  margin-bottom: 3px
+  line-height: 1.3
+  white-space: pre-wrap
+  overflow: hidden
+  text-overflow: ellipsis
+  display: -webkit-box
+  -webkit-line-clamp: 2
+  -webkit-box-orient: vertical
+
+.itemActionHint
+  display: flex
+  align-items: center
+  justify-content: flex-end
+  gap: 4px
+  font-size: 11px
+  color: #2563EB
+  font-weight: 500
+  margin-top: 6px
+
+.footer
+  padding: 10px 18px
+  background: #FAFAFA
+  border-top: 1px solid #F1F5F9
+  font-size: 11px
+  color: #94A3B8
+  text-align: center

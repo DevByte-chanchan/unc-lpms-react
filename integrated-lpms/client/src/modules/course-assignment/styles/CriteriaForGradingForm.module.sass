@@ -1,0 +1,209 @@
+.container
+  width: 100%
+  display: flex
+  flex-direction: column
+  gap: 16px
+  //padding: 20px
+  background: white
+  border-radius: 5px
+  //border: 1px solid #DDDFDF
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25)
+
+.table
+  width: 100%
+  table-layout: auto
+  border-collapse: separate
+  border-spacing: 0
+
+  th
+    text-align: center
+    font-weight: 500
+    color: #333
+    font-size: 16px
+
+  td
+    vertical-align: middle
+
+  &.criteriaTable
+
+    th:nth-child(1), td:nth-child(1)
+      width: 10%
+
+    th:nth-child(2), td:nth-child(2)
+      width: 10%
+
+    th:nth-child(3), td:nth-child(3)
+      width: 40%
+
+    th:nth-child(4), td:nth-child(4)
+      width: 30%
+      text-align: center
+      vertical-align: middle
+
+    th:nth-child(5), td:nth-child(5)
+      width: 10%
+
+.cellBox
+  width: 100%
+  min-height: 45px
+  padding: 10px
+  border-radius: 5px
+  border: 1px solid #DDDFDF
+  background: #FFFFFF
+  display: flex
+  justify-content: center
+  align-items: center
+  text-align: center
+  font-size: 14px
+  border-spacing: 10px
+
+  input, .dropdown
+    pointer-events: auto
+
+  &.muted
+    background: #F1F3F5
+    font-weight: 500
+
+.weightHeader
+  width: 100%
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  text-align: center
+  gap: 6px
+
+.subheaders
+  width: 100%
+  display: grid
+  grid-template-columns: repeat(4, 1fr)
+  gap: 0
+  text-align: center
+  font-size: 14px
+  color: #555
+
+.weightCell
+  display: grid
+  grid-template-columns: repeat(4, 1fr)
+  gap: 8px
+
+.weightBox
+  height: 48px
+  border-radius: 5px
+  border: 1px solid #DDDFDF
+  background: #FFFFFF
+  padding: 0
+  display: flex
+  border-spacing: 10px
+
+  input
+    width: 100%
+    height: 100%
+    padding: 0 6px
+    border: none
+    text-align: center
+    background: transparent
+    font-size: 14px
+
+    &:disabled
+      background: #F1F3F5
+      color: #777
+
+.cellBox.minPassing
+  min-height: 48px
+  height: 48px
+  padding: 0
+  display: flex
+
+.minPassing input
+  height: 100%
+  width: 100%
+  border: none
+  padding: 0 6px
+  background: transparent
+  text-align: center
+
+.totalRow td
+  padding-top: 16px
+
+.totalLabel
+  font-weight: 500
+
+.totalRow td:first-child
+  display: flex
+  justify-content: center
+  align-items: center
+
+.totalRow .weightCell
+  display: grid
+  grid-template-columns: repeat(4, 1fr)
+  gap: 8px
+
+.options
+  width: 100%
+  border: 1px solid #DCE2F0
+  border-top: none
+  background: white
+  padding: 8px
+  display: flex
+  flex-direction: column
+  gap: 6px
+  max-height: 160px
+  overflow-y: auto
+
+.multiSelect
+  position: relative
+  width: 100%
+
+.dropdown
+  width: 100%
+  padding: 11px 10px
+  border: 1px solid #ffffff
+  border-radius: 4px
+  background: #fff
+  cursor: pointer
+  display: flex
+  align-items: center
+  font-size: 14px
+
+  &:hover
+    border-color: #98A2B3
+
+.dropdownMenu
+  position: absolute
+  top: calc(100% + 2px)
+  left: 0
+  width: 100%
+  background: white
+  border: 1px solid #D0D5DD
+  border-radius: 4px
+  box-shadow: 0 4px 12px rgba(0,0,0,.15)
+  z-index: 1000
+  padding: 8px
+  max-height: 180px
+  overflow-y: auto
+
+.option
+  cursor: pointer
+  width: 100%
+  padding: 6px 8px
+  display: flex
+  align-items: center
+  gap: 8px
+
+  &:hover
+    background: #F2F4F7
+
+.headerCell
+  width: 100%
+  display: flex
+  justify-content: center
+  align-items: center
+  text-align: center
+
+.noPad
+  padding: 0 !important
+  justify-content: flex-start !important
+  align-items: center !important
+  text-align: left !important
+

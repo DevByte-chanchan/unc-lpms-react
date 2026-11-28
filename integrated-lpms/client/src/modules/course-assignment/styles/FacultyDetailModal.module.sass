@@ -1,0 +1,145 @@
+// Styles for the Faculty Detail Modal, opened from the "View" button
+// on the faculty table. Layout mirrors the existing detail modals in
+// DeanFaculty.jsx so the look stays consistent.
+
+@keyframes facultyOverlayIn
+  from
+    opacity: 0
+  to
+    opacity: 1
+
+@keyframes facultyModalIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(0.97)
+  to
+    opacity: 1
+    transform: translate(-50%, -50%) scale(1)
+
+.overlay
+  position: fixed
+  inset: 0
+  background: rgba(0, 0, 0, 0.35)
+  z-index: 2
+  animation: facultyOverlayIn 0.18s ease
+
+.modal
+  position: fixed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  width: 720px
+  max-height: 86vh
+  overflow-y: auto
+  padding: 24px 28px
+  background: #FFFFFF
+  border-radius: 12px
+  display: flex
+  flex-direction: column
+  gap: 14px
+  z-index: 3
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15)
+  animation: facultyModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1)
+
+.header
+  display: flex
+  justify-content: space-between
+  align-items: flex-start
+
+.identity
+  display: flex
+  gap: 20px
+
+.avatar
+  width: 96px
+  height: 96px
+  border-radius: 12px
+  background: #F3F4F6
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+
+.name
+  font-size: 22px
+  font-weight: 600
+  color: #18191A
+  margin-bottom: 6px
+
+.role
+  font-size: 14px
+  color: #374151
+  font-weight: 500
+
+.statusPill
+  display: inline-block
+  padding: 4px 10px
+  border-radius: 4px
+  font-weight: 500
+  font-size: 12px
+  margin-bottom: 8px
+
+  &.active
+    background: #D1FAE5
+    color: #047857
+
+  &.onleave
+    background: #FEF3C7
+    color: #92400E
+
+  &.inactive
+    background: #FEE2E2
+    color: #B91C1C
+
+.closeBtn
+  background: transparent
+  border: none
+  cursor: pointer
+  padding: 0
+
+.divider
+  border-top: 1px solid #E5E7EB
+  padding-top: 14px
+
+.sectionLabel
+  font-size: 13px
+  font-weight: 600
+  color: #18191A
+  letter-spacing: 0
+  text-transform: none
+  margin-bottom: 8px
+
+.grid
+  display: grid
+  grid-template-columns: 1fr 1fr
+  // Row gap 12 / wider column gap so the left & right columns
+  // (e.g. Department | Dean) have clear breathing room.
+  gap: 12px 28px
+
+.field
+  display: flex
+  flex-direction: column
+
+.fieldLabel
+  font-size: 12px
+  color: #6B7280
+  margin-bottom: 4px
+
+.fieldValue
+  font-size: 14px
+  color: #18191A
+
+.aboutBody
+  font-size: 14px
+  color: #374151
+  line-height: 1.6
+  white-space: pre-wrap
+
+.loading,
+.error
+  padding: 24px
+  text-align: center
+  color: #6B7280
+
+.error
+  color: #B91C1C

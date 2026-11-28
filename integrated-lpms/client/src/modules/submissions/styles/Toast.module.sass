@@ -1,0 +1,125 @@
+// The app's toast (utils/toast.jsx): bottom-right, newest at the bottom, above every window. Tinted in its tone so it
+// is seen at a glance: green done, amber heads-up, blue info. A bar along the bottom shows when it closes.
+.stack
+  position: fixed
+  right: 24px
+  bottom: 24px
+  z-index: 3600
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: 10px
+  max-width: min(440px, calc(100vw - 32px))
+  pointer-events: none
+
+.toast
+  position: relative
+  display: flex
+  align-items: center
+  gap: 12px
+  min-height: 52px
+  padding: 12px 10px 14px 12px
+  overflow: hidden
+  background: var(--tone-soft)
+  border: 1px solid var(--tone-line)
+  border-radius: var(--radius-lg)
+  box-shadow: 0 14px 34px -6px rgba(15, 23, 42, .28), 0 2px 6px rgba(15, 23, 42, .08)
+  color: var(--tone-ink)
+  font: var(--fw-semibold) var(--fs-md) / 1.4 var(--font-ui)
+  pointer-events: auto
+  // slides in from the right edge it lives on, ease-out
+  animation: toastIn .26s ease-out
+
+.success
+  --tone: var(--good-solid)
+  --tone-soft: var(--good-soft)
+  --tone-line: var(--good-line)
+  --tone-ink: var(--good)
+.warning
+  --tone: var(--warn-solid)
+  --tone-soft: var(--warn-soft)
+  --tone-line: var(--warn-line)
+  --tone-ink: var(--warn)
+.info
+  --tone: var(--accent)
+  --tone-soft: var(--accent-soft)
+  --tone-line: var(--accent-line)
+  --tone-ink: oklch(42% 0.17 263)
+
+// the icon in a solid circle of the tone: the first thing the eye lands on
+.badge
+  flex: 0 0 auto
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 30px
+  height: 30px
+  border-radius: 50%
+  background: var(--tone)
+  color: #fff
+
+// one small pulse confirms a finished step
+.success .badge
+  animation: confirmPulse .45s ease-out .12s
+
+.message
+  flex: 1
+  min-width: 0
+  overflow-wrap: anywhere
+
+.close
+  flex: 0 0 auto
+  display: inline-flex
+  padding: 4px
+  border: 0
+  border-radius: var(--control-radius)
+  background: transparent
+  color: var(--tone-ink)
+  opacity: .7
+  cursor: pointer
+  &:hover
+    opacity: 1
+    background: rgba(15, 23, 42, .06)
+  &:focus-visible
+    opacity: 1
+    outline: 2px solid var(--tone)
+    outline-offset: 1px
+
+// shrinks from full width to nothing over the time the toast is shown
+.timer
+  position: absolute
+  left: 0
+  right: 0
+  bottom: 0
+  height: 3px
+  background: var(--tone)
+  opacity: .55
+  transform-origin: left
+  animation: timer var(--shown-for, 4s) linear forwards
+
+@keyframes toastIn
+  from
+    opacity: 0
+    transform: translateX(24px)
+
+@keyframes confirmPulse
+  40%
+    transform: scale(1.18)
+
+@keyframes timer
+  to
+    transform: scaleX(0)
+
+@media (prefers-reduced-motion: reduce)
+  .toast, .success .badge
+    animation: none
+  .timer
+    display: none
+
+@media (max-width: 600px)
+  .stack
+    right: 16px
+    left: 16px
+    bottom: 16px
+    max-width: none
+    align-items: stretch

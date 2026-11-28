@@ -1,0 +1,57 @@
+import React from 'react'
+import { parseCommentType } from '../utils/reviewGate.js'
+
+const TYPE_TONE = {
+  'revision': { background: 'var(--danger-soft)', color: 'var(--danger)' },
+  'suggest-topic': { background: '#e0f2fe', color: '#0369a1' },
+  'suggest-tla': { background: '#ede9fe', color: '#6d28d9' },
+  'suggest-ai-tool': { background: 'var(--good-soft)', color: 'var(--good)' },
+  'note': { background: 'var(--surface-sunken)', color: 'var(--ink-soft)' }
+}
+
+/**
+ * Renders a review-comment message. If the message carries a
+ * "Suggested reference(s): A — B; C — D" line (appended by the Director of
+ * Libraries flow), it is split out into the same amber panel used in the
+ * approver sidebar so suggestions are easy to spot.
+ *
+ * A leading "[Suggested TLA]"-style tag is the approver's structured comment
+ * type [48:30]; it renders as a chip so the instructor reads it as a distinct
+ * kind of suggestion rather than as part of the sentence.
+ */
+const CommentMessage = ({ message, className }) => {
+  const parsed = parseCommentType(message)
+  const m = String(parsed.text || '')
+  const idx = m.search(/Suggested references?:/i)
+  const text = idx >= 0 ? m.slice(0, idx).trim() : m
+  const suggestions = idx >= 0
+    ? m.slice(idx).replace(/^Suggested references?:\s*/i, '').split(';').map(s => s.trim()).filter(Boolean)
+    : []
+
+  return (
+    <>
+      {parsed.label && (
+        <span style={{
+          display: 'inline-block', marginBottom: 4, padding: '2px 8px', borderRadius: 4,
+          fontSize: '0.7rem', fontWeight: 600, ...(TYPE_TONE[parsed.commentType] || TYPE_TONE.note)
+        }}>
+          {parsed.label}
+        </span>
+      )}
+      {text && <p className={className} style={{ margin: 0 }}>{text}</p>}
+      {suggestions.length > 0 && (
+        <div style={{
+          padding: '6px 10px', background: 'var(--warn-soft)', border: '1px solid var(--warn-line)',
+          borderRadius: 4, fontSize: '0.78rem', marginTop: 6,
+        }}>
+          <div style={{ fontWeight: 600, color: 'var(--warn)', marginBottom: 2 }}>Suggested References:</div>
+          {suggestions.map((s, i) => (
+            <div key={i} style={{ color: 'var(--warn)' }}>{s}</div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+export default CommentMessage

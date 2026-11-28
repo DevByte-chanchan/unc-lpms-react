@@ -1,0 +1,58 @@
+.container
+  display: flex
+  padding: 0 0 0 20px
+  flex-direction: column
+  align-items: flex-start
+  //gap: 5px
+  width: 100%
+  height: max-content
+
+.label
+  color: #000
+  text-align: left
+  font-family: Manrope,sans-serif
+  font-size: 16px
+  font-weight: 500
+  line-height: normal
+
+.dropdown
+  font-size: 16px
+  display: flex
+  align-items: center
+  gap: 10px
+  align-self: stretch
+  // the app's control box (tokens.css), like Select and the inputs
+  border-radius: var(--control-radius)
+  border: 1px solid var(--control-border)
+  padding-right: 10px
+  transition: border-color 0.2s ease-in-out // Smooth transition
+
+  // NEW: Error State (Red Border + Background)
+  &.error
+    border: 1px solid #FF5252 !important
+    background-color: #FFF4F4
+
+.dropdown select
+  width: 100%
+  height: 34px
+  padding: 0 12px
+  outline: none
+  border-radius: var(--control-radius)
+  border: 0
+  font-size: var(--fs-sm)
+  background: transparent // REQUIRED: Allows the red error background to show through
+
+.dropdown select option
+  font-size: 14px
+
+.disabled-style
+  background: #F8F9F9
+  pointer-events: none
+
+// NEW: Error Message Text Style
+.errorMessage
+  color: #FF5252
+  font-size: 12px
+  font-weight: 500
+  margin-top: 5px
+  font-family: Manrope, sans-serif

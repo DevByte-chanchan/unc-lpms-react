@@ -1,0 +1,127 @@
+.container
+  display: flex
+  padding: 0 0 0 20px
+  flex-direction: column
+  align-items: flex-start
+  width: 100%
+  height: max-content
+
+.label
+  color: #000
+  text-align: left
+  font-family: Manrope, sans-serif
+  font-size: 16px
+  font-weight: 500
+  line-height: normal
+
+.dropdown
+  font-size: 16px
+  display: flex
+  align-items: center
+  align-self: stretch
+  // the app's control box (tokens.css), like Select and the inputs
+  border-radius: var(--control-radius)
+  border: 1px solid var(--control-border)
+  transition: border-color 0.2s ease-in-out
+  box-sizing: border-box
+  background: #FFFFFF
+  width: 100%
+
+  &.error
+    border: 1px solid #FF5252 !important
+    background-color: #FFF4F4
+
+// Box layout to house input stream alongside the chevron toggle
+.inputWrapper
+  display: flex
+  align-items: center
+  justify-content: space-between
+  width: 100%
+  height: 100%
+  position: relative
+
+// Text Input structural wrapper matching your old select padding limits exactly
+.typeableInput
+  width: 100%
+  height: 34px
+  padding: 0 12px
+  outline: none
+  border: 0
+  font-size: var(--fs-sm)
+  font-family: var(--font-ui)
+  background: transparent
+  box-sizing: border-box
+
+// Consistent arrow indicator positioning
+.chevronIcon
+  color: var(--ink-muted)
+  margin-right: 10px
+  cursor: pointer
+  transition: transform 0.2s ease
+  user-select: none
+  flex-shrink: 0
+
+.chevronOpen
+  transform: rotate(180deg)
+
+// Absolute overlay options popover module
+// the list: like the Select list (12px card, 6px rows)
+.optionsMenu
+  position: absolute
+  top: calc(100% + 6px)
+  left: 0
+  width: 100%
+  max-height: 280px
+  overflow-y: auto
+  padding: 6px
+  box-sizing: border-box
+  background: #fff
+  border: 1px solid var(--line)
+  border-radius: calc(var(--radius-sm) + 6px)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18)
+  z-index: 3400
+
+.menuOptionItem
+  padding: 8px 10px
+  border-radius: var(--radius-sm)
+  font-size: var(--fs-sm)
+  color: var(--ink)
+  cursor: pointer
+  user-select: none
+  transition: background-color var(--t-fast)
+
+  &:hover
+    background-color: var(--hover-tint)
+
+.selectedOption
+  font-weight: var(--fw-medium)
+
+.noOptions
+  padding: 12px
+  font-size: var(--fs-sm)
+  color: var(--ink-faint)
+  text-align: center
+
+// disabled: like a disabled Select (white, faded)
+.disabled-style
+  background: #fff
+  opacity: .55
+  pointer-events: none
+  cursor: not-allowed
+
+.errorMessage
+  color: #FF5252
+  font-size: 12px
+  font-weight: 500
+  margin-top: 5px
+  font-family: Manrope, sans-serif
+
+@media (max-width: 720px)
+  .optionsMenu
+    width: 100%
+    min-width: 0
+    max-width: 100%
+
+  .menuOptionItem
+    white-space: normal
+    overflow-wrap: anywhere

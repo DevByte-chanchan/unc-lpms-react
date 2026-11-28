@@ -1,0 +1,520 @@
+.overlay
+  position: fixed
+  inset: 0
+  display: flex
+  align-items: center
+  justify-content: center
+  background: rgba(0,0,0,0.45)
+  z-index: 3000
+  padding: 16px
+  box-sizing: border-box
+  height: 100dvh
+
+.modal
+  width: min(900px, calc(100vw - 24px))
+  max-height: min(90vh, calc(100dvh - 24px))
+  max-width: 100%
+  background: #fff
+  border-radius: var(--radius-lg)
+  padding: 0
+  box-sizing: border-box
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25)
+  max-height: calc(100dvh - 24px)
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.header
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 8px
+
+  h3
+    margin: 0
+    font-size: 18px
+
+/* adjust buttons width and save color */
+.returnBtn
+  background: #dc2626
+  color: #fff
+  border: none
+  padding: 8px 12px
+  border-radius: var(--control-radius)
+  cursor: pointer
+  font-weight: 600
+  height: 36px
+  min-width: 160px
+  max-width: 320px
+  text-align: center
+
+.body
+  flex: 1
+  min-height: 0
+  overflow: auto
+  padding: 16px 24px
+  display: flex
+  flex-direction: column
+
+.grid
+  display: grid
+  grid-template-columns: 1fr 1fr
+  gap: 12px
+  margin-bottom: 12px
+
+.field
+  display: flex
+  flex-direction: column
+  gap: 6px
+
+.label
+  font-size: 13px
+  white-space: nowrap
+
+.select
+  width: 100%
+  padding: 8px
+  border: 1px solid #dcdcdc
+  border-radius: 4px
+  background: #fff
+  transition: opacity 0.2s, background 0.2s
+
+  &:disabled
+    opacity: 0.55
+    background: #f9f9f9
+
+/* sectionized comment styling to match instructor form visual blocks */
+.commentListWrapper
+  display: flex
+  flex-direction: column
+  gap: 12px
+  margin-bottom: 6px
+  flex: 1
+  min-height: 0
+
+/* limit the comment list height so body can scroll when many comments */
+.commentList
+  display: flex
+  flex-direction: column
+  gap: 12px
+  // as tall as its comments (shrinks and scrolls when there are many); growing pushed "Add another comment" to the bottom
+  flex: 0 1 auto
+  min-height: 0
+  overflow: auto
+  padding-right: 6px
+
+// one comment: the same card as the Director's
+.commentItem
+  background: #fff
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  padding: 14px 16px 16px
+
+// "Comment 2" on the left, its remove button on the right, on one line.
+.commentHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 12px
+  color: var(--ink)
+  font-weight: var(--fw-semibold)
+  font-size: 13px
+
+.commentControls
+  display: flex
+  gap: 8px
+
+.removeBtn
+  background: #ef4444
+  color: white
+  border: none
+  padding: 6px
+  border-radius: var(--control-radius)
+  cursor: pointer
+  font-size: 13px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 36px
+  height: 36px
+  transition: opacity 0.2s
+
+  &:hover
+    opacity: 0.85
+
+.commentBody
+  display: flex
+  flex-direction: column
+  gap: 8px
+
+.componentsRow
+  display: flex
+  flex-wrap: wrap
+  gap: 10px
+
+.addCommentRow
+  display: flex
+  margin-top: 14px
+
+// The full-width dashed "add" button, like Add PEO on the PO & PEO page.
+.addCommentBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+  width: 100%
+  height: 36px
+  padding: 0 16px
+  border: 1.5px dashed #19282c
+  border-radius: var(--control-radius)
+  background: transparent
+  color: #19282c
+  font: var(--fw-medium) var(--fs-sm) var(--font-ui)
+  cursor: pointer
+  transition: background var(--t-fast)
+
+  &:hover
+    background: var(--hover-tint)
+
+  // full width: the press shrink reads as a jump
+  &:active
+    transform: none
+
+// Why a field is not available yet, under it.
+// always rendered, one line high even when empty: a hint appearing or going never moves the fields below
+.fieldHint
+  min-height: 16px
+  font-size: 11px
+  color: var(--ink-muted)
+
+.charCount
+  align-self: flex-end
+  font-size: 11px
+  color: var(--ink-muted)
+
+.textarea
+  width: 100%
+  padding: 14px 10px
+  box-sizing: border-box
+  resize: vertical
+  border: 1px solid #dcdcdc
+  border-radius: 4px
+  transition: border-color 0.2s
+
+  &:focus
+    border-color: #1e3a5f
+
+/* actions layout: centered buttons with gap, buttons match returnBtn sizing but larger */
+/* actions layout: horizontal row with space between */
+.actions
+  display: flex
+  flex-direction: row
+  justify-content: flex-end
+  align-items: center
+  gap: 12px
+  padding: 14px 24px
+  border-top: 1px solid var(--line)
+  box-sizing: border-box
+  width: 100%
+
+.cancel, .submit
+  flex: 1
+  padding: 10px 18px
+  border: none
+  margin: 0
+  text-align: center
+  font-weight: 600
+  border-radius: 6px
+  height: 36px
+
+.cancel
+  background: #f3f3f3
+  color: #111
+  cursor: pointer
+  border: 1px solid rgba(0,0,0,0.06)
+
+/* disable styles for selects / textarea when coverage not selected handled via disabled attribute */
+.addButton[disabled]
+  opacity: 0.6
+  cursor: not-allowed
+
+/* minor spacing tweaks for component labels inside comment item */
+.commentItem .componentsRow label
+  font-size: 13px
+  color: #374151
+
+/* keep responsive behavior */
+.searchBox
+  display: flex
+  align-items: center
+  gap: 8px
+  height: 36px
+  margin-bottom: 12px
+  padding: 0 12px
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink-muted)
+
+  &:focus-within
+    border-color: var(--ink-faint)
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+.searchInput
+  flex: 1
+  min-width: 0
+  border: none
+  outline: none
+  background: transparent
+  color: var(--ink)
+  font: var(--fw-normal) var(--fs-sm) var(--font-ui)
+
+@media (max-width: 1024px)
+  .modal
+    width: calc(100vw - 24px)
+    max-height: calc(100dvh - 24px)
+
+@media (max-width: 640px)
+  .modal
+    padding: 10px
+  .grid
+    grid-template-columns: 1fr
+  .actions
+    flex-direction: column
+    gap: 8px
+  .cancel, .submit
+    width: 100%
+    min-width: 0
+    max-width: none
+    padding: 10px
+    border-radius: 6px
+  .returnBtn
+    min-width: 120px
+
+/* removed unused Course Coverage CSS */
+
+// Why the return button is disabled, on the left of the footer.
+.actionsHint
+  margin-right: auto
+  font-size: 12px
+  color: var(--ink-muted)
+
+// The Target list (DropdownMultiSelect) opens inside the comment card: keep it as wide as its field and let long
+// names wrap, so it never widens the window or adds a sideways scrollbar.
+.field [class*='optionsMenu']
+  width: 100%
+  max-width: 100%
+  box-sizing: border-box
+
+.field [class*='menuOptionItem']
+  white-space: normal
+  overflow-wrap: anywhere
+
+// ---- Director of Libraries: two tabs, "Comment on references" and "Suggest from library" ----
+.directorWrap
+  display: flex
+  flex-direction: column
+  gap: 14px
+  min-height: 0
+
+// the same segmented look as the page tabs (Pending / Returned / Approved)
+.tabs
+  display: flex
+  gap: 3px
+  padding: 3px
+  align-self: flex-start
+  background: var(--surface-sunken)
+  border-radius: var(--control-radius)
+
+.tab
+  display: inline-flex
+  align-items: center
+  gap: 7px
+  height: 32px
+  padding: 0 12px
+  border: 0
+  // concentric: the 8px track minus its 3px padding
+  border-radius: 5px
+  background: transparent
+  color: var(--ink-muted)
+  font: var(--fw-medium) var(--fs-sm) var(--font-ui)
+  cursor: pointer
+  transition: background var(--t-fast), color var(--t-fast)
+
+  &:hover
+    color: var(--ink)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+.tabActive
+  background: #fff
+  color: var(--ink)
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08)
+
+.tabCount
+  min-width: 18px
+  height: 18px
+  padding: 0 5px
+  box-sizing: border-box
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  border-radius: var(--radius-pill)
+  background: var(--primary)
+  color: #fff
+  font-size: 11px
+  font-weight: var(--fw-semibold)
+
+.tabPanel
+  display: flex
+  flex-direction: column
+  gap: 12px
+  min-height: 0
+
+.tabIntro
+  margin: 0
+  color: var(--ink-muted)
+  font-size: var(--fs-sm)
+
+// one comment: which reference, and what to change
+.directorCards
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.directorCard
+  display: flex
+  flex-direction: column
+  gap: 12px
+  padding: 14px 16px 16px
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  background: #fff
+
+.directorCardHead
+  display: flex
+  align-items: center
+  justify-content: space-between
+  min-height: 28px
+  color: var(--ink-soft)
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-semibold)
+
+// type filter beside the search box
+.filterRow
+  display: grid
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr)
+  gap: 8px
+
+  .searchBox
+    margin: 0
+
+// the library list: one card per reference, ticked ones highlighted
+.refList
+  display: flex
+  flex-direction: column
+  gap: 8px
+  max-height: 420px
+  overflow-y: auto
+  padding: 2px 4px 2px 0
+
+.refCard
+  display: flex
+  align-items: flex-start
+  gap: 12px
+  padding: 12px 14px
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  background: #fff
+  cursor: pointer
+  transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast)
+
+  &:hover
+    border-color: oklch(20.77% 0.0398 265.8 / 0.25)
+
+.refCardSelected
+  border-color: var(--primary)
+  background: var(--surface-muted)
+  box-shadow: inset 0 0 0 1px var(--primary)
+
+.refCheck
+  flex: 0 0 auto
+  width: 16px
+  height: 16px
+  margin: 2px 0 0
+  accent-color: var(--primary)
+  cursor: pointer
+
+.refInfo
+  display: flex
+  flex-direction: column
+  gap: 4px
+  min-width: 0
+
+.refTitle
+  color: var(--ink)
+  font-size: var(--fs-md)
+  font-weight: var(--fw-semibold)
+  line-height: 1.35
+
+.refMeta
+  color: var(--ink-muted)
+  font-size: var(--fs-xs)
+
+.refTags
+  display: flex
+  flex-wrap: wrap
+  gap: 6px
+  margin-top: 2px
+
+.refType, .refOld
+  padding: 2px 8px
+  border-radius: var(--radius-pill)
+  font-size: 11px
+  font-weight: var(--fw-semibold)
+
+.refType
+  background: var(--surface-sunken)
+  color: var(--ink-soft)
+
+.refOld
+  background: var(--warn-soft)
+  color: var(--warn)
+
+@media (max-width: 640px)
+  .tabs
+    align-self: stretch
+  .tab
+    flex: 1
+    justify-content: center
+    padding: 0 8px
+  .filterRow
+    grid-template-columns: 1fr
+
+// Full screen: the content stays a readable column in the middle (not 1,700px wide fields), and the library list
+// fills the height instead of stopping at 420px.
+.modal[data-fullscreen]
+  .body, .actions
+    padding-inline: max(24px, calc((100% - 1040px) / 2))
+
+  .directorWrap, .tabPanel
+    flex: 1 1 auto
+
+  .refList
+    flex: 1 1 auto
+    max-height: none
+
+// Clear (and Remove) on a comment's header line; the compact ghost button so the header stays one row
+.commentHeaderActions
+  display: inline-flex
+  align-items: center
+  gap: 4px
+
+  :global(.btn-sm)
+    height: 28px
+    padding: 0 8px
+    gap: 5px

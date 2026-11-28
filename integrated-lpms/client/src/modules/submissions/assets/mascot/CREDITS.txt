@@ -1,0 +1,4 @@
+Animated emoji (*.webp): Noto Animated Emoji by Google, licensed under CC BY 4.0
+https://googlefonts.github.io/noto-emoji-animation/  https://creativecommons.org/licenses/by/4.0/
+
+Still emoji (*.png): Fluent Emoji by Microsoft, MIT License (LICENSE.txt)

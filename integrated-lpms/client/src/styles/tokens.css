@@ -1,0 +1,93 @@
+/* =============================================================================
+   LPMS design tokens — shared custom properties on :root
+   Restored verbatim from feature/learning-plan-submissions-management-v2.
+   Plain CSS variables only: zero element rules, safe across all 3 modules
+   and portaled dialogs/modals.
+   ========================================================================== */
+
+:root {
+  /* --- type scale ----------------------------------------------------- */
+  --fs-2xs: 11px;   /* eyebrow labels, timestamps                        */
+  --fs-xs:  12px;   /* secondary/meta text                               */
+  --fs-sm:  13px;   /* dense controls: chips, small buttons              */
+  --fs-md:  14px;   /* base — body text, standard buttons, table cells   */
+  --fs-lg:  16px;   /* panel and card headings                           */
+  --fs-xl:  20px;   /* window (dialog) headings                          */
+  --fs-title: 22px; /* the title of a page: the same on every screen     */
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --font-ui: 'Poppins', sans-serif;
+
+  /* --- spacing --------------------------------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 10px;
+  --sp-5: 16px;
+  --sp-6: 20px;
+  --sp-7: 30px;
+
+  /* --- radii ---------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* --- control sizing ------------------------------------------------- */
+  --control-h: 40px;
+  --control-h-sm: 36px;
+
+  /* --- surfaces and lines ---------------------------------------------- */
+  --surface: oklch(100% 0 0);                     /* #ffffff */
+  --surface-muted: oklch(98.42% 0.0034 247.9);    /* #f8fafc */
+  --surface-sunken: oklch(96.83% 0.0069 247.9);   /* #f1f5f9 */
+  --line: oklch(20.77% 0.0398 265.8 / 0.1);       /* ~#e2e8f0 */
+  --line-soft: oklch(20.77% 0.0398 265.8 / 0.06); /* ~#eef2f6 */
+
+  /* --- text ------------------------------------------------------------ */
+  --ink: oklch(20.77% 0.0398 265.8);       /* #0f172a */
+  --ink-soft: oklch(27.81% 0.0296 256.8);  /* #1f2937 */
+  --ink-muted: oklch(52.25% 0.0385 255.3); /* #5b6b80 */
+  --ink-faint: oklch(55.44% 0.0407 257.4); /* #64748b */
+
+  /* --- brand / intent ------------------------------------------------- */
+  --primary: oklch(26.52% 0.0216 216.2);       /* #19282C */
+  --primary-hover: oklch(31.95% 0.0249 216.9); /* #24363b */
+  --primary-ink: oklch(100% 0 0);              /* #ffffff */
+
+  --accent: oklch(54.61% 0.2152 262.9);      /* #2563eb */
+  --accent-soft: oklch(97.05% 0.0142 254.6); /* #eff6ff */
+  --accent-line: oklch(88.23% 0.0571 254.1); /* #bfdbfe */
+
+  --good: oklch(50.81% 0.1049 165.6);      /* #047857 */
+  --good-soft: oklch(98.19% 0.0181 155.8); /* #f0fdf4 */
+  --good-line: oklch(87.12% 0.1363 154.4); /* #86efac */
+
+  --warn: oklch(47.32% 0.1247 46.2);        /* #92400e */
+  --good-solid: oklch(69.59% 0.1491 162.5); /* #10b981 */
+  --warn-solid: oklch(76.86% 0.1647 70.1);  /* #f59e0b */
+  --danger-solid: oklch(57.71% 0.2152 27.3);/* #dc2626 */
+  --warn-soft: oklch(98.69% 0.0214 95.3);   /* #fffbeb */
+  --warn-line: oklch(92.43% 0.1151 95.7);   /* #fde68a */
+
+  --danger: oklch(50.54% 0.1905 27.5);      /* #b91c1c */
+  --danger-soft: oklch(97.05% 0.0129 17.4); /* #fef2f2 */
+  --danger-line: oklch(80.77% 0.1035 19.6); /* #fca5a5 */
+
+  /* --- elevation ------------------------------------------------------- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, .12);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, .10);
+
+  /* --- motion & controls ----------------------------------------------- */
+  --t-fast: .15s ease;
+  --t-med: .25s ease;
+  --backdrop: rgba(0, 0, 0, 0.7);
+  --control-radius: 8px;
+  --control-border: oklch(20.77% 0.0398 265.8 / 0.2);
+  --hover-tint: rgba(15, 23, 42, 0.06);
+}

@@ -1,0 +1,74 @@
+const ENTITY_MAP = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#x27;',
+  '/': '&#x2F;'
+}
+
+export const escapeHtml = (str) => {
+  if (str === null || str === undefined) return ''
+  return String(str).replace(/[&<>"'/]/g, (char) => ENTITY_MAP[char])
+}
+
+export const sanitizeString = (input, maxLength = 1000) => {
+  if (typeof input !== 'string') return ''
+  const trimmed = input.trim().slice(0, maxLength)
+  return escapeHtml(trimmed)
+}
+
+export const sanitizeRichText = (input, maxLength = 10000) => {
+  if (typeof input !== 'string') return ''
+  const trimmed = input.trim().slice(0, maxLength)
+  return trimmed.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/on\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/javascript\s*:/gi, '')
+}
+
+export const sanitizeObject = (obj, maxDepth = 5, currentDepth = 0) => {
+  if (currentDepth > maxDepth) return {}
+  if (obj === null || obj === undefined) return {}
+  if (typeof obj === 'string') return sanitizeString(obj)
+  if (typeof obj === 'number') return obj
+  if (typeof obj === 'boolean') return obj
+  if (Array.isArray(obj)) return obj.map(item => sanitizeObject(item, maxDepth, currentDepth + 1))
+  if (typeof obj === 'object') {
+    const sanitized = {}
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[sanitizeString(key)] = sanitizeObject(value, maxDepth, currentDepth + 1)
+    }
+    return sanitized
+  }
+  return obj
+}
+
+export const sanitizeFileName = (name) => {
+  if (typeof name !== 'string') return 'file'
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 255)
+}
+
+export const sanitizeUrl = (url) => {
+  if (typeof url !== 'string') return ''
+  const trimmed = url.trim().slice(0, 2000)
+  const hasControlCharacter = Array.from(trimmed).some((character) => {
+    const code = character.charCodeAt(0)
+    return code <= 31 || code === 127
+  })
+  if (!trimmed || hasControlCharacter) return ''
+  if (/^\/[a-zA-Z0-9/._-]*$/.test(trimmed)) return trimmed
+  try {
+    const parsed = new URL(trimmed)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return ''
+    if (parsed.username || parsed.password || !parsed.hostname) return ''
+    return trimmed
+  } catch {
+    return ''
+  }
+}
+
+// An e-signature image comes from the server as a data: URI. Embed it only if it is exactly that
+// (PNG or JPEG, base64); anything else is dropped rather than risk markup in an export.
+const SIGNATURE_URI = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/
+export const signatureImageSrc = (value) => (typeof value === 'string' && SIGNATURE_URI.test(value) ? value : '')

@@ -1,0 +1,58 @@
+import React from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import Skeleton from "../layouts/Skeleton.jsx";
+import Header from "../components/Header.jsx";
+import SideNavigation from "../components/SideNavigation.jsx";
+import ApprovalSyllabusSections from "../components/ApprovalSyllabusSections.jsx";
+import Syllabus from "./Syllabus.jsx";
+import pageStyles from '../styles/ApprovalSyllabus.module.sass'
+
+const roleNames = {
+  'program-head': 'Program Head',
+  'director-of-libraries': 'Director of Libraries',
+  'industry-consultant': 'Industry Consultant',
+  'dean': 'Dean',
+  'instructor': 'Instructor',
+  'vpaa': 'VPAA'
+}
+
+const ApprovalSyllabus = () => {
+  const { approver, code } = useParams();
+  const [searchParams] = useSearchParams();
+
+  // Extract pcId and revNum from query params (passed from ApprovalCoursesTable)
+  const pcId = searchParams.get('pcId');
+  const revNum = searchParams.get('revNum');
+
+  if (approver === 'instructor') {
+    return <Syllabus />;
+  }
+
+  const formattedRole = approver ? (roleNames[approver] || approver.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')) : 'Approver';
+
+  // normalized role key (pass to SideNavigation and sections)
+  const roleKey = approver || 'program-head';
+
+  // The route parameter is a course CODE (BSCS511), which is why it is no
+  // longer called courseName.
+  const decodedCourse = code ? decodeURIComponent(code) : '';
+
+  return (
+    <Skeleton
+      header={<Header role={formattedRole} />}
+      content={(
+        <div className={pageStyles.page}>
+          <ApprovalSyllabusSections
+            currentRole={roleKey}
+            courseCode={decodedCourse}
+            pcId={pcId}
+            revNum={revNum}
+          />
+        </div>
+      )}
+      nav={<SideNavigation mode={roleKey} />}
+    />
+  );
+}
+
+export default ApprovalSyllabus;

@@ -1,0 +1,105 @@
+import React from 'react'
+import styles from '../styles/CoursesTable.module.sass'
+import { BellRing } from 'lucide-react'
+import TableScrollRegion from './TableScrollRegion.jsx'
+import SortableTh from './SortableTh.jsx'
+import { nextSort, sortRows } from '../utils/tableSort.js'
+import { shortDay, statusLabel, lastReminderShort, remindedToday, courseSubline, programCode, niceName } from '../utils/missingSubmissions.js'
+
+// The plans still waiting on their instructor. One row per plan, with a tick to pick it for "Remind
+// selected", where it stands against the due date, when the instructor was last reminded, and a switch for
+// the automatic reminders of that plan. Kept short on purpose: a title that does not fit is cut with an
+// ellipsis (the full text is the tooltip), dates leave out this year, and the program shows as its code and
+// only when the rows come from more than one program.
+const DOT = { overdue: '#E24B4A', 'due-soon': '#BA7517', 'on-track': '#1D9E75', 'no-deadline': '#94A3B8' }
+
+const clip = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+
+const Standing = ({ row }) => (
+  <span style={{ whiteSpace: 'nowrap' }}>
+    <span aria-hidden="true" style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: DOT[row.status], marginRight: 6 }} />
+    {statusLabel(row)}
+  </span>
+)
+
+// A small on / off switch: on = the system reminds this instructor by itself.
+const Switch = ({ on, disabled, label, onClick }) => (
+  <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} onClick={onClick}
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0, border: 0, background: 'none', cursor: disabled ? 'wait' : 'pointer', color: 'var(--ink-muted)', font: 'var(--fw-normal) var(--fs-xs) var(--font-ui)' }}>
+    <span aria-hidden="true" style={{ position: 'relative', width: 30, height: 17, borderRadius: 9, background: on ? 'var(--primary)' : 'var(--line)', transition: 'background var(--t-fast)' }}>
+      <span style={{ position: 'absolute', top: 2, left: on ? 15 : 2, width: 13, height: 13, borderRadius: '50%', background: '#fff', transition: 'left var(--t-fast)' }} />
+    </span>
+    {on ? 'On' : 'Paused'}
+  </button>
+)
+
+// The columns, sortable like the other lists (SortableTh + utils/tableSort.js). No column picked: the page's own
+// order (most urgent first).
+const columnsFor = (showProgram) => [
+  { key: 'course', label: 'COURSE', width: 330, sortValue: r => r.courseCode },
+  { key: 'instructor', label: 'INSTRUCTOR', width: 170, sortValue: r => r.instructorName || '' },
+  ...(showProgram ? [{ key: 'program', label: 'PROGRAM', width: 80, sortValue: r => r.programName || '' }] : []),
+  { key: 'due', label: 'DUE', width: 90, type: 'date', sortValue: r => r.syllabusDue },
+  { key: 'standing', label: 'STANDING', width: 170, type: 'number', sortValue: r => (r.daysLeft == null ? Number.MAX_SAFE_INTEGER : r.daysLeft) },
+  { key: 'last', label: 'LAST REMINDER', width: 170, type: 'date', sortValue: r => r.lastReminderAt },
+  { key: 'reminders', label: 'REMINDERS', sortable: false, className: styles.fill }
+]
+
+const MissingSubmissionsTable = ({ rows: given = [], onPause, onRemind = null, busyId = null, today = '' }) => {
+  const showProgram = new Set(given.map(row => row.programId)).size > 1
+  const columns = columnsFor(showProgram)
+  const [sort, setSort] = React.useState({ sortKey: null, sortDir: 'asc' })
+  const rows = sort.sortKey ? sortRows(given, columns, sort.sortKey, sort.sortDir) : given
+  return (
+    <TableScrollRegion label="Learning plans not yet submitted" minWidth={1000} className={styles['table-container']}>
+      <table>
+        <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1, whiteSpace: 'nowrap' }}>
+          <tr>
+            {columns.map(col => (
+              <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={(key) => setSort(current => nextSort(current, key))} />
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(row => (
+            <tr key={row.offeringId}>
+              <td width={330} style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, width: '100%' }}>
+                  <div style={clip} title={`${row.courseCode} — ${row.courseTitle}`}><strong>{row.courseCode}</strong> {row.courseTitle}</div>
+                  <div style={{ ...clip, fontSize: 'var(--fs-2xs)', color: 'var(--ink-muted)' }} title={courseSubline(row, today)}>{courseSubline(row, today)}</div>
+                </div>
+              </td>
+              <td width={170} style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, width: '100%' }}>
+                  <div style={clip} title={row.instructorName || ''}>{row.instructorName ? niceName(row.instructorName) : 'No instructor'}</div>
+                  {row.instructorName && !row.instructorActive && <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--danger)' }}>Deactivated</div>}
+                </div>
+              </td>
+              {showProgram && <td width={80}><div title={row.programName}>{programCode(row.programName)}</div></td>}
+              <td width={90}><div style={{ whiteSpace: "nowrap" }}>{shortDay(row.syllabusDue, today)}</div></td>
+              <td width={170}><Standing row={row} /></td>
+              <td width={170}><div style={clip}>{lastReminderShort(row, today)}</div></td>
+              <td className={styles.fill}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14 }}>
+                  {onRemind && (
+                    <button type="button" className="btn btn-secondary btn-sm" style={{ height: 30, padding: '0 10px' }}
+                      disabled={busyId === row.offeringId || !row.instructorActive || remindedToday(row, today)}
+                      title={!row.instructorActive ? 'No active instructor to remind' : remindedToday(row, today) ? 'Already reminded today' : `Remind the instructor of ${row.courseCode} now`}
+                      onClick={() => onRemind(row)}>
+                      <BellRing size={14} aria-hidden="true" /> {remindedToday(row, today) ? 'Reminded' : 'Remind now'}
+                    </button>
+                  )}
+                  {row.status === 'no-deadline'
+                    ? <span style={{ color: 'var(--ink-muted)', fontSize: 'var(--fs-xs)' }}>No due date</span>
+                    : <Switch on={!row.remindersPaused} disabled={!onPause || busyId === row.offeringId} label={`Automatic reminders for ${row.courseCode}`} onClick={() => onPause(row)} />}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </TableScrollRegion>
+  )
+}
+
+export default MissingSubmissionsTable

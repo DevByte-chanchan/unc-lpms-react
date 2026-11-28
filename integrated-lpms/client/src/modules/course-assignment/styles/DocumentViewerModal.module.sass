@@ -1,0 +1,271 @@
+// Generated-document viewer (ported from the Learning Plan branch's PDFViewerModal.module.sass)
+$ink: #0F172A
+$slate7: #334155
+$slate5: #64748B
+$slate2: #E2E8F0
+$slate1: #F1F5F9
+$accent: #19282C
+
+.backdrop
+  position: fixed
+  inset: 0
+  background: rgba(0, 0, 0, 0.7)
+
+.modal
+  position: fixed
+  background: #FFFFFF
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  max-height: 100dvh
+
+.windowed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  width: 95vw
+  height: min(90vh, calc(100dvh - 24px))
+  border-radius: 8px
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3)
+
+.fullscreen
+  inset: 0
+
+.header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 10px 12px
+  padding: 14px 20px
+  border-bottom: 1px solid #e5e7eb
+  flex-shrink: 0
+
+.titleBlock
+  min-width: 0
+  flex: 1 1 260px
+
+.kicker
+  font-size: 10px
+  font-weight: 600
+  color: $slate5
+  letter-spacing: 0.04em
+  text-transform: uppercase
+
+.title, .detail
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.title
+  font-size: 16px
+  font-weight: 600
+  color: #111827
+  margin-top: 1px
+
+.detail
+  font-size: 12px
+  color: $slate5
+  margin-top: 1px
+
+.toolGroup
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-shrink: 0
+
+.counter
+  font-size: 12px
+  font-weight: 600
+  color: $slate7
+  min-width: 44px
+  text-align: center
+  font-variant-numeric: tabular-nums
+  white-space: nowrap
+
+.iconBtn
+  width: 32px
+  height: 32px
+  border-radius: 7px
+  border: 1px solid $slate2
+  background: #FFFFFF
+  color: $slate7
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  padding: 0
+  cursor: pointer
+  transition: background 0.15s ease, border-color 0.15s ease
+  &:hover:not(:disabled)
+    background: $slate1
+    border-color: #CBD5E1
+  &:disabled
+    opacity: 0.45
+    cursor: default
+  &:focus-visible
+    outline: 2px solid $accent
+    outline-offset: 1px
+
+.on
+  background: $slate1
+  border-color: $accent
+
+.primaryBtn
+  height: 32px
+  padding: 0 14px
+  border-radius: 7px 0 0 7px
+  border: 1px solid $accent
+  background: $accent
+  color: #FFFFFF
+  font-size: 13px
+  font-weight: 600
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  cursor: pointer
+  white-space: nowrap
+  &:disabled
+    opacity: 0.7
+    cursor: progress
+  &:focus-visible
+    outline: 2px solid #94A3B8
+    outline-offset: 1px
+
+.solo
+  border-radius: 7px
+
+.caretBtn
+  height: 32px
+  width: 28px
+  border-radius: 0 7px 7px 0
+  border: 1px solid $accent
+  border-left: 1px solid rgba(255, 255, 255, 0.25)
+  background: $accent
+  color: #FFFFFF
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  padding: 0
+  &:disabled
+    opacity: 0.7
+
+.downloadWrap
+  position: relative
+  display: inline-flex
+
+.menu
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  z-index: 5
+  min-width: 210px
+  background: #FFFFFF
+  border: 1px solid $slate2
+  border-radius: 8px
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16)
+  padding: 4px
+
+.menuItem
+  width: 100%
+  text-align: left
+  border: none
+  background: transparent
+  padding: 8px 10px
+  border-radius: 6px
+  font-size: 13px
+  color: $ink
+  cursor: pointer
+  display: flex
+  align-items: center
+  gap: 8px
+  &:hover, &:focus-visible
+    background: $slate1
+    outline: none
+
+// Tabs, in the TOS module's pill style (TosPreview.module.sass .pillToggle)
+.pillToggle
+  position: relative
+  display: inline-flex
+  background: #F3F4F6
+  border-radius: 8px
+  padding: 3px
+  gap: 2px
+  flex-shrink: 0
+
+.pillOption
+  position: relative
+  flex: 1
+  padding: 6px 16px
+  border: none
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 500
+  color: #6B7280
+  background: transparent
+  cursor: pointer
+  white-space: nowrap
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease
+  &:focus-visible
+    outline: 2px solid $accent
+    outline-offset: 1px
+
+.pillActive
+  color: #111827
+  font-weight: 600
+  background: #FFFFFF
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1)
+
+.note
+  padding: 6px 16px
+  font-size: 12.5px
+  background: #F8FAFC
+  color: $slate7
+  border-bottom: 1px solid $slate2
+  flex-shrink: 0
+
+.error
+  padding: 8px 16px
+  font-size: 13px
+  background: #FEF2F2
+  color: #991B1B
+  border-bottom: 1px solid #FECACA
+  flex-shrink: 0
+
+.body
+  flex: 1
+  min-height: 0
+  display: grid
+  grid-template-columns: minmax(0, 1fr)
+
+.previewPane
+  min-width: 0
+  overflow: auto
+  background: $slate1
+  position: relative
+
+.stage
+  min-height: 100%
+  display: flex
+  justify-content: center
+  align-items: flex-start
+  padding: 16px 12px
+
+.spin
+  animation: dvmSpin 0.9s linear infinite
+
+@keyframes dvmSpin
+  to
+    transform: rotate(360deg)
+
+@media (max-width: 720px)
+  .windowed
+    width: 100vw
+    height: 100dvh
+    border-radius: 0
+  .header
+    padding: 10px 12px
+  .titleBlock
+    flex-basis: 100%
+  .stage
+    padding: 8px 4px

@@ -1,0 +1,280 @@
+// The settings window: centred, dark backdrop, the shared window header, tabs, and rows of label / value.
+.backdrop
+  animation: backdropIn .15s ease-out
+  position: fixed
+  inset: 0
+  z-index: 2999
+  background: var(--backdrop)
+
+.window
+  // opens like every window: from 96%, 180ms ease-out
+  animation: windowIn .18s ease-out
+  position: fixed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  z-index: 3000
+  width: min(760px, calc(100vw - 24px))
+  height: min(560px, calc(100dvh - 24px))
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  background: #fff
+  border-radius: var(--radius-lg)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
+  font-family: var(--font-ui)
+
+.window.expanded
+  inset: 0
+  transform: none
+  width: 100%
+  height: 100dvh
+  border-radius: 0
+
+.sub
+  margin-top: 2px
+  font-size: 12px
+  color: var(--ink-muted)
+
+// the tabs on the left (like the side navigation), the chosen page on the right
+.layout
+  flex: 1
+  min-height: 0
+  display: grid
+  grid-template-columns: 188px minmax(0, 1fr)
+
+.tabs
+  display: flex
+  flex-direction: column
+  gap: 2px
+  padding: 14px 10px
+  border-right: 1px solid var(--line)
+  background: var(--surface-muted)
+
+.tab
+  display: flex
+  align-items: center
+  gap: 10px
+  height: 36px
+  padding: 0 12px
+  border: 0
+  border-radius: var(--control-radius)
+  background: transparent
+  color: var(--ink-muted)
+  font: var(--fw-medium) var(--fs-sm) var(--font-ui)
+  text-align: left
+  cursor: pointer
+  transition: background var(--t-fast), color var(--t-fast)
+
+  &:hover
+    background: var(--hover-tint)
+    color: var(--ink)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+  // a full-height column item: no press shrink
+  &:active
+    transform: none
+
+// Sign out: at the bottom of the tabs, in red like the side bar's Log Out
+.tab.signOut
+  margin-top: auto
+  color: var(--danger)
+
+  &:hover
+    background: var(--danger-soft)
+    color: var(--danger)
+
+.tab.tabOn
+  background: #fff
+  color: var(--ink)
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08)
+
+.content
+  min-height: 0
+  overflow-y: auto
+  padding: 20px 28px 28px
+
+.pageHead
+  margin-bottom: 8px
+
+  h3
+    margin: 0
+    font-size: var(--fs-lg)
+    font-weight: var(--fw-semibold)
+    color: var(--ink)
+
+  p
+    margin: 2px 0 0
+    font-size: var(--fs-sm)
+    color: var(--ink-muted)
+
+// who is signed in: initials, name and e-mail
+.profile
+  display: flex
+  align-items: center
+  gap: 14px
+  margin: 14px 0 6px
+  padding: 16px
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  background: var(--surface-muted)
+
+.avatar
+  flex: none
+  width: 48px
+  height: 48px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  border-radius: 50%
+  background: var(--primary)
+  color: #fff
+  font-weight: var(--fw-semibold)
+  font-size: var(--fs-lg)
+
+.profileText
+  display: flex
+  flex-direction: column
+  min-width: 0
+
+  strong
+    font-size: var(--fs-md)
+    color: var(--ink)
+
+  span
+    font-size: var(--fs-sm)
+    color: var(--ink-muted)
+    overflow-wrap: anywhere
+
+.roleChips
+  display: flex
+  flex-wrap: wrap
+  gap: 6px
+
+.roleChip
+  padding: 3px 10px
+  border-radius: var(--radius-pill)
+  background: var(--surface-sunken)
+  color: var(--ink-soft)
+  font-size: var(--fs-xs)
+  font-weight: var(--fw-medium)
+
+// the role in use now
+.roleChipOn
+  background: var(--primary)
+  color: #fff
+
+.row
+  display: grid
+  grid-template-columns: 200px minmax(0, 1fr)
+  gap: 16px
+  align-items: center
+  padding: 14px 0
+  border-bottom: 1px solid var(--line-soft)
+
+.rowLabel
+  font-size: 14px
+  font-weight: var(--fw-medium)
+  color: var(--ink)
+
+.rowHint
+  margin-top: 2px
+  font-size: 12px
+  font-weight: var(--fw-normal)
+  color: var(--ink-muted)
+
+.rowValue
+  min-width: 0
+  font-size: 14px
+  color: var(--ink-soft)
+
+.control
+  width: 100%
+  max-width: 360px
+  height: 36px
+  padding: 0 12px
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink)
+  font: var(--fw-normal) var(--fs-sm) var(--font-ui)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+.note
+  display: flex
+  align-items: center
+  gap: 8px
+  margin-top: 16px
+  font-size: 13px
+
+.note.bad
+  color: var(--danger)
+
+.note.good
+  color: var(--good)
+
+.actions
+  display: flex
+  justify-content: flex-end
+  margin-top: 20px
+
+.footnote
+  margin-top: 16px
+  font-size: 12px
+  color: var(--ink-muted)
+
+@media (max-width: 720px)
+  .row
+    grid-template-columns: 1fr
+    gap: 8px
+  .layout
+    grid-template-columns: 1fr
+  .tabs
+    flex-direction: row
+    border-right: 0
+    border-bottom: 1px solid var(--line)
+    overflow-x: auto
+
+// The new-password checklist: a rule not met yet is grey (still being typed, not an error), a met one green.
+.rules
+  display: grid
+  gap: 4px
+  margin: -4px 0 12px
+  padding: 0
+  list-style: none
+  font-size: 12px
+
+  li
+    display: flex
+    align-items: center
+    gap: 6px
+
+  .bad
+    color: var(--ink-muted)
+
+  .good
+    color: var(--good)
+
+@keyframes windowIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(.96)
+
+@keyframes backdropIn
+  from
+    opacity: 0
+
+// Full screen: the tabs and the page stay a readable block in the middle.
+.window.expanded
+  .layout
+    width: 100%
+    max-width: 1040px
+    margin: 0 auto
+    border-inline: 1px solid var(--line)

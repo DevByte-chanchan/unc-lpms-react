@@ -1,0 +1,262 @@
+import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
+import Spinner from './Spinner.jsx';
+import TableScrollRegion from './TableScrollRegion.jsx';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
+import { fetchJson as defaultFetchJson, apiErrorMessage } from '../utils/api';
+import { toast } from '../utils/toast.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
+
+const CriteriaForGrading = ({ offeringID, revisionNum, styles, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
+    const [criteriaData, setCriteriaData] = useState({ gradingSystem: [] });
+    
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const [criteriaLoading, setCriteriaLoading] = useState(false);
+    const [criteriaError, setCriteriaError] = useState(null);
+    const apiFetch = fetchJson || defaultFetchJson;
+
+    useEffect(() => {
+        if (!offeringID) return;
+        let mounted = true;
+
+        async function fetchCriteria() {
+            setCriteriaLoading(true);
+            setCriteriaError(null);
+            try {
+                const data = await apiFetch(`/api/course-criteria/${offeringKey(offeringID, revisionNum)}`);
+
+                if (!mounted) return;
+                setCriteriaData({
+                    gradingSystem: Array.isArray(data.gradingSystem) ? data.gradingSystem : []
+                });
+            } catch (err) {
+                console.error('fetchCriteria error', err);
+                if (!mounted) return;
+                setCriteriaError(describeCourseLoadError(err));
+                setCriteriaData({ gradingSystem: [] });
+            } finally {
+                if (mounted) setCriteriaLoading(false);
+            }
+        }
+        fetchCriteria();
+        return () => { mounted = false; };
+    }, [offeringID, revisionNum, apiFetch]);
+
+    const handleEditToggle = () => {
+        if (isEditing) {
+            // Saving can be undone by editing again, so no "Are you sure?" first; a toast confirms it.
+            handleSaveConfirm();
+        } else {
+            setEditData(JSON.parse(JSON.stringify(criteriaData.gradingSystem)));
+            setIsEditing(true);
+        }
+    };
+
+    const handleSaveConfirm = async () => {
+        setIsSaving(true);
+        try {
+            await apiFetch(`/api/course-criteria/${offeringKey(offeringID, revisionNum)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gradingSystem: editData })
+            });
+            setCriteriaData({ gradingSystem: editData });
+            setIsEditing(false);
+            toast('Criteria for grading saved.');
+        } catch (e) {
+            console.error('Failed to save criteria', e);
+            alertDialog(`The criteria for grading were not saved. ${apiErrorMessage(e, 'Try again.')}`, { title: 'Not saved' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleChange = (coIndex, iloIndex, field, value, isWeight = false) => {
+        setEditData(prev => {
+            const upd = [...prev];
+            if (isWeight) {
+                upd[coIndex].ilos[iloIndex].weight[field] = value;
+            } else {
+                upd[coIndex].ilos[iloIndex][field] = value;
+            }
+            return upd;
+        });
+    };
+
+    const renderInput = (coIndex, iloIndex, field, isWeight = false) => {
+        const originalIlo = criteriaData.gradingSystem[coIndex].ilos[iloIndex];
+        const originalVal = isWeight ? (originalIlo.weight ? originalIlo.weight[field] : '') : originalIlo[field];
+        
+        const ilo = isEditing ? editData[coIndex].ilos[iloIndex] : originalIlo;
+        const val = isWeight ? (ilo.weight ? ilo.weight[field] : '') : ilo[field];
+        const displayVal = Array.isArray(val) ? val.join(', ') : (val ?? '');
+
+        let isEditable = isEditing;
+        if (isEditing && isWeight) {
+            if (!originalVal || String(originalVal).trim() === '') {
+                isEditable = false;
+            }
+        }
+
+        if (isEditable) {
+            return (
+                <input
+                    type="text"
+                    value={displayVal || ''}
+                    onChange={(e) => handleChange(coIndex, iloIndex, field, e.target.value, isWeight)}
+                    className="matrix-edit-input"
+                    style={{ textAlign: 'center' }}
+                />
+            );
+        }
+        return displayVal || '';
+    };
+
+    const calcTotalForPeriod = (period, useEditData = false) => {
+        const source = useEditData ? editData : criteriaData.gradingSystem;
+        let total = 0;
+        source.forEach(group => {
+            group.ilos.forEach(ilo => {
+                const w = parseFloat(ilo.weight ? ilo.weight[period] : 0);
+                if (!isNaN(w)) total += w;
+            });
+        });
+        return total;
+    };
+
+    const currentSystem = isEditing ? editData : criteriaData.gradingSystem;
+
+    if (criteriaError) return <div className={stylesB.errorContainer}>Error: {criteriaError}</div>;
+
+    return (
+        <div style={{ width: '100%' }}>
+            {!isReadOnly && (
+                <div className="matrix-btns-container">
+                    {isEditing && (
+                        <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); }}>
+                            Cancel
+                        </button>
+                    )}
+                    <button 
+                        className={'matrix-edit-btn ' + (isEditing ? 'save-mode' : '')} 
+                        onClick={handleEditToggle}
+                        disabled={isSaving || (isEditing && JSON.stringify(editData) === JSON.stringify(criteriaData.gradingSystem))}
+                    >
+                        {isEditing ? (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                Save Criteria
+                            </>
+                        ) : (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                Edit Criteria
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
+
+            <TableScrollRegion label="Criteria for grading" minWidth={900} className={stylesB.gradingContainer + ' cfg-table-wrapper'}>
+                <table className={stylesB.documentTable + ' mobile-grading-table'}>
+                    <thead>
+                    <tr>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ width: '10%' }}>Course Outcome</th>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ minWidth: '80px' }}>ILO</th>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ width: '35%' }}>Assessment Strategy</th>
+                        <th colSpan="4" className={stylesB.labelCell} style={{ textAlign: 'center' }}>Weight</th>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ textAlign: 'center', width: '10%' }}>Minimum Passing</th>
+                    </tr>
+                    <tr>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Prelim</th>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Midterm</th>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Semi</th>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Final</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {criteriaLoading ? (
+                        <tr>
+                            <td colSpan="8" style={{ flex: '1 1 auto', justifyContent: 'center', padding: 0 }}><Spinner label="Loading grading criteria…" minHeight={140} /></td>
+                        </tr>
+                    ) : criteriaError ? (
+                        <tr>
+                            <td colSpan="8" style={{ textAlign: 'center', padding: '20px' }}>{criteriaError}</td>
+                        </tr>
+                    ) : currentSystem.length > 0 ? (
+                        currentSystem.map((group, coIndex) => (
+                            <React.Fragment key={group.co}>
+                                {group.ilos.map((ilo, iloIndex) => {
+                                    const displayLabel = `ILO ${iloIndex + 1}`;
+                                    return (
+                                        <tr key={`${group.co}-${ilo.id}`}>
+                                            {iloIndex === 0 && (
+                                                <td rowSpan={group.ilos.length} className={styles.coCell}>
+                                                    {group.co}
+                                                </td>
+                                            )}
+                                            <td className={styles.dataCellCenter}>
+                                                <span style={{ fontWeight: '500' }}>{displayLabel}</span>
+                                            </td>
+                                            <td className={stylesB.dataCellLeft}>
+                                                {renderInput(coIndex, iloIndex, 'assessments', false)}
+                                            </td>
+                                            <td className={stylesB.dataCellCenter}>
+                                                {renderInput(coIndex, iloIndex, 'prelim', true)}
+                                            </td>
+                                            <td className={stylesB.dataCellCenter}>
+                                                {renderInput(coIndex, iloIndex, 'midterm', true)}
+                                            </td>
+                                            <td className={stylesB.dataCellCenter}>
+                                                {renderInput(coIndex, iloIndex, 'semi', true)}
+                                            </td>
+                                            <td className={stylesB.dataCellCenter}>
+                                                {renderInput(coIndex, iloIndex, 'final', true)}
+                                            </td>
+                                            <td className={stylesB.dataCellCenter}>
+                                                {renderInput(coIndex, iloIndex, 'minPassing', false)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>
+                                No grading criteria configured.
+                            </td>
+                        </tr>
+                    )}
+                    {currentSystem.length > 0 && (
+                        <tr className={styles.totalsRow} style={{ transform: 'none' }}>
+                            <td colSpan="3" className={styles.coCell} style={{ textAlign: 'right', paddingRight: '15px' }}>
+                                <strong>TOTAL</strong>
+                            </td>
+                            <td className={stylesB.dataCellCenter}>
+                                <strong>{calcTotalForPeriod('prelim', isEditing)}%</strong>
+                            </td>
+                            <td className={stylesB.dataCellCenter}>
+                                <strong>{calcTotalForPeriod('midterm', isEditing)}%</strong>
+                            </td>
+                            <td className={stylesB.dataCellCenter}>
+                                <strong>{calcTotalForPeriod('semi', isEditing)}%</strong>
+                            </td>
+                            <td className={stylesB.dataCellCenter}>
+                                <strong>{calcTotalForPeriod('final', isEditing)}%</strong>
+                            </td>
+                            <td className={stylesB.dataCellCenter}></td>
+                        </tr>
+                    )}
+                    </tbody>
+                </table>
+            </TableScrollRegion>
+
+        </div>
+    );
+};
+
+export default CriteriaForGrading;

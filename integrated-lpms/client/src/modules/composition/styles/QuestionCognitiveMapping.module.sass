@@ -1,0 +1,411 @@
+.container
+  width: 100%
+  display: flex
+  flex-direction: column
+  gap: 16px
+  background: white
+
+.section
+  flex-grow: 1
+  display: flex
+  flex-direction: column
+  height: max-content
+  padding: 20px 40px 20px 40px
+  border-radius: 5px
+  border: 1px solid #DDDFDF
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25)
+  margin-bottom: 20px
+
+.sectionHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 16px
+
+.uploadButton
+  padding: 10px 20px 10px 15px
+  background: #EA1212
+  color: white
+  border: none
+  border-radius: 20px
+  cursor: pointer
+  height: 40px
+  width: max-content
+  font-size: 14px
+  font-weight: 500
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+
+  &:hover
+    background: black
+
+.clearButton
+  padding: 10px 20px 10px 15px
+  background: #333
+  color: white
+  border: none
+  border-radius: 20px
+  cursor: pointer
+  height: 40px
+  width: max-content
+  font-size: 14px
+  font-weight: 500
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+
+  &:hover
+    color: black
+    background: white
+
+.qctable
+  width: 100%
+  table-layout: fixed
+  border-collapse: collapse
+  border-spacing: 0
+
+  th
+    text-align: center
+    justify-content: center
+    font-weight: 500
+    color: #333
+    font-size: 14px
+    padding: 8px
+
+  td
+    vertical-align: middle
+    padding: 8px
+
+  &.TOSTable
+    th, td
+      padding: 0px
+
+.qctable
+  width: 100%
+  table-layout: fixed
+  border-collapse: collapse
+  border-spacing: 0
+
+  th
+    text-align: center
+    justify-content: center
+    font-weight: 500
+    color: #333
+    font-size: 14px
+    padding: 8px
+
+  td
+    vertical-align: middle
+    padding: 8px
+
+  &.TOSTable
+    th, td
+      padding: 0px
+
+    // Added for TOSSummary table alignment (7 columns)
+    th:nth-child(1), td:nth-child(1)
+      width: 20%  // Labels column (e.g., "no. of items")
+
+    th:nth-child(2), td:nth-child(2)
+      width: 13.33%  // Remembering
+
+    th:nth-child(3), td:nth-child(3)
+      width: 13.33%  // Understanding
+
+    th:nth-child(4), td:nth-child(4)
+      width: 13.33%  // Applying
+
+    th:nth-child(5), td:nth-child(5)
+      width: 13.33%  // Analyzing
+
+    th:nth-child(6), td:nth-child(6)
+      width: 13.33%  // Evaluating
+
+    th:nth-child(7), td:nth-child(7)
+      width: 13.33%  // Creating
+
+// Rest of your CSS remains the same...
+
+.cellBox
+  width: 100%
+  min-height: 45px
+  padding: 10px
+  background: white
+  display: flex
+  justify-content: center
+  align-items: center
+  text-align: center
+  font-size: 14px
+
+  &.leftAlign
+    justify-content: flex-start
+    text-align: left
+
+  &.mainHeader
+    background: #F1F3F5
+    font-size: 16px
+
+  &.subHeader
+    background: #F1F3F5
+    font-weight: 400
+    font-size: 14px
+
+  input, .dropdown
+    pointer-events: auto
+
+  &.muted
+    background: #F1F3F5
+    font-weight: 500
+
+  &.mutedBold
+    font-weight: 600
+    background: #F1F3F5
+
+  &.readable
+    justify-content: center
+    background: #F9FAFB
+    border: 1px solid #E5E7EB
+    font-weight: 500
+
+  &.rightAlign
+    justify-content: flex-end
+    text-align: right
+
+.firstRow
+  padding-left: 5px
+  font-weight: 500
+  font-size: 16px
+
+.totalCuPoint
+  font-weight: 600
+  background: #F1F3F5
+  color: red
+
+.totalReqPoint
+  font-weight: 600
+  background: #F1F3F5
+  color: black
+
+.tableHeader
+  display: grid
+  grid-template-columns: 60px 3fr 1fr 1fr 1fr 1fr 60px
+  font-weight: 500
+  color: #333
+  gap: 20px
+  margin: 0px 0px 10px 0px
+
+.headerCell
+  text-align: center
+  justify-content: center
+
+.tableRow
+  display: grid
+  grid-template-columns: 60px 3fr 1fr 1fr 1fr 1fr 60px
+  align-items: center
+  gap: 20px
+  margin-bottom: 15px
+
+.numberCell
+  display: flex
+  align-items: center
+  justify-content: center
+  font-weight: 500
+  color: #6B7280
+
+.questionInput
+  width: 100%
+  min-height: 10px
+  padding: 5px 10px
+  border: 1px solid #DDDFDF
+  border-radius: 5px
+  font-size: 14px
+  resize: vertical
+  font-family: inherit
+
+.selectInput
+  width: 100%
+  padding: 10px
+  border: 1px solid #DDDFDF
+  border-radius: 5px
+  font-size: 14px
+  background: white
+
+  &.disabled
+    background: #F3F4F6
+
+.numberInput
+  width: 100%
+  padding: 10px
+  border: 1px solid #DDDFDF
+  border-radius: 5px
+  font-size: 14px
+  text-align: center
+
+.deleteButton
+  display: flex
+  background: #F94545
+  justify-content: center
+  align-items: center
+  padding: 0 5px
+  border-radius: 4px
+  cursor: pointer
+  min-height: 45px
+
+  &:hover
+    background: #DC2626
+
+.addRow
+  margin-top: 16px
+
+.input
+  width: 100%
+  height: 100%
+  padding: 0 6px
+  border: none
+  text-align: center
+  background: transparent
+  font-size: 14px
+
+  &:disabled
+    background: #F1F3F5
+    color: #777
+
+.rubricHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 12px
+
+.rubricTools
+  display: flex
+  align-items: center
+  gap: 10px
+
+.rubricSelectWrap
+  position: relative
+  display: flex
+  align-items: center
+  width: 240px
+
+  select
+    width: 100%
+    height: 40px
+    padding: 0 10px 0 12px   // space for arrow
+    border: 1px solid #DDDFDF
+    border-radius: 5px
+    font-size: 14px
+    appearance: none
+    background: white
+
+  option
+    font-size: 14px
+
+.dropdownArrow
+  position: absolute
+  right: 12px
+  pointer-events: none
+  color: #555
+
+.clearRubricBtn
+  height: 40px
+  width: 40px
+  border-radius: 5px
+  border: none
+  background: #F94545
+  color: white
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+
+  &:hover
+    background: #DC2626
+
+.clearRubricIcon
+  width: 18px
+  height: 18px
+  stroke-width: 2.5
+  flex-shrink: 0
+
+.rubricContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+
+.rubricLabel
+  color: #000
+  text-align: left
+  font-family: Manrope, sans-serif
+  font-size: 16px
+  font-weight: 500
+  line-height: normal
+
+.rubricDropdown
+  font-size: 16px
+  display: flex
+  align-items: center
+  gap: 10px
+  align-self: stretch
+  border-radius: 3px
+  border: 1px solid #DCE2F0
+  padding-right: 20px
+  transition: border-color 0.2s ease-in-out
+  background: white
+
+  select
+    width: 100%
+    height: 100%
+    padding: 8px 15px
+    outline: none
+    border-radius: 3px
+    border: 0
+    font-size: 14px
+    background: transparent
+
+    option
+      font-size: 14px
+
+.disabled-style
+  background: #F8F9F9
+  pointer-events: none
+
+.over
+  background: #ffe4e4
+  border: 1px solid #ff5252
+  color: #b00000
+  font-weight: 600
+
+//   &.upperHeader
+//    background: #F1F3F5
+//    border-top: 0.5px solid #DDDFDF
+//    box-shadow: 0 1px 2px 0 #F1F3F5
+//    font-size: 16px
+//
+//  &.linedHeader
+//    background: #F1F3F5
+//    border-top: 0.5px solid #DDDFDF
+//    border-right: 1px solid #DDDFDF
+//    font-size: 16px
+//
+//  &.linedHeader2
+//    background: #F1F3F5
+//    border-right: 0.5px solid #DDDFDF
+//    border-bottom: 1px solid #DDDFDF
+//    font-size: 16px
+//
+//  &.linedHeader3
+//    background: #F1F3F5
+//    border-top: 0.5px solid #DDDFDF
+//    font-size: 16px
+//
+//  &.linedHeader4
+//    background: #F1F3F5
+//    border-bottom: 0.5px solid #DDDFDF
+//    font-size: 16px
+//
+//  &.lowerHeader
+//    background: #F1F3F5
+//    border-bottom: 0.5px solid #DDDFDF
+//    padding-top: 0px
+//    font-weight: 300

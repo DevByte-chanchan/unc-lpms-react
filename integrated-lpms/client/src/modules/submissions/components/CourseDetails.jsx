@@ -1,0 +1,246 @@
+import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
+import { FileText, TriangleAlert as AlertTriangle } from 'lucide-react';
+import EmptyState from './EmptyState.jsx';
+import Spinner from './Spinner.jsx';
+import TableScrollRegion from './TableScrollRegion.jsx';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
+import { fetchJson as defaultFetchJson, apiErrorMessage } from '../utils/api';
+import { toast } from '../utils/toast.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
+
+const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
+    const [courseDetailsData, setCourseDetailsData] = useState({
+        code: '', name: '', description: '', credits: '', contact: '',
+        prerequisites: '', class: '', cmo: '', revision: 0, year: '', sem: ''
+    });
+    const [editData, setEditData] = useState({ description: '' });
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    
+    const [courseDetailsLoading, setCourseDetailsLoading] = useState(false);
+    const [courseDetailsError, setCourseDetailsError] = useState(null);
+
+    const apiFetch = fetchJson || defaultFetchJson;
+
+    useEffect(() => {
+        if (!offeringID) return;
+        let mounted = true;
+
+        async function fetchCourseDetails() {
+            setCourseDetailsLoading(true);
+            setCourseDetailsError(null);
+            try {
+                const data = await apiFetch(`/api/course-details/${offeringKey(offeringID, revisionNum)}`);
+
+                if (!mounted) return;
+                setCourseDetailsData({
+                    code: data.code ?? '',
+                    name: data.name ?? '',
+                    description: data.description ?? '',
+                    credits: data.credits ?? '',
+                    contact: data.contact ?? '',
+                    prerequisites: data.prerequisites ?? '',
+                    class: data.class ?? '',
+                    cmo: data.cmo ?? '',
+                    revision: data.revision ?? 0,
+                    year: data.year ?? '',
+                    sem: data.sem ?? ''
+                });
+            } catch (err) {
+                console.error(err);
+                if (!mounted) return;
+                setCourseDetailsError(describeCourseLoadError(err));
+            } finally {
+                if (mounted) setCourseDetailsLoading(false);
+            }
+        }
+
+        fetchCourseDetails();
+        return () => { mounted = false; };
+    }, [offeringID, revisionNum, apiFetch]);
+
+    const handleEditToggle = () => {
+        if (isEditing) {
+            // Saving can be undone by editing again, so no "Are you sure?" first; a toast confirms it.
+            handleSaveConfirm();
+        } else {
+            setEditData({ description: courseDetailsData.description || '' });
+            setIsEditing(true);
+        }
+    };
+
+    const handleDescriptionChange = (e) => {
+        setEditData({ description: e.target.value });
+    };
+
+    const handleSaveConfirm = async () => {
+        setIsSaving(true);
+        try {
+            await apiFetch(`/api/course-details/${offeringKey(offeringID, revisionNum)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: editData.description })
+            });
+            setCourseDetailsData(prev => ({
+                ...prev,
+                description: editData.description
+            }));
+            setIsEditing(false);
+            toast('Course description saved.');
+        } catch (e) {
+            console.error('Failed to save course description', e);
+            alertDialog(`The course description was not saved. ${apiErrorMessage(e, 'Try again.')}`, { title: 'Not saved' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (courseDetailsLoading) {
+        return <Spinner label="Loading course details…" minHeight={280} />;
+    }
+
+    if (courseDetailsError) {
+        return (
+            <EmptyState
+                icon={<AlertTriangle size={22} strokeWidth={1.6} />}
+                title="Could not load the course details"
+                hint={courseDetailsError}
+            />
+        );
+    }
+
+    // Previously this fell through to a table of empty cells, which looks like
+    // the screen loaded and lost the data.
+    if (!courseDetailsData?.code && !courseDetailsData?.name) {
+        return (
+            <EmptyState
+                icon={<FileText size={22} strokeWidth={1.6} />}
+                title="No course details recorded"
+                hint="Appears once the instructor fills it in."
+            />
+        );
+    }
+
+    // In edit mode, all course detail rows remain static text
+    const renderCell = (field, isBold = false) => {
+        const val = courseDetailsData[field] ?? '';
+        return isBold ? <strong>{val}</strong> : val;
+    };
+
+    // Only Course Description turns into an editable textarea field
+    const renderTextArea = () => {
+        if (isEditing) {
+            return (
+                <div className="matrix-edit-desc-wrapper">
+                    <textarea 
+                        className="matrix-edit-textarea"
+                        value={editData.description ?? ''} 
+                        onChange={handleDescriptionChange} 
+                        placeholder="Enter course description..."
+                    />
+                </div>
+            );
+        }
+        return courseDetailsData.description || '';
+    };
+
+    return (
+        <div style={{ width: '100%' }}>
+            {!isReadOnly && (
+                <div className="matrix-btns-container">
+                    {isEditing && (
+                        <button 
+                            type="button"
+                            className="matrix-cancel-btn" 
+                            onClick={() => { setIsEditing(false); }}
+                        >
+                            Cancel
+                        </button>
+                    )}
+                    <button 
+                        type="button"
+                        className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
+                        onClick={handleEditToggle}
+                        disabled={isSaving || (isEditing && (!editData.description || editData.description.trim() === "" || editData.description === (courseDetailsData.description || "")))}
+                    >
+                        {isEditing ? (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                Save Description
+                            </>
+                        ) : (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                Edit Description
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
+
+            <TableScrollRegion label="Course details" minWidth={720} className={stylesB.courseDetailsContainer}>
+                <table className={stylesB.documentTable} style={{ width: '100%', tableLayout: 'fixed' }}>
+                    <tbody>
+                    <tr>
+                        <th className={stylesB.labelCell} style={{ width: '25%' }}>Course No.</th>
+                        <td className={stylesB.valueCell} style={{ width: '30%' }}>{renderCell('code')}</td>
+                        <th className={stylesB.descHeader} style={{ width: '45%' }}>Course Description</th>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Course Title</th>
+                        <td className={stylesB.valueCell}>{renderCell('name', true)}</td>
+                        <td rowSpan="9" className={`${stylesB.descCell} matrix-desc-cell`}>
+                            {renderTextArea()}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Credit</th>
+                        <td className={stylesB.valueCell}>{renderCell('credits')}</td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Contact Hours/Week</th>
+                        <td className={stylesB.valueCell}>{renderCell('contact')}</td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Pre-requisites</th>
+                        <td className={stylesB.valueCell}>{renderCell('prerequisites')}</td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Classification/Field</th>
+                        <td className={stylesB.valueCell}>{renderCell('class')}</td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>CMO</th>
+                        <td className={stylesB.valueCell}>{renderCell('cmo')}</td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Syllabus Revision No.</th>
+                        <td className={stylesB.valueCell}>{renderCell('revision')}</td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Year Level</th>
+                        <td className={stylesB.valueCell}>{renderCell('year')}</td>
+                    </tr>
+
+                    <tr>
+                        <th className={stylesB.labelCell}>Term</th>
+                        <td className={stylesB.valueCell}>{renderCell('sem')}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </TableScrollRegion>
+
+        </div>
+    );
+};
+
+export default CourseDetails;

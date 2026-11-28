@@ -1,0 +1,57 @@
+// Two columns: short fields take one, everything else spans both. One column on a phone.
+.grid
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  column-gap: 12px
+
+.full
+  grid-column: 1 / -1
+  min-width: 0
+
+.half
+  min-width: 0
+
+@media (max-width: 520px)
+  .half
+    grid-column: 1 / -1
+
+// The heading over the fields a type does not require.
+.groupTitle
+  padding-top: 12px
+  border-top: 1px solid var(--line)
+  color: var(--ink-muted)
+  font-size: var(--fs-xs)
+  font-weight: var(--fw-semibold)
+  text-transform: uppercase
+  letter-spacing: .04em
+
+// A labelled field of the reference form: the label, one 36px control, the error under it.
+.field
+  display: flex
+  flex-direction: column
+  gap: 6px
+  width: 100%
+
+.label
+  color: var(--ink)
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-medium)
+
+.invalid
+  border-color: var(--danger-solid) !important
+
+.error
+  color: var(--danger)
+  font-size: var(--fs-xs)
+
+// Look up by ISBN, under the ISBN field: the button, then what it filled or why it could not.
+.lookup
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  gap: 8px
+  margin-top: 6px
+
+.note
+  color: var(--ink-soft)
+  font-size: var(--fs-xs)

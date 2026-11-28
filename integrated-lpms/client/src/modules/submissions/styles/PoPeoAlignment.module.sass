@@ -1,0 +1,131 @@
+// PO & PEO page: section headings, inline editors and notices around the alignment tables.
+.sectionTitle
+  // The page already puts 10px between its blocks and 30px under the filters; a heading adds nothing to the top of
+  // the first section, 20px to the top of the next, and sits 12px above its own table.
+  margin: 0 0 2px
+  font-size: var(--fs-lg)
+  font-weight: var(--fw-semibold)
+  color: var(--ink)
+
+.sectionTitle ~ .sectionTitle
+  margin-top: 20px
+
+.textInput
+  width: 100%
+  box-sizing: border-box
+  padding: var(--sp-3) var(--sp-4)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-sm)
+  background: var(--surface)
+  color: var(--ink)
+  font-family: inherit
+  font-size: var(--fs-md)
+  resize: vertical
+  min-height: 84px
+  max-height: 320px
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.28)
+    outline-offset: 1px
+
+.iconButton.iconButton
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 36px
+  height: 36px
+  min-width: 36px
+  padding: 0
+  border: 1px solid transparent
+  border-radius: 8px
+  background: transparent
+  color: var(--danger)
+  cursor: pointer
+  transition: background var(--t-fast), border-color var(--t-fast)
+
+  &:hover
+    background: var(--danger-soft)
+    border-color: var(--danger-line)
+
+  &:focus-visible
+    outline: 3px solid rgba(232, 17, 35, 0.24)
+    outline-offset: 1px
+
+.addButton.addButton
+  align-self: stretch
+  width: 100%
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+  margin-top: var(--sp-3)
+  padding: 0 16px
+  height: 36px
+  border: 1.5px dashed #19282c
+  border-radius: 8px
+  background: transparent
+  color: #19282c
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-medium)
+  cursor: pointer
+  transition: background var(--t-fast)
+
+  &:hover
+    background: #f3f6f6
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.28)
+    outline-offset: 1px
+
+.empty
+  padding: var(--sp-5)
+  text-align: center
+  color: var(--ink-muted)
+
+.alert, .ok
+  padding: var(--sp-4) var(--sp-5)
+  border-radius: var(--radius-md)
+  font-size: var(--fs-sm)
+
+.alert
+  background: var(--danger-soft)
+  border: 1px solid var(--danger-line)
+  color: var(--danger)
+
+.ok
+  background: var(--good-soft)
+  border: 1px solid #bbf7d0
+  color: var(--good)
+
+// Collapsible list of the program outcomes under the CO-PO table.
+.legendList
+  margin-top: var(--sp-4)
+  padding: var(--sp-4) var(--sp-5)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  background: var(--surface-muted)
+  font-size: var(--fs-sm)
+  color: var(--ink-soft)
+
+  summary
+    cursor: pointer
+    font-weight: var(--fw-semibold)
+    color: var(--ink)
+
+  ul
+    margin: var(--sp-3) 0 0
+    padding-left: var(--sp-6)
+
+  li
+    margin-bottom: var(--sp-1)
+
+// "Draft – not approved" notice above a COAEP built from an unapproved plan.
+.draftBanner
+  margin: 0 0 var(--sp-4)
+  padding: var(--sp-4) var(--sp-5)
+  border: 1px solid #b45309
+  border-radius: var(--radius-md)
+  background: var(--warn-soft)
+  color: #78350f
+  font-weight: var(--fw-semibold)
+  font-size: var(--fs-sm)

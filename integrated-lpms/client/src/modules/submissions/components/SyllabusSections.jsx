@@ -1,0 +1,504 @@
+import styles from '../styles/SyllabusSections.module.sass'
+import { offeringKey } from '../utils/offeringKey.js'
+import stylesB from '../styles/SyllabusPreview.module.sass'; // Ensure this has the new modal CSS classes
+import { ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, EllipsisVertical as MoreVertical, Download, Clock, MessageSquare } from 'lucide-react';
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import {Link, useNavigate, useParams, useSearchParams, useLocation} from "react-router-dom";
+import SyllabusPreview from "./SyllabusPreview.jsx";
+import Revisions from "./Revisions.jsx";
+import FutureSuggestions from "./FutureSuggestions.jsx";
+import {fetchJson, apiErrorMessage} from "../utils/api";
+import { useServerWorkflow } from '../utils/useServerWorkflow.js'
+import { exportEligibility } from '../utils/reviewGate.js'
+import { buildReviewRecordFile, buildSyllabusExportFile } from '../utils/exportSyllabus.js'
+import { validateSubmission } from '../utils/submissionGate'
+import { toPanelComments } from '../utils/serverComments.js'
+import CommentsSidebar from './CommentsSidebar.jsx'
+import { useCommentFocus, useCommentFromLink, useWeekCommentsLink, sectionOfComment } from '../utils/useCommentFocus.js'
+import PDFViewerModal from './PDFViewerModal'
+import unclogo from '../assets/unclogo.png'
+
+import CourseDetails from "./CourseDetails";
+import OutcomeAlignment from './OutcomeAlignment';
+import ILOs from "./ILOs";
+import CriteriaForGrading from "./CriteriaForGrading";
+import CourseCoverage from "./CourseCoverage";
+import ReferenceSummary from "./ReferenceSummary";
+import Spinner from './Spinner.jsx';
+import { alertDialog } from '../utils/appDialog.jsx';
+
+
+const SyllabusSections = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedSection = searchParams.get('section') || 'Course Details';
+    const navigate = useNavigate()
+    const location = useLocation()
+
+    // Extracted directly from route: /courses/:pcId/:revNum/:status
+    const params = useParams();
+    const { status, revNum: revisionNum, pcId: offeringID } = params;
+    // One parameter name for a course code now — see utils/routes.js.
+    const courseCode = params.code || ''
+    const backPath = location.state?.fromTab
+        ? `/?tab=${location.state.fromTab}`
+        : (location.state?.fromStatus || status)
+            ? `/?status=${location.state?.fromStatus || status}`
+            : '/'
+
+    // The instructor route is /courses/:pcId/:revNum/:status, which carries no
+    // course code, so it is resolved from the offering.
+    const [resolvedCode, setResolvedCode] = useState(courseCode)
+    useEffect(() => {
+        if (courseCode) { setResolvedCode(courseCode); return }
+        if (!offeringID) return
+        let cancelled = false
+        fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`)
+            .then(d => { if (!cancelled && d?.code) setResolvedCode(d.code) })
+            .catch(err => console.warn('Could not resolve the course code for this offering:', err))
+        return () => { cancelled = true }
+    }, [courseCode, offeringID, revisionNum])
+
+    // The reviewers' comments on this plan, from the server (which decides what the instructor may read; a Dean
+    // return still with the Program Head keeps the Dean's new ones back). Shown in the sidebar on every section.
+    const [planComments, setPlanComments] = useState([])
+    const [commentsCollapsed, setCommentsCollapsed] = useState(
+        () => typeof window !== 'undefined' && window.innerWidth <= 1024
+    )
+    useEffect(() => {
+        if (!offeringID) return
+        let cancelled = false
+        fetchJson(`/api/comments/course/${offeringKey(offeringID, revisionNum)}`)
+            .then(rows => { if (!cancelled) setPlanComments(toPanelComments(rows, resolvedCode)) })
+            .catch(err => { if (!cancelled) { console.warn('Could not load the comments for this plan:', err); setPlanComments([]) } })
+        return () => { cancelled = true }
+    }, [offeringID, revisionNum, resolvedCode])
+    // The comments the instructor sees (one for the Program Head that is still open stays with them), and
+    // "Show in plan" for each: the section opens at the item the comment names, flashed yellow
+    // (utils/useCommentFocus.js). A notification about a comment opens it the same way (?comment=<id>).
+    const sidebarComments = planComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
+    // While the plan is the instructor's to change (draft, returned), coverage and references are edited in one section,
+    // "Intended Learning Outcomes"; the read-only "Course Coverage" and "References Summary" are not in the picker then.
+    const editable = status === 'draft' || status === 'returned'
+    const sectionFor = useCallback((section) => (editable && (section === 'Course Coverage' || section === 'References Summary') ? 'Intended Learning Outcomes' : section), [editable])
+    const openSection = useCallback((section) => setSearchParams(p => { const next = new URLSearchParams(p); next.set('section', sectionFor(section)); next.delete('comment'); return next }, { replace: true }), [setSearchParams, sectionFor])
+    const showCommentInPlan = useCommentFocus({ selectedSection, openSection, sectionFor })
+    const openCommentsPanel = useCallback(() => setCommentsCollapsed(false), [])
+    useCommentFromLink({ comments: sidebarComments, openPanel: openCommentsPanel, showCommentInPlan })
+    useWeekCommentsLink({ comments: sidebarComments, openPanel: openCommentsPanel })
+    // The instructor marks a comment resolved while the plan is back with them; the server records it at once.
+    const resolvePlanComment = (id) => {
+        const serverId = Number(String(id).replace('server-', ''))
+        setPlanComments(list => list.map(c => c.id === id ? { ...c, resolved: true, status: 'resolved', resolvedAt: new Date().toISOString() } : c))
+        fetchJson('/api/comments/update-resolution', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: [{ comment_id: serverId, resolved_status: true }] })
+        }).catch(err => {
+            setPlanComments(list => list.map(c => c.id === id ? { ...c, resolved: false, status: 'pending', resolvedAt: null } : c))
+            alertDialog(apiErrorMessage(err, 'The comment was not marked resolved. Try again.'), { title: 'Not saved' })
+        })
+    }
+
+    // The export's approval block reads the server workflow log; nothing is kept locally.
+    const { workflow } = useServerWorkflow(offeringID, resolvedCode)
+    // Exportable once the Director of Libraries and the Program Head have accepted, even before the Dean.
+    const exportInfo = exportEligibility(workflow)
+
+    const [isLoading, setIsLoading] = useState(false);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
+    const [previewFile, setPreviewFile] = useState(null)
+    const [exportingPdf, setExportingPdf] = useState(false)
+
+    // The accreditation review record: every comment, workflow action and the final approvers.
+    const handleReviewRecord = async () => {
+        setExportingPdf(true)
+        try {
+            setPreviewFile(await buildReviewRecordFile({ pcId: offeringID, code: resolvedCode }))
+        } catch (err) {
+            alertDialog(`The review record could not be made. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Review record failed' })
+        } finally {
+            setExportingPdf(false)
+        }
+    }
+
+    // The same export as the approvers' (utils/exportSyllabus.js), so it also starts with the Program Head's
+    // uploaded front pages when there are any.
+    const handleExport = async () => {
+        setExportingPdf(true)
+        try {
+            const logoUrl = new URL(unclogo, window.location.origin).href
+            setPreviewFile(await buildSyllabusExportFile({ pcId: offeringID, revNum: revisionNum, code: resolvedCode, workflow, logoUrl }))
+        } catch (err) {
+            console.warn('Export generation failed:', err)
+            alertDialog(`The learning plan could not be exported. ${apiErrorMessage(err, 'Try again.')}`, { title: 'Export failed' })
+        } finally {
+            setExportingPdf(false)
+        }
+    }
+
+    // Submission Modal States (undo-window submit flow)
+    const [submitPhase, setSubmitPhase] = useState('IDLE');
+    const [gateResult, setGateResult] = useState(null);
+    const [timeLeft, setTimeLeft] = useState(5);
+    const timerRef = useRef(null);
+
+    useEffect(() => {
+        setIsLoading(true);
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [selectedSection]);
+
+    const handleSectionChange = (e) => {
+        setSearchParams({ section: e.target.value });
+    };
+
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+    // The industry consultant's suggestions on this plan and its earlier versions (components/FutureSuggestions.jsx).
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+    const closeSuggestions = useCallback(() => setSuggestionsOpen(false), []);
+
+    const toggleMenu = (event) => {
+        event.stopPropagation();
+        setIsOpen(prev => !prev);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('click', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    // --- Corrected Submission Logic ---
+    // Alignment gate: the plan cannot be submitted while its hours and ILO
+    // allocation do not line up, so the program head confirms instead of
+    // hand-checking. The checks read the learning-plan / TOS endpoints; they
+    // do not recompute anything those modules own.
+    const handleInitialSubmitClick = async () => {
+        setSubmitPhase('CHECKING');
+        try {
+            const [details, coverage] = await Promise.all([
+                fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`),
+                fetchJson(`/api/course-coverage/${offeringKey(offeringID, revisionNum)}`)
+            ]);
+            const result = await validateSubmission({
+                courseDetails: details,
+                coverage,
+                textFields: [
+                    // Free-text the program head actually reads; feed the
+                    // entry spelling gate [46:58] [49:25]. Shapes vary, so
+                    // pull whichever key each entry carries.
+                    ...(details?.name ? [details.name] : []),
+                    ...(coverage?.topics || []).map(t =>
+                        t?.text || t?.title || t?.name || t?.topic || ''),
+                    ...(coverage?.ilos || []).map(i =>
+                        (i?.description || i?.text || i?.title || i?.name || '') +
+                        ((i?.topics || []).map(tp => tp?.text || tp?.title || tp?.name || '').join(' '))
+                    ),
+                ].filter(Boolean)
+            });
+            setGateResult(result);
+            setSubmitPhase(result.ok ? 'CONFIRM' : 'BLOCKED');
+        } catch (error) {
+            console.error('Alignment check failed:', error);
+            setGateResult({ ok: false, blockers: [`The alignment check could not run. ${apiErrorMessage(error, 'Try again.')}`], warnings: [] });
+            setSubmitPhase('BLOCKED');
+        }
+    };
+
+    const confirmSubmission = () => {
+        setSubmitPhase('WAITING');
+        setTimeLeft(5);
+    };
+
+    const cancelSubmission = useCallback(() => {
+        setSubmitPhase('IDLE');
+        setTimeLeft(5);
+    }, []);
+
+    const executeFinalSubmission = useCallback(async () => {
+        setSubmitPhase('SUBMITTING');
+        try {
+            await fetchJson(`/api/submit-learning-plan/${offeringKey(offeringID, revisionNum)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            setSubmitPhase('DONE');
+
+            setTimeout(() => {
+                navigate('/');
+            }, 1500);
+
+        } catch (error) {
+            console.error("Error during submission:", error);
+            cancelSubmission();
+            alertDialog(apiErrorMessage(error, 'Could not submit the learning plan.'), { title: 'Not submitted' });
+        }
+    }, [cancelSubmission, navigate, offeringID, revisionNum]);
+
+    // Safe useEffect timer implementation. This is declared after the submit
+    // callback so the effect can track the exact function it invokes.
+    useEffect(() => {
+        if (submitPhase === 'WAITING' && timeLeft > 0) {
+            timerRef.current = setTimeout(() => {
+                setTimeLeft(timeLeft - 1);
+            }, 1000);
+        } else if (submitPhase === 'WAITING' && timeLeft === 0) {
+            executeFinalSubmission();
+        }
+
+        return () => clearTimeout(timerRef.current);
+    }, [submitPhase, timeLeft, executeFinalSubmission]);
+
+
+    return (
+        <div className={styles.container}>
+            <div className={styles.navi}>
+                <Link  to={backPath} className={'actionLink'} >
+                    <div className={styles.return}>
+                        <ChevronLeft size={18}/>
+                    </div>
+                </Link>
+
+                <div className={styles['section-select']}>
+                    <select value={selectedSection} onChange={handleSectionChange}>
+                        <option value="Course Details">Course Details</option>
+                        <option value="Course and Program Outcome Alignment">Course and Program Outcome Alignment</option>
+                        {(status === 'approved' || status === 'pending') &&
+                            <>
+                                <option value="Course Coverage">Course Coverage</option>
+                                <option value="References Summary">References</option>
+                            </>
+                        }
+                        {(status === 'draft' || status === 'returned') &&
+                            <option value="Intended Learning Outcomes">Course Coverage</option>
+                        }
+                        <option value="Criteria for Grading">Criteria for Grading</option>
+                    </select>
+                </div>
+
+                {(status === 'draft' || status === 'returned') &&
+                    <>
+                        <div onClick={() => setIsPreviewOpen(true)} className={styles.draft}>
+                            <Play size={14} />
+                            Preview
+                        </div>
+
+                        <div className={styles.submit} onClick={handleInitialSubmitClick}>
+                            <Send size={14}/>
+                            Submit
+                        </div>
+                    </>
+                }
+
+                {
+                    status !== 'draft' &&
+                    <>
+                        <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
+                            <div className={styles.moreIcon} >
+                                <MoreVertical strokeWidth={2} size={16} />
+                            </div>
+
+                            <div className={styles.dropdownMenu}>
+                                {
+                                    status === 'approved' &&
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
+                                        <Clock strokeWidth={2} size={14} /> Revisions
+                                    </button>
+                                }
+                                {
+                                    (status === 'approved' || exportInfo.allowed) &&
+                                    <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleExport(); }}>
+                                        <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : (exportInfo.pendingDean ? 'Export (pending Dean approval)' : 'Export')}
+                                    </button>
+                                }
+                                <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleReviewRecord(); }}>
+                                    <Download strokeWidth={2} size={14} /> Review record
+                                </button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setSuggestionsOpen(true); }}>
+                                    <MessageSquare strokeWidth={2} size={14} /> Future Suggestions
+                                </button>
+
+                            </div>
+                        </div>
+                    </>
+                }
+
+            </div>
+
+            <div className={styles['plan-with-comments']}>
+            <div className={styles['dynamic-sections']}>
+                {isLoading ? (
+                    <Spinner label="Loading the learning plan…" minHeight={320} />
+                ) : (
+                    <>
+                        {selectedSection === 'Course Details' &&
+                            <CourseDetails offeringID={offeringID} revisionNum={revisionNum} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
+                        }
+
+                        {selectedSection === 'Course and Program Outcome Alignment' &&
+                            <OutcomeAlignment offeringID={offeringID} revisionNum={revisionNum} styles={styles} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
+                        }
+
+                        {selectedSection === 'Intended Learning Outcomes' && (
+                            <ILOs offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} fetchJson={fetchJson} />
+                        )}
+
+                        {selectedSection === 'Criteria for Grading' && (
+                            <CriteriaForGrading offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
+                        )}
+
+                        {selectedSection === 'Course Coverage' && (
+                            <CourseCoverage offeringID={offeringID} revisionNum={revisionNum} status={status} selectedSection={selectedSection} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                        )}
+
+                        {selectedSection === 'References Summary' && (
+                            <ReferenceSummary offeringID={offeringID} revisionNum={revisionNum} status={status} selectedSection={selectedSection} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                        )}
+
+                        <SyllabusPreview isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} />
+
+                        {suggestionsOpen && <FutureSuggestions pcId={offeringID} onClose={closeSuggestions} />}
+
+                        {isRevisionsOpen && (
+                            <Revisions
+                                onClose={() => setIsRevisionsOpen(false)}
+                                revNum={revisionNum}
+                                pcId={offeringID}
+                            />
+                        )}
+
+                        {previewFile && (
+                            <PDFViewerModal
+                                file={previewFile}
+                                onClose={() => { if (previewFile) URL.revokeObjectURL(previewFile.file_url); setPreviewFile(null) }}
+                            />
+                        )}
+
+                    </>
+                )}
+            </div>
+            <CommentsSidebar
+                panelId="plan-comments-panel"
+                comments={sidebarComments}
+                collapsed={commentsCollapsed}
+                onToggle={() => setCommentsCollapsed(value => !value)}
+                emptyHint="Comments from your reviewers will appear here once they have looked at your plan."
+                canResolve={(comment) => status === 'returned' && comment.recipientRole === 'instructor'}
+                onResolve={resolvePlanComment}
+                canShowInPlan={(comment) => Boolean(sectionOfComment(comment))}
+                onShowInPlan={showCommentInPlan}
+            />
+            </div>
+
+            {/* --- Custom Submission Modals --- */}
+            {submitPhase !== 'IDLE' && (
+                <div className={styles.submitOverlay}>
+
+                    {/* Alignment check Phase */}
+                    {submitPhase === 'CHECKING' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.waitingBodyCenter}>
+                                <Spinner inline size={32} label="Checking hours and ILO alignment" />
+                                <div className={styles.waitingTextSmall}>Checking hours and ILO alignment…</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Blocked Phase — alignment must pass before submission */}
+                    {submitPhase === 'BLOCKED' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.submitModalHeader}>
+                                Alignment check failed
+                            </div>
+                            <div className={styles.submitModalBody}>
+                                This learning plan cannot be submitted yet. Fix the following, then submit again:
+                                <ul style={{ margin: '10px 0 0', paddingLeft: 20 }}>
+                                    {(gateResult?.blockers || []).map((b, i) => <li key={i} style={{ marginBottom: 4 }}>{b}</li>)}
+                                </ul>
+                            </div>
+                            <div className={styles.submitModalActions}>
+                                <button className={styles.btnConfirmDark} onClick={() => setSubmitPhase('IDLE')}>Close</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Confirmation Phase */}
+                    {submitPhase === 'CONFIRM' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.submitModalHeader}>
+                                Submit Learning Plan
+                            </div>
+                            <div className={styles.submitModalBody}>
+                                Are you sure you want to finalize and submit this learning plan for review? You will no longer be able to edit it unless it is returned.
+                                {(gateResult?.warnings || []).length > 0 &&
+                                    <ul style={{ margin: '10px 0 0', paddingLeft: 20, color: '#b45309' }}>
+                                        {gateResult.warnings.map((w, i) => <li key={i} style={{ marginBottom: 4 }}>{w}</li>)}
+                                    </ul>
+                                }
+                            </div>
+                            <div className={styles.submitModalActions}>
+                                <button className={styles.btnCancelPlain} onClick={() => setSubmitPhase('IDLE')}>Cancel</button>
+                                <button className={styles.btnConfirmDark} onClick={confirmSubmission}>Yes, Submit</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Waiting / Undo Phase */}
+                    {submitPhase === 'WAITING' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.waitingBody}>
+                                <div className={styles.waitingText}>
+                                    Submitting in <strong>{timeLeft}</strong> seconds...
+                                </div>
+                                <div className={styles.progressContainer}>
+                                    <div className={styles.progressBar} style={{ animationDuration: '5s' }}></div>
+                                </div>
+                            </div>
+                            <div className={styles.submitModalActionsFull}>
+                                <button className={styles.btnUndoBlock} onClick={cancelSubmission}>Cancel Submission</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Submitting / Loading Phase */}
+                    {submitPhase === 'SUBMITTING' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.waitingBodyCenter}>
+                                <Spinner inline size={32} label="Processing submission" />
+                                <div className={styles.waitingTextSmall}>Processing submission…</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Done Phase */}
+                    {submitPhase === 'DONE' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.waitingBodyCenter}>
+                                <div className={styles.successIcon}>✓</div>
+                                <div className={styles.waitingTextSmall}>Successfully Submitted!</div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default SyllabusSections;

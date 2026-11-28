@@ -1,0 +1,66 @@
+@keyframes recordOverlayIn
+  from
+    opacity: 0
+  to
+    opacity: 1
+
+@keyframes recordModalIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(0.97)
+  to
+    opacity: 1
+    transform: translate(-50%, -50%) scale(1)
+
+.overlay
+  position: fixed
+  inset: 0
+  background: rgba(0, 0, 0, 0.45)
+  z-index: 100
+  animation: recordOverlayIn 0.18s ease
+
+.modal
+  position: fixed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  width: 440px
+  max-width: 94vw
+  max-height: 86vh
+  overflow-y: auto
+  padding: 28px
+  background: #FFFFFF
+  border-radius: 10px
+  display: flex
+  flex-direction: column
+  gap: 16px
+  z-index: 101
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18)
+  animation: recordModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1)
+
+.title
+  font-size: 20px
+  font-weight: 600
+  color: #18191A
+
+.buttons
+  display: flex
+  gap: 12px
+  margin-top: 8px
+
+.btn
+  flex: 1
+  height: 40px
+  border-radius: 8px
+  font-weight: 500
+  cursor: pointer
+
+.btnCancel
+  background: #FFFFFF
+  border: 1px solid #18191A
+  color: #18191A
+
+.btnPrimary
+  background: #18191A
+  border: none
+  color: #FFFFFF

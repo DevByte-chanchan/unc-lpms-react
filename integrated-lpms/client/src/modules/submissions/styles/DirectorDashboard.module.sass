@@ -1,0 +1,123 @@
+// The Director of Libraries' dashboard (pages/lpsm/DirectorOfLibraries/DirectorDashboard.jsx). Tokens only.
+.page
+  display: flex
+  flex-direction: column
+  gap: 16px
+  padding: 20px 24px 32px
+  max-width: 1100px
+
+.card
+  background: var(--surface)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-lg)
+  padding: 16px 20px
+
+.cardHead
+  display: flex
+  align-items: baseline
+  justify-content: space-between
+  gap: 12px
+  margin-bottom: 12px
+
+  h2
+    margin: 0
+    font-size: var(--fs-lg)
+    font-weight: 600
+    color: var(--ink)
+
+.count, .more
+  font-size: var(--fs-sm)
+  color: var(--ink-muted)
+
+.more
+  text-decoration: underline
+
+.error
+  margin: 0
+  color: var(--danger)
+
+.list
+  list-style: none
+  margin: 0
+  padding: 0
+
+  li + li
+    border-top: 1px solid var(--line)
+
+.planRow
+  display: grid
+  grid-template-columns: 110px minmax(0, 1fr) auto
+  align-items: center
+  gap: 12px
+  padding: 10px 4px
+  color: var(--ink)
+  text-decoration: none
+
+  &:hover, &:focus-visible
+    background: var(--surface-sunken)
+
+.planCode
+  font-weight: 600
+
+.planTitle
+  display: flex
+  flex-direction: column
+  min-width: 0
+
+  small
+    color: var(--ink-muted)
+    font-size: var(--fs-sm)
+
+.wait, .waitLong
+  font-size: var(--fs-sm)
+  white-space: nowrap
+  color: var(--ink-muted)
+
+// waiting 3 days or more: the day the reminder goes out
+.waitLong
+  color: var(--warn)
+  font-weight: 600
+
+.libraryGrid
+  display: grid
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))
+  gap: 24px
+
+.big
+  margin: 0 0 8px
+  font-size: 28px
+  font-weight: 700
+  color: var(--ink)
+
+  small
+    font-size: var(--fs-sm)
+    font-weight: 500
+    color: var(--ink-muted)
+
+.types
+  list-style: none
+  margin: 0
+  padding: 0
+
+  li
+    display: flex
+    justify-content: space-between
+    gap: 12px
+    padding: 4px 0
+    font-size: var(--fs-sm)
+    color: var(--ink)
+
+.ok
+  margin: 0
+  font-size: var(--fs-sm)
+  color: var(--ink-muted)
+
+@media (max-width: 720px)
+  .page
+    padding: 16px
+
+  .planRow
+    grid-template-columns: minmax(0, 1fr) auto
+
+  .planCode
+    grid-column: 1 / -1

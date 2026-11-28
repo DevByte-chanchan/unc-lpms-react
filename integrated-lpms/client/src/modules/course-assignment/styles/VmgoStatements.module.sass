@@ -1,0 +1,403 @@
+// University VMGO (OVPAA) and Department Vision & Mission (Dean). Same palette as UploadPreviewFlow.module.sass —
+// the review dialog reuses that file's panel, header, stepper and footer, and
+// only the document view and the editable form live here.
+//
+// No <table> anywhere: src/index.css turns every table into flexbox (see the
+// note in UploadPreviewFlow.module.sass), so the two-column document is a grid.
+
+$primary: #18191A
+$text: #374151
+$border: #D1D5DB
+$muted: #6B7280
+$error: #B91C1C
+$warn: #92400E
+$warn-bg: #FFFBEB
+$warn-border: #FDE68A
+$changed-bg: #EFF6FF
+$changed-border: #93C5FD
+$bar: #D9D9D9
+
+// ---------- page ----------
+
+.page
+  padding: 20px
+  background: #FFFFFF
+  height: 100%
+  overflow: auto
+  display: flex
+  flex-direction: column
+  gap: 16px
+
+.pageHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.pageTitle
+  margin: 0
+
+.meta
+  color: $muted
+  font-size: 13px
+  margin-top: 4px
+
+.layout
+  display: grid
+  grid-template-columns: minmax(0, 1fr) 280px
+  gap: 20px
+  align-items: start
+
+  @media (max-width: 1000px)
+    grid-template-columns: minmax(0, 1fr)
+
+// ---------- the document (view state, and the history viewer) ----------
+
+.doc
+  border: 1px solid $primary
+  font-size: 14px
+  color: $primary
+  line-height: 1.55
+
+.docBar
+  background: $bar
+  text-align: center
+  font-weight: 700
+  letter-spacing: 0.04em
+  padding: 6px 12px
+  border-bottom: 1px solid $primary
+
+.docRow
+  display: grid
+  grid-template-columns: 170px minmax(0, 1fr)
+
+  & + &
+    border-top: 1px solid $primary
+
+.docLabel
+  padding: 12px
+  font-weight: 700
+  font-size: 13px
+  border-right: 1px solid $primary
+  text-transform: uppercase
+
+.docContent
+  padding: 12px 14px
+  white-space: pre-wrap
+
+.docList
+  margin: 0
+  padding-left: 20px
+  display: flex
+  flex-direction: column
+  gap: 6px
+
+.docListPlain
+  list-style: none
+  padding-left: 0
+
+.docEmpty
+  color: $muted
+  font-style: italic
+
+// ---------- history ----------
+
+.side
+  border: 1px solid $border
+  border-radius: 10px
+  padding: 14px
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.sideTitle
+  font-weight: 600
+  font-size: 15px
+
+.version
+  display: flex
+  flex-direction: column
+  gap: 6px
+  padding: 10px 0
+  border-top: 1px solid #E5E7EB
+
+.versionTop
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  font-size: 13px
+  font-weight: 600
+
+.versionMeta
+  color: $muted
+  font-size: 12px
+  word-break: break-word
+
+.versionActions
+  display: flex
+  gap: 8px
+
+.badge
+  font-size: 11px
+  font-weight: 600
+  padding: 2px 8px
+  border-radius: 9999px
+  background: #ECFDF5
+  color: #047857
+  border: 1px solid #A7F3D0
+
+.badgeMuted
+  background: #F3F4F6
+  color: $muted
+  border-color: #E5E7EB
+
+.smallBtn
+  height: 30px
+  padding: 0 12px
+  font-size: 13px
+  border-radius: 6px
+  border: 1px solid $border
+  background: #FFFFFF
+  color: $text
+  cursor: pointer
+  display: inline-flex
+  align-items: center
+  gap: 6px
+
+  &:hover:not(:disabled)
+    border-color: $primary
+  &:disabled
+    opacity: 0.5
+    cursor: not-allowed
+
+// ---------- empty state ----------
+
+.empty
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: 16px
+  min-height: 360px
+  text-align: center
+
+.emptyIcon
+  width: 100px
+  height: 100px
+  border-radius: 16px
+  background: #F3F4F6
+  display: flex
+  align-items: center
+  justify-content: center
+
+// ---------- review form ----------
+
+.reviewBody
+  flex: 1
+  overflow: auto
+  padding: 16px 32px 24px
+  display: flex
+  flex-direction: column
+  gap: 14px
+
+.notice
+  display: flex
+  gap: 8px
+  align-items: flex-start
+  padding: 10px 14px
+  border-radius: 8px
+  background: $warn-bg
+  border: 1px solid $warn-border
+  color: $warn
+  font-size: 13px
+  line-height: 1.45
+
+.noticeInfo
+  background: $changed-bg
+  border-color: $changed-border
+  color: #1E40AF
+
+.colHeads
+  display: grid
+  gap: 16px
+  font-size: 12px
+  font-weight: 600
+  color: $muted
+  text-transform: uppercase
+  letter-spacing: 0.04em
+
+.section
+  display: grid
+  gap: 16px
+  align-items: start
+  padding: 14px 0
+  border-top: 1px solid #E5E7EB
+
+.twoCol
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)
+
+.oneCol
+  grid-template-columns: minmax(0, 1fr)
+
+.field
+  display: flex
+  flex-direction: column
+  gap: 6px
+  border-radius: 8px
+
+.fieldChanged
+  background: $changed-bg
+  box-shadow: 0 0 0 6px $changed-bg
+
+.fieldLabel
+  display: flex
+  align-items: center
+  gap: 8px
+  font-weight: 600
+  font-size: 14px
+  color: $primary
+
+.required
+  color: $error
+
+.changedTag
+  font-size: 11px
+  font-weight: 600
+  color: #1D4ED8
+  background: #DBEAFE
+  border-radius: 9999px
+  padding: 1px 8px
+
+.textarea, .input
+  width: 100%
+  box-sizing: border-box
+  border: 1px solid $border
+  border-radius: 8px
+  padding: 8px 10px
+  font: inherit
+  font-size: 14px
+  color: $primary
+  background: #FFFFFF
+  line-height: 1.5
+
+  &:focus
+    outline: none
+    border-color: $primary
+
+.textarea
+  resize: vertical
+  min-height: 72px
+
+.inputInvalid
+  border-color: $error
+
+.warn
+  display: flex
+  gap: 6px
+  align-items: flex-start
+  color: $warn
+  font-size: 12px
+  line-height: 1.4
+
+.fieldError
+  color: $error
+  font-size: 12px
+
+.item
+  display: grid
+  grid-template-columns: 28px minmax(0, 1fr) auto
+  gap: 8px
+  align-items: start
+  padding: 8px
+  border: 1px solid #E5E7EB
+  border-radius: 8px
+  background: #FFFFFF
+
+.itemChanged
+  border-color: $changed-border
+  background: $changed-bg
+
+.itemNum
+  font-weight: 600
+  color: $muted
+  padding-top: 8px
+  text-align: right
+
+.itemFields
+  display: flex
+  flex-direction: column
+  gap: 6px
+
+.itemActions
+  display: flex
+  flex-direction: column
+  gap: 4px
+
+.iconBtn
+  width: 28px
+  height: 28px
+  border-radius: 6px
+  border: 1px solid $border
+  background: #FFFFFF
+  cursor: pointer
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 0
+
+  &:hover:not(:disabled)
+    border-color: $primary
+  &:disabled
+    opacity: 0.35
+    cursor: not-allowed
+
+.addBtn
+  align-self: flex-start
+
+.current
+  font-size: 14px
+  color: $text
+  line-height: 1.55
+  padding: 10px 12px
+  border-radius: 8px
+  background: #F9FAFB
+  border: 1px solid #E5E7EB
+  white-space: pre-wrap
+
+.currentLabel
+  font-size: 12px
+  font-weight: 600
+  color: $muted
+  margin-bottom: 4px
+
+// ---------- step 3 ----------
+
+.done
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: 12px
+  text-align: center
+  padding: 32px
+
+.doneIcon
+  width: 64px
+  height: 64px
+  border-radius: 32px
+  background: #ECFDF5
+  display: flex
+  align-items: center
+  justify-content: center
+
+// ---------- department vision & mission (Dean) ----------
+
+.deptName
+  color: $text
+  font-size: 14px
+  font-weight: 600
+  margin-top: 6px
